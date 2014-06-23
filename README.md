@@ -1,4 +1,0 @@
-COSyn
-=====
-
-CO synthesis code
