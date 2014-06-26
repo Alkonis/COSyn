@@ -6,6 +6,7 @@
 #include <fstream>
 #include <armadillo>
 #include "lib/idlarma.h"
+#include "CollData.cpp"
 
 using namespace std;
 using namespace arma;
@@ -17,6 +18,7 @@ class FitData{
   static int numGuesses;
 
   double* FillArray(int modulus, int offset);
+
 
   //parameters constant for all runs
   static constexpr double f_i = 1995.;

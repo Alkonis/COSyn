@@ -18,12 +18,13 @@
 using namespace std;
 using namespace idlarma;
 
-//FitData* Data;
+FitData* data;
 
 constexpr double FitData::vib_einA[];
 
 
 int FitData::numGuesses;
+
 
 //returns an array of size numGuesses filled with random numbers on the interval (offset, modulus+offset)
 double* FitData::FillArray(int modulus, int offset)
@@ -38,8 +39,9 @@ double* FitData::FillArray(int modulus, int offset)
 
 
 int FitData::runCollisions(bool doCols){             //declare F_tau!   Get matrix from cube view?!?!?!?!!?!?!@?!?!?!?!?!? 
-  if (rel_lum > 0.001)   
+  /*if (rel_lum > 0.001)   
   {
+ //   CollData d = new CollData(this->layers, this->steps);
     vec b_tot = sqrt(2*1.38e-16*6.02e23*T_rot_fl/28 + pow(v_turb,2));
     vec tau = linspace<vec>(0,20,2000);   //check valueis here   idl = findgen(2e3)/1e2) === findgen(2000/100)  == [0, 20], N=2000
     vec F_tau=zeros<vec>(2000);
@@ -177,7 +179,7 @@ int FitData::runCollisions(bool doCols){             //declare F_tau!   Get matr
        }
      }
    }
-  }
+  }*/
   return 0;
 }
 
@@ -194,7 +196,7 @@ mat fXA = 2*fAX*/
 //============================
 //Divide into annulli
 //=============================
-  cerr << "Diving into annulli...";
+  
   ranulli.push_back(r); 
   if (r<0.1)
   {
@@ -225,7 +227,8 @@ mat fXA = 2*fAX*/
       ranulli.push_back(maxrb+1.0*r_index_c);
     }
   }
- 
+
+  cerr << "Ranulli: " << ranulli.at(0) << endl;
   steps=ranulli.size();  //check that this size function is correct
   
   vec rdisk= zeros<vec>(steps);
@@ -236,6 +239,32 @@ mat fXA = 2*fAX*/
 
 //benchmark here!  Make sure these results are the same from the IDL code and the C++ code!
   
+
+  CollData* d = new CollData(this->layers, this->steps);
+  for (auto i=0; i<steps;i++) {
+    for (auto j=0; j<layers;j++) {
+      for (auto k=0; k<9;k++) {
+        for (auto q=0; q<10; q++)
+        {
+          cerr << "(i,j,k,q) = (" << i << "," << j << "," << k << "," << q << ")" << endl;
+          d->rate_eqtn(k+11,0)(q,j,i)=einA.at(k,q);//k+11, q,j,i,   k ,q
+        }
+      }
+    }
+  }
+  cerr << "Yo mama." << endl;
+
+   d->rate_eqtn.at(1,0)(span(0),span::all,span::all).fill(vib_einA[0]);   //vib_EinA will need to be some kind of Arma class for this to work... I will need to test this
+   d->rate_eqtn.at(10,0)(span(10),span::all,span::all).fill(vib_einA[9]);  //look up vib_EinA
+   cerr << "Naw nigga, YO MAMA." << endl;
+   for (auto i=0; i<9; i++)
+   {
+     d->rate_eqtn.at(i+11,0)(span(i+1),span::all,span::all).fill(sum(einA.row(i)));
+   }
+
+
+  cerr << "Done." << endl;
+
   T_rot_fl = T_rot0_fl *pow((1.5E13/rdisk),T_rot_alpha_fl);
   ivec T_rot_index=where(T_rot_fl, [] (double datum) {return datum >= 3500;});
 
@@ -261,8 +290,154 @@ mat fXA = 2*fAX*/
   }
 
   cerr << "Starting collisions...";
-  runCollisions(0);
-  runCollisions(1);
+  
+  if (rel_lum > 0.001)   
+  {
+ //   CollData d = new CollData(this->layers, this->steps);
+    vec b_tot = sqrt(2*1.38e-16*6.02e23*T_rot_fl/28 + pow(v_turb,2));
+    vec tau = linspace<vec>(0,20,2000);   //check valueis here   idl = findgen(2e3)/1e2) === findgen(2000/100)  == [0, 20], N=2000
+    vec F_tau=zeros<vec>(2000);
+ 
+    //==============INTEGRATE FUNCTION USING TRAPEZOID RULE================
+    
+   cerr << "Integrating...";
+    double sum = 0;
+    auto n = 1000;
+    auto a = 0;
+    auto b = 5;
+
+    auto delta=(b-a)/n;
+    
+    for (int i=0; i<2000; i++) 
+    {
+      sum=0.5 * ( (1 - exp(-tau(i)*exp(-a^2))) + (1 - exp(-tau(i)*exp(-b^2))) );
+      for (int j=0; j<n; j++)  
+      {
+        auto x=a+delta*j;
+        sum=sum+(1-exp(-tau(i)*exp(-x^2)));
+      }
+      sum = sum*delta;
+      F_tau(i)=sum;
+    }
+    
+    vec dFdt=deriv(tau,F_tau);
+    
+    cerr << "Collisions...";
+    //=============COLLISIONS=============
+    for (int k=0; k<steps; k++)
+    {
+      for (int z=0; z<8; z++)
+      {
+        d->rate_eqtn.at(z+1,0).slice(k).col(z+1).fill(-vib_einA[z]);
+        d->rate_eqtn.at(z+2,0).slice(k).col(z+1).fill(vib_einA[z+1]);
+      }
+      d->rate_eqtn.at(1,0).subcube(span(0),span::all,span(k)).fill(vib_einA[0]);
+      d->rate_eqtn.at(9,0).subcube(span(9),span::all,span(k)).fill(-vib_einA[8]);
+
+     if (0  == 0)
+     {
+       auto k_HCO_dn = (7.57e-15*T_rot_cl[k]/(1-exp(-3084/T_rot_cl[k])))*H_den[k];
+       auto k_HCO_up=k_HCO_dn*exp(-3084/T_rot_cl[k]);
+
+       d->rate_eqtn.at(0,0).subcube(span(0),span::all,span(k))=d->rate_eqtn.at(0,0).subcube(span(0),span::all,span(k))-k_HCO_up;
+       d->rate_eqtn.at(1,0).subcube(span(0),span::all,span(k))=d->rate_eqtn.at(1,0).subcube(span(0),span::all,span(k));
+       
+       for (int i=1; i<9; i++) 
+       {
+         d->rate_eqtn.at(i-1,0).subcube(span(i),span::all,span(k)) = d->rate_eqtn.at(i-1,0).subcube(span(i),span::all,span(k))+k_HCO_up;
+         d->rate_eqtn.at(i  ,0).subcube(span(i),span::all,span(k)) = d->rate_eqtn.at(i  ,0).subcube(span(i),span::all,span(k))-k_HCO_dn-k_HCO_up;
+         d->rate_eqtn.at(i+1,0).subcube(span(i),span::all,span(k)) = d->rate_eqtn.at(i+1,0).subcube(span(i),span::all,span(k))+k_HCO_dn;
+       }
+     
+      cerr << "UV pumping...";
+       //===================ULTRAVIOLET PUMPING========================
+       
+       auto Fuv=HD100546_luminosity/(4*3.1415926535897)*rdisk[k];
+       
+       for (int j=0; j<layers; j++)
+       {
+         if (j>0)
+         {
+           for (int i=0; i<10; i++)
+           {
+            // tau_0.subcube(span(i),span::all,span(j))=sum(Nv.subcube(span(0,11),span(0,j),span(k))) * 7.55858e12 * 0.02654*fXA.submat(span(i),span::all)*lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);   //Check this!
+            d->tau_0.subcube(span(i),span::all,span(j))=accu(Nv.slice(k).submat(span(0,11),span(0,j))) *  7.55858e12 * 0.02654*fXA.submat(span(i),span::all)*lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
+           }
+         }
+       cerr << "Test" << endl;
+         auto max_iter=d->tau_0.slice(j).col(0).n_elem; 
+         cerr << "maxiter set" << endl;
+         for (int ii=0; ii<max_iter; ii++)
+         {
+           if (d->tau_0.at(0,ii,j) < 200)
+           {
+             cerr << "loop..." << endl;
+             ivec dFdt_0_index=where(tau, [&] (double elem) {return elem == round(d->tau_0.at(0,ii,j)*10)/10;});
+             auto count = dFdt_0_index.size();
+             
+             if (count != 0)
+             {
+                 ///dFdt_0.subcube(span::all,span(ii),span(j))=dFdt[dFdt_index];    weird line!!!!!
+             }
+
+           }
+           else 
+           { 
+              cerr <<"Else..." << endl;
+             dFdt_0.slice(j).row(ii)=(1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));
+           }
+         }
+         cerr << "Test2" << endl;
+         //dwdn.subcube(span::all,span::all,span(j))=dFdt_0.subcube(span::all,span::all,span(j))*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
+         d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
+         cerr << "dwdn = " << d->dwdn << endl;
+         for (int ii=0; ii<10; ii++) 
+         {
+          // g.at(ii,0).subcube(span::all,span(j),span(k))=dwdn.subcube(span::all,span::all,span(j))*3.1415926535897 % Fuv / (hc * wavenum);
+         cerr << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
+          d->g.at(ii,0).slice(k).row(j) = d->dwdn.slice(j) * 3.1415926535897 % Fuv / (hc * wavenum);
+         }         
+         //add in g-factors:
+         cerr << "G factors...";
+         double gsum=0;
+         
+         for (int ii=0; ii<10; ii++)
+         { 
+           gsum+=g.at(ii).at(0,j,k);
+         }
+         rate_eqtn.at(0,0).at(0,j,k)=rate_eqtn.at(0,0).at(0,j,k)-gsum;
+         
+         for (int i=0; i<10; i++)
+         {
+           gsum = 0;
+           for (int ii=0; ii<10; ii++)
+           {
+             gsum+=g.at(ii).at(i,j,k);
+           }
+           rate_eqtn.at(i,0).subcube(span(i),span(j),span(k))=rate_eqtn.at(i,0).subcube(span(i),span(j),span(k)) - gsum;
+         }
+
+         for (int i=0; i<8; i++)
+         {
+           for (int ii=0; i<11; i++)
+           {
+             rate_eqtn.at(ii,0).at(11+i,j,k)=rate_eqtn.at(ii,0).at(ii+i,j,k)+g.at(i,0).at(ii,j,k);
+           }
+         }
+         rate_eqtn.at(1,0).at(10,j,k)=0;
+         
+         mat rateToSolve= zeros<mat>(21,21);
+         for (int i=0; i<21; i++)
+         {
+           //rateToSolve.submat(span(i),span::all)=rate_eqtn.at(i).subcube(span::all,span(j),span(k));
+           rateToSolve.col(i)=rate_eqtn.at(i).slice(k).row(j).t();
+         }
+        // vec rateSVD= svd(rateToSolve);
+        // vec rateSolution=solve(rateToSolve);
+       }
+     }
+   }
+  }
   
   return 0;
 }
@@ -376,7 +551,6 @@ FitData::FitData(int numGuesses)
     this->randData[5][i]=this->randData[5][i]/100;
   };
   cerr << "Done.";
-cin.get();
  //print arrays for debugging purposes
   for (int c=0; c<7; c++)
   {
@@ -384,7 +558,6 @@ cin.get();
     for (int i=0; i<numGuesses; i++) {
       cout << this->randData[c][i] << ' ' ;
     }
-    cin.get();
   };
  
  /*=================
@@ -398,7 +571,7 @@ cin.get();
   fAX = (3.038/2.03)*einA/(wavenum % wavenum);   //be sure this is right!
   fXA = 2*fAX;
 
-  cerr << "Creating cubes." << endl;
+/*  cerr << "Creating cubes." << endl;
   cerr << "Layers,steps:" << endl;
   cerr << layers;
   cerr << steps;
@@ -436,18 +609,17 @@ cin.get();
     }
   }
   
+*/
 /*  for (int k=0; k<steps; k++)
   {
     for (int i=0; i<8 i++)
     {
       rate_eqtn.at(i+1,0).subcube(span(i+1),span::all,span(k))=-vib_einA(i);
       rate_eqtn.at(i+2,0).subcube(span(i+1,span::all,span(k))=vib_einA(i+1);
-
     }
-
   }*/
   
-  for (auto i=0; i<9; i++)
+ /* for (auto i=0; i<9; i++)
   {
     //rate_eqtn.at(i+1,0)(span(i+1),span::all,span::all) = vib_einA[i];
     //rate_eqtn.at(i+2,0)(span(i+1),span::all,span::all) = vib_einA[i+1];   //vib_EinA is not defined in this scope--check this and move
@@ -462,7 +634,7 @@ cin.get();
   } 
 
   //check these threshold-sets ^^^^^^^
-  cerr << "Done.";
+  cerr << "Done.";*/
   this->runTrials();
 }
 
@@ -478,7 +650,7 @@ FitData::~FitData()
 int main(int argc, char* argv[]) 
 {
   cout <<  "Starting...";
-  FitData* data = new FitData(atoi(argv[1]));
+  data = new FitData(atoi(argv[1]));
   data->runTrials();
   delete data;
   return 1;
