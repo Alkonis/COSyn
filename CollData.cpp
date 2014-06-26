@@ -26,7 +26,7 @@ public:
   Nv     = zeros<cube>(21,layers,steps);
 
   cerr << "Creating rate equation." << endl;                                                                                           
-  rate_eqtn = field<cube>(21,1);                                                                                                       
+  rate_eqtn = field<cube>(steps,1);       
   g=field<cube>(10,1);                                                                                                                 
   cerr << "Test1." << endl;                                                                                                            
                                                                                                                                        
@@ -35,10 +35,10 @@ public:
     g.at(i,0)=zeros<cube>(12,layers,steps);                                                                                            
   }                                                                                                                                    
   cerr <<"Made g." << endl;                                                                                                            
-  for (int i=0; i<21; i++)                                                                                                             
+  for (int i=0; i<steps; i++)                                                                           
   {                                                                                                                                    
-    cout << i << endl;                                                                                                                 
-    rate_eqtn.at(i,0)=zeros<cube>(21,layers,steps);                                                                                    
+    cout << i << endl;                                                                                                          
+    rate_eqtn.at(i,0)=zeros<cube>(21,21,layers);                                                                                    
     rate_eqtn.at(i,0)(span(20),span::all,span::all).fill(1);                                                                           
   }                                                                                                                                    
 /*  for (auto i=0; i<steps;i++) {                                                                                                        
