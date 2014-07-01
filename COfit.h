@@ -74,10 +74,10 @@ class FitData{
   vec T_rot_fl;
   vec T_rot_cl;
   vec H_den; 
-  mat wavenum             = zeros<mat>(10,12);
-  mat einA                = zeros<mat>(10,12);
-  mat lam_ang             = zeros<mat>(10,12);
-  mat HD100546_luminosity = zeros<mat>(10,12);
+  mat wavenum             = zeros<mat>(12,10);
+  mat einA                = zeros<mat>(12,10);
+  mat lam_ang             = zeros<mat>(12,10);
+  mat HD100546_luminosity = zeros<mat>(12,10);
 
   cube X12CO = zeros<cube>(10,7,120);
   cube X13CO = zeros<cube>(3,7,120);

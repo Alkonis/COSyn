@@ -301,6 +301,18 @@ ENDIF
 
 b_tot=SQRT(2.*1.38e-16*6.02e23*T_rot_fl/28. + v_turb^2) ;UNITS=cm/s
 
+
+print, "T_rot_fl"
+print,T_rot_fl
+
+print, "T_rot_cl"
+print,T_rot_cl
+
+print, "H_den"
+print, H_den
+
+print, "b_tot"
+print, b_tot
 ;;;;;;;;;;;;;;;;
 ;;;; STEP 7 ;;;;
 ;;;;;;;;;;;;;;;;
@@ -332,6 +344,12 @@ ENDFOR
 ;WHEN TAU > 20, then F(tau)=SQRT(ln(tau))
 dFdt=deriv(tau,F_tau)
 
+print,"F_tau:"
+print,F_tau
+
+print,"dFdt"
+print,dFdt
+
 ;;;;;;;;;;;;;;;;
 ;;;; STEP 8 ;;;;
 ;;;;;;;;;;;;;;;;
@@ -348,6 +366,11 @@ FOR k=0,steps-1 DO BEGIN
 IF coll_loop EQ 1 THEN goto, skip_coll        
         k_HCO_dn=(7.57e-15*T_rot_cl(k)/(1-exp(-3084./T_rot_cl(k))))*H_den(k)
         k_HCO_up=k_HCO_dn*exp(-3084./T_rot_cl(k))
+        print,"k_HCO_dn"
+        print, k_HCO_dn
+
+        print,"k_HCO_up"
+        print,k_HCO_up
 	rate_eqtn(0,0,*,k)=rate_eqtn(0,0,*,k)-k_HCO_up
 	rate_eqtn(1,0,*,k)=rate_eqtn(1,0,*,k)+k_HCO_dn
         

@@ -147,6 +147,11 @@ mat fXA = 2*fAX*/
     }
   }
 
+  cout << "T_rot_cl:" << endl << T_rot_cl << endl;
+  cout << "T_rot_fl:" << endl << T_rot_fl << endl;
+  cout << "H_den:"  << endl << H_den << endl;
+
+
   cerr << "Starting collisions...";
   
   if (rel_lum > 0.001)   
@@ -157,29 +162,45 @@ mat fXA = 2*fAX*/
     vec F_tau=zeros<vec>(2000);
  
     //==============INTEGRATE FUNCTION USING TRAPEZOID RULE================
+    cout << "b_tot" << endl;
+    cout << b_tot;
     
-   cerr << "Integrating...";
-    double sum = 0;
+    cout << "tau:";
+    cout << tau;
+ 
+    cerr << "Integrating...";
+    double sum;
     auto n = 1000;
     auto a = 0;
     auto b = 5;
 
-    auto delta=(b-a)/n;
-    
+    double delta=(b-a)/n;
+    delta=0.005;
+
+    cout << "integrating"  << endl;
+    cout << "DELTA:  " << delta << endl;
     for (int i=0; i<2000; i++) 
     {
-      sum=0.5 * ( (1 - exp(-tau(i)*exp(-a^2))) + (1 - exp(-tau(i)*exp(-b^2))) );
+      sum=0.5 * ( (1 - exp(-tau(i)*exp(-pow(a,2)))) + (1 - exp(-tau(i)*exp(-pow(b,2)))) );
+      cout << "First sum:  " << sum << endl;
       for (int j=0; j<n; j++)  
       {
         auto x=a+delta*j;
-        sum=sum+(1-exp(-tau(i)*exp(-x^2)));
+        sum=sum+(1-exp(-tau(i)*exp(-pow(x,2))));
       }
+      cout << "Second sum:  " << sum << endl;
       sum = sum*delta;
+      cout << "Third sum:  " << sum << endl;
       F_tau(i)=sum;
     }
     
     vec dFdt=deriv(tau,F_tau);
-    
+
+    cout << "F_tau:  " << endl;    
+    cout << F_tau << endl;
+    cout << "dFdt  :" << endl;
+    cout << dFdt << endl;
+
     cerr << "Collisions...";
     //=============COLLISIONS=============
     for (int k=0; k<steps; k++) 
@@ -204,6 +225,8 @@ mat fXA = 2*fAX*/
      {
        auto k_HCO_dn = (7.57e-15*T_rot_cl[k]/(1-exp(-3084/T_rot_cl[k])))*H_den[k];
        auto k_HCO_up=k_HCO_dn*exp(-3084/T_rot_cl[k]);
+       cout << "k_HCO_dn:"  << k_HCO_dn << endl;
+       cout << "k_HCO_up:"  << k_HCO_up << endl;
 
        d->rate_eqtn.at(k,0).subcube(span(0),span(0),span::all)-=k_HCO_up;
        d->rate_eqtn.at(k,0).subcube(span(1),span(0),span::all)+=k_HCO_dn;
@@ -235,7 +258,7 @@ mat fXA = 2*fAX*/
            }
          }
          auto max_iter=d->tau_0.slice(j).col(0).n_elem; 
-         for (int ii=0; ii<max_iter; ii++)
+         for (auto ii=0; ii<max_iter; ii++)
          {
            if (d->tau_0.at(0,ii,j) < 20)
            {
@@ -381,7 +404,6 @@ FitData::FitData(int numGuesses)
   }
   fin.close();
 
-  cout << "lam_ang:  " << lam_ang << endl; 
 
   fin.open("inc/wavenum.txt");
   for ( auto& entry : wavenum) {
@@ -397,7 +419,10 @@ FitData::FitData(int numGuesses)
   }
   fin.close();
 
-  cout << "HD100546_luminosity:  " << HD100546_luminosity << endl;
+
+//============================
+//     MOLECULAR DATA
+//===========================
 
   fin.open("CO_molecdat/X12CO");
   for (int i=0; i<119; i++) {
@@ -421,7 +446,23 @@ FitData::FitData(int numGuesses)
   }
   fin.close();
 
+
+//transpose these to get the write dimensinos--eventually transpose instead in host files
+  HD100546_luminosity=HD100546_luminosity.t();
+  wavenum=wavenum.t();
+  einA=einA.t();
+  lam_ang=lam_ang.t();
+
+  cout << "HD100546_luminosity:  " << HD100546_luminosity << endl;
+  cout << "wavenum:  " << wavenum << endl;
+  cout << "EinA:  " << einA << endl;
+  cout << "lam_ang:  " << lam_ang << endl;
+ 
+//figure out how to deal with these... might just have to access them in a different order, or reverse the cube slicing?
+  cout << "X12CO:  " << X12CO << endl;
   cout << "X13CO:  " << X13CO << endl;
+
+
 
 //initialize arrays with random data
   cerr << "Generating arrays...";
@@ -435,7 +476,8 @@ FitData::FitData(int numGuesses)
   for (int i=0; i <= numGuesses; i++) {
     this->randData[5][i]=this->randData[5][i]/100;
   };
-  cerr << "Done.";
+
+
  //print arrays for debugging purposes
   for (int c=0; c<7; c++)
   {
@@ -454,70 +496,6 @@ FitData::FitData(int numGuesses)
   fAX = (3.038/2.03)*einA/(wavenum % wavenum);   //be sure this is right!
   fXA = 2*fAX;
 
-/*  cerr << "Creating cubes." << endl;
-  cerr << "Layers,steps:" << endl;
-  cerr << layers;
-  cerr << steps;
-  dFdt_0 = zeros<cube>(10,12,layers);
-  tau_0  = zeros<cube>(10,12,layers);
-  dwdn   = zeros<cube>(10,12,layers);
-  Nv     = zeros<cube>(21,layers,steps);
-  
-  cerr << "Creating rate equation." << endl;
-  rate_eqtn = field<cube>(21,1);
-  g=field<cube>(10,1);
-  cerr << "Test1." << endl;
-
-  for (int i=0; i<10; i++)
-  {
-    g.at(i,0)=zeros<cube>(12,layers,steps);
-  }
-  cerr <<"Made g." << endl;
-  for (int i=0; i<21; i++) 
-  {
-    cout << i << endl;
-    rate_eqtn.at(i,0)=zeros<cube>(21,layers,steps);
-    cout << rate_eqtn.at(i,0);
-    rate_eqtn.at(i,0)(span(20),span::all,span::all).fill(1);
-  }
-  cerr << "Test." << endl;
-  for (auto i=0; i<steps;i++) {
-    for (auto j=0; i<layers;j++) {
-      for (auto k=0; k<9;k++) {
-        for (auto q=0; q<10; q++)
-        {
-          rate_eqtn.at(k+11,0)(q,j,k)=einA(k,q);
-        }
-      }
-    }
-  }
-  
-*/
-/*  for (int k=0; k<steps; k++)
-  {
-    for (int i=0; i<8 i++)
-    {
-      rate_eqtn.at(i+1,0).subcube(span(i+1),span::all,span(k))=-vib_einA(i);
-      rate_eqtn.at(i+2,0).subcube(span(i+1,span::all,span(k))=vib_einA(i+1);
-    }
-  }*/
-  
- /* for (auto i=0; i<9; i++)
-  {
-    //rate_eqtn.at(i+1,0)(span(i+1),span::all,span::all) = vib_einA[i];
-    //rate_eqtn.at(i+2,0)(span(i+1),span::all,span::all) = vib_einA[i+1];   //vib_EinA is not defined in this scope--check this and move
-  }
-
-  rate_eqtn.at(1,0)(span(0),span::all,span::all)=vib_einA[0];   //vib_EinA will need to be some kind of Arma class for this to work... I will need to test this
-  rate_eqtn.at(10,0)(span(10),span::all,span::all)=vib_einA[9];  //look up vib_EinA
-  
-  for (auto i=0; i<9; i++) 
-  {
-    rate_eqtn.at(i+11,0)(span(i+1),span::all,span::all) = sum(einA.row(i));
-  } 
-
-  //check these threshold-sets ^^^^^^^
-  cerr << "Done.";*/
   this->runTrials();
 }
 
