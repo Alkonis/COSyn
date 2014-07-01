@@ -6,7 +6,7 @@
 //                       removal of redundant declarations
 //
 
-//What to do:
+//What to do
 
 
 
@@ -50,10 +50,12 @@ mat fXA = 2*fAX*/
 //Divide into annulli
 //=============================
   
-  ranulli.push_back(r); 
+
+  HD100546_luminosity = HD100546_luminosity*rel_lum;
+  ranulli.push_back(disk_in); 
   if (r<0.1)
   {
-    while ((ranulli.back() >= 1) && (ranulli.back() >= disk_out))
+    while ((ranulli.back() < 1) && (ranulli.back() < disk_out))
     {
       r_index_a=r_index_a+1;
       ranulli.push_back(disk_in+0.01*r_index_a);
@@ -64,7 +66,7 @@ mat fXA = 2*fAX*/
  
   if ((maxra < 1) && (maxra >= .1))
   {
-    while ((ranulli.back() >= 1.0) || (ranulli.back() >= disk_out))
+    while ((ranulli.back() < 1.0) || (ranulli.back() < disk_out))
     {
      r_index_b++;
      ranulli.push_back(maxra+0.1*r_index_b);
@@ -74,22 +76,25 @@ mat fXA = 2*fAX*/
  
   if ((maxrb <= disk_out) && (maxrb >= 1.0))
   {
-    while  (ranulli.back() <= disk_out)
+    while  (ranulli.back() < disk_out)
     {
       r_index_c++;
       ranulli.push_back(maxrb+1.0*r_index_c);
     }
   }
 
-  cerr << "Ranulli: " << ranulli.at(0) << endl;
+  cout << "Ranulli: " << ranulli.at(0) << endl;
   steps=ranulli.size();  //check that this size function is correct
   
   vec rdisk= zeros<vec>(steps);
  
-  for (int i=0; i < steps; i++ )  {
+  for (int i=0; i < steps; i++ )
+  {
     rdisk.at(i)=ranulli.at(i)*1.496E13;
   }
-
+ 
+  cout << "rdisk:  " << rdisk << endl;
+  cin.get();
 //benchmark here!  Make sure these results are the same from the IDL code and the C++ code!
   
 
@@ -99,13 +104,11 @@ mat fXA = 2*fAX*/
       for (auto k=0; k<9;k++) {
         for (auto q=0; q<10; q++)
         {
-          cerr << "(i,j,k,q) = (" << i << "," << j << "," << k << "," << q << ")" << endl;
           d->rate_eqtn(i,0)(k+11,q,j)=einA.at(k,q);//k+11, q,j,i,   k ,q
         }
       }
     }
   }
-  cerr << "Yo mama." << endl;
 
    for (auto i=0; i<steps; i++) {
       d->rate_eqtn.at(i,0)(span(1),span(0),span::all).fill(vib_einA[0]);   
@@ -179,7 +182,8 @@ mat fXA = 2*fAX*/
     
     cerr << "Collisions...";
     //=============COLLISIONS=============
-    for (int k=0; k<steps; k++)
+    for (int k=0; k<steps; k++) 
+    {
       cerr <<"Steps loop, k=" << k << endl;
       for (int z=0; z<8; z++)
       {
@@ -213,9 +217,12 @@ mat fXA = 2*fAX*/
      
       cerr << "UV pumping...";
        //===================ULTRAVIOLET PUMPING========================
-       
-       mat Fuv=HD100546_luminosity/(4*3.1415926535897)*rdisk[k];
-       
+       cout << "Hd100546_luminosity: " << HD100546_luminosity << endl;
+       cout << "rdisk:  " << rdisk << endl;
+       cout << "rdisk[k]:  " << rdisk[k] << endl;
+       cout << "Fuv:  " << endl;
+       mat Fuv = HD100546_luminosity / ( 4*3.1415926535897*pow(rdisk[k],2) );
+       cout << Fuv << endl; 
        for (int j=0; j<layers; j++)
        {
          cerr << "Layers loop, j=" << j << endl;
@@ -230,21 +237,20 @@ mat fXA = 2*fAX*/
          auto max_iter=d->tau_0.slice(j).col(0).n_elem; 
          for (int ii=0; ii<max_iter; ii++)
          {
-           if (d->tau_0.at(0,ii,j) < 200)
+           if (d->tau_0.at(0,ii,j) < 20)
            {
-             cerr << "loop..." << endl;
              ivec dFdt_0_index=where(tau, [&] (double elem) {return elem == round(d->tau_0.at(0,ii,j)*10)/10;});
              auto count = dFdt_0_index.size();
-             
+             cerr << "dFdt_0_index:"  << dFdt_0_index << endl;
+             cerr << "count:  " << count << endl; 
              if (count != 0)
              {
-                 ///dFdt_0.subcube(span::all,span(ii),span(j))=dFdt[dFdt_index];    weird line!!!!!
+              // dFdt_0.subcube(span::all,span(ii),span(j)).fill(dFdt.at(dFdt_0_index.at(0)));    //weird line!!!!!
              }
 
            }
            else 
            { 
-              cerr <<"Else..." << endl;
              d->dFdt_0.slice(j).row(ii).fill((1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j)))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
            }
          }
@@ -279,11 +285,9 @@ mat fXA = 2*fAX*/
          {
            for (int ii=0; ii<11; ii++)
            {
-             cerr << "Loop!" << endl;
              d->rate_eqtn.at(k,0).at(ii,11+i,j)+=+d->g.at(i,0).at(ii,j,k); //ii 11+i j k
            }
-         
-         cerr << "Exited loop." << endl;
+         }
          d->rate_eqtn.at(k,0).at(1,10,j)=0;
          
          mat U;
@@ -294,17 +298,15 @@ mat fXA = 2*fAX*/
          z.at(20)=1;
            
          vec sol;
-         cerr << "Solving..." << endl;
-       //  cerr << "matrix for solving:" << endl;
-       //  cerr << d->rate_eqtn.at(k,0).slice(j);
+         cout << "matrix for solving:" << endl;
+         cout << d->rate_eqtn.at(k,0).slice(j);
          solve(sol,d->rate_eqtn.at(k,0).slice(j),z);
          d->Nv.slice(k).col(j)= sol;  //check this to be sure the array is filling in the right dimension
          cerr << "Solved!" << endl;
        }
      }
    }
-  }
-   
+  } 
   return 0;
 }
 
@@ -365,29 +367,37 @@ FitData::FitData(int numGuesses)
 
   std::ifstream fin;
 
-  fin.open("EinA.txt");
+  fin.open("inc/EinA.txt");
   for ( auto& entry : einA) {
      fin >> entry;
   }
   fin.close(); 
 
-  fin.open("lambda.txt");
+  cout << "EinA:  " << einA << endl;
+
+  fin.open("inc/lambda.txt");
   for ( auto& entry : lam_ang) {
      fin >> entry;
   }
   fin.close();
 
-  fin.open("wavenum.txt");
+  cout << "lam_ang:  " << lam_ang << endl; 
+
+  fin.open("inc/wavenum.txt");
   for ( auto& entry : wavenum) {
      fin >> entry;
   }
   fin.close();
+ 
+  cout << "wavenum:  " << wavenum << endl;
 
-  fin.open("HD100546_luminosity.txt");
+  fin.open("inc/HD100546_luminosity.txt");
   for (auto& entry : HD100546_luminosity) {
      fin >> entry;
   }
   fin.close();
+
+  cout << "HD100546_luminosity:  " << HD100546_luminosity << endl;
 
   fin.open("CO_molecdat/X12CO");
   for (int i=0; i<119; i++) {
@@ -399,6 +409,8 @@ FitData::FitData(int numGuesses)
   }
   fin.close();
 
+  cout << "X12CO:  " << X12CO << endl;
+
   fin.open("CO_molecdat/X13CO");
   for (int i=0; i<119; i++) {
     for (int j=0; j<7; j++) {
@@ -409,16 +421,16 @@ FitData::FitData(int numGuesses)
   }
   fin.close();
 
-
+  cout << "X13CO:  " << X13CO << endl;
 
 //initialize arrays with random data
   cerr << "Generating arrays...";
   this->randData[0]=FillArray(900, 100);
-  this->randData[1]=FillArray(20, 5);
-  this->randData[2]=FillArray(75, 50);
-  this->randData[3]=FillArray(500000, 50000);
+  this->randData[1]=FillArray(15, 6);
+  this->randData[2]=FillArray(76, 50);
+  this->randData[3]=FillArray(500000, 100000);      //check to be sure all of these first arguments don't need to be offset by +/- 1
   this->randData[4]=FillArray(3500,1000);
-  this->randData[5]=FillArray(101,0);
+  this->randData[5]=FillArray(50,20);
   this->randData[6]=FillArray(99, 1);
   for (int i=0; i <= numGuesses; i++) {
     this->randData[5][i]=this->randData[5][i]/100;
@@ -439,8 +451,6 @@ FitData::FitData(int numGuesses)
  *
  *==================*/
   cerr << "Preparing collision data." << endl;
-  HD100546_luminosity = HD100546_luminosity*rel_lum;
-  
   fAX = (3.038/2.03)*einA/(wavenum % wavenum);   //be sure this is right!
   fXA = 2*fAX;
 

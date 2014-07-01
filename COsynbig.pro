@@ -1,4 +1,4 @@
-s)
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Script 1 of 4               ;;;;;;;;
@@ -11,7 +11,7 @@ best_diff=1d1
 
 num_guesses=1501
 matrix=FLTARR(7,num_guesses)
-diff_array=FLTARR(N_ELEMENTS(rbig),num_guesses)
+;diff_array=FLTARR(N_ELEMENTS(rbig),num_guesses)
 
 qw=8L
 
@@ -121,14 +121,13 @@ hc=6.626196e-27*2.997924562e10 	;erg*cm
 hck=hc/1.380622e-16		;erg*K
 cer=8.85282e-13			;pi*e^2/mc (cm)
 
-vib_einA=[30.84, 59.30, 85.40, 109.28, 131.01, 150.71, $
+;vib_einA=[30.84, 59.30, 85.40, 109.28, 131.01, 150.71, $
 ;	  169.65, 185.67, 199.93, 212.53] ; old values
 
 ;vib_einA=[32.87, 66.00, 97.25, 125.52, 152.16, 177.56, $
 ;	  202.07, 226.07, 249.79, 273.11] ; groundstate band A's at 2000K
 
-vib_einA=[34.60, 67.68, 98.40, 126.99, 153.59, 178.31, $
-	  201.35, 223.10, 244.15, 265.21] ; groundstate band A's at 1000K
+vib_einA=[34.60, 67.68, 98.40, 126.99, 153.59, 178.31, 201.35, 223.10, 244.15, 265.21] ; groundstate band A's at 1000K
 
 ;vib_einA=[35.56, 68.91, 100.10, 129.21, 156.27, 181.36, $
 ;	  204.56, 225.92, 245.54, 263.44] ;ground state band A's at 200K
@@ -184,6 +183,8 @@ rdisk_index=WHERE(r LT 13.)
 rdisk=r*1.496E13
 steps=N_ELEMENTS(rdisk)
 
+print,rdisk
+read,x,prompt="?"
 
 ;ENTIRE CODE MUST BE RUN TWICE. ONCE WITH COLLISIONS AND ONCE WITHOUT.
 ;THIS IS A HACK TO PROPERLY TREAT RARE ISOTOPOLOGUES 
@@ -216,15 +217,15 @@ rate_eqtn(*,20,*,*)=double(1.00)
 ;;;;;;;;;;;;;;;;
 ;read in tabulated data
 
-openr,1,'EinA.txt' 
+openr,1,'inc/EinA.txt' 
 readf,1,EinA 
 close,1
 
-openr,1,'lambda.txt' 
+openr,1,'inc/lambda.txt' 
 readf,1,lam_ang 
 close,1
 
-openr,1,'wavenum.txt'
+openr,1,'inc/wavenum.txt'
 readf,1,wavenum 
 close,1
 
@@ -240,7 +241,7 @@ close,1
 ;
 ;L=double(L)*double(1d18) ; Avoid floating point overflow
 ;L=L*rel_lum
-restore,filename='HD100546_luminosity.dat' ;units are erg/s/Ang
+restore,filename='inc/HD100546_luminosity.dat' ;units are erg/s/Ang
 L=L*rel_lum
 ;Calculate oscillator strengths from Einstein A's
 fAX=EinA*(3.038/2.03)/wavenum^2	;Taken from Beegle et al. 1999
@@ -359,7 +360,8 @@ skip_coll:
 
 ;;;;;;;;;;NOW ADD UV PUMPING;;;;;;;;;;;;;;;
 	Fuv=L/(4*!pi*rdisk(k)^2)
-
+        print,Fuv
+	read,x,prompt="?"
 	FOR j=0,layers-1 DO BEGIN
 		IF j GT 0 THEN BEGIN
 			FOR i=0,9 DO tau_0(i,*,j)=TOTAL(Nv(0:11,0:j,k),2)*7.55858e12 $
@@ -369,6 +371,9 @@ skip_coll:
 		FOR ii=0,N_ELEMENTS(tau_0(0,*,j))-1 DO BEGIN	
 			IF tau_0(0,ii,j) LT 20.0 THEN BEGIN 
 				dFdt_0_index=WHERE(tau EQ ROUND(tau_0(0,ii,j)*10.)/10.,count)
+				print,dFdt_0_index
+				PRINT,DFDT(DFDT_0(*,II,J))
+				read,x, PROMPT="?"
 				IF count NE 0 THEN dFdt_0(*,ii,j)=dFdt(dFdt_0_index) 
 			ENDIF ELSE BEGIN
 				dFdt_0(*,ii,j)=1./(2.*tau_0(0,ii,j)*SQRT(alog(tau_0(0,ii,j))))
@@ -392,8 +397,9 @@ skip_coll:
 
 		;Now solve the system of equations to calculate the relative 
 		;populations:
-
-		SVDC, rate_eqtn(*,*,j,k), w, u, v /DOUBLE
+                print, rate_eqtn(*,*,j,k)
+                read,x, PROMPT="?"
+		SVDC, rate_eqtn(*,*,j,k), w, u, v, /DOUBLE
 		z=fltarr(21) & z(*)=0.0 & z(20)=1.0 	;"solution" to system 
 							;of equations
 		Nv(*,j,k)=SVSOL(u, w, v, z, /DOUBLE) 	;these are the relative
@@ -515,7 +521,7 @@ Bv18=[1.840]
 ;content is v", J", v', J', A(s-1), E" (cm-1), freq(cm-1) for each variable
 
 ;CHANGE PATH TO LOCATION OF MOLECULAR DATA
-restore, filename='/Users/sbritt/Research/Software/idl/utils/CO_syn_spec_em/CO_syn_spec_final/CO_molecdat.dat'
+restore, filename='inc/CO_molecdat.dat'
 
 ;Use molecular data to calculate relative rotational populations 
 ; as a function of species, vibrational level and radius:
