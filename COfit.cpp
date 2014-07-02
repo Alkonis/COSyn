@@ -93,7 +93,6 @@ mat fXA = 2*fAX*/
   }
  
   cout << "rdisk:  " << rdisk << endl;
-  cin.get();
 //benchmark here!  Make sure these results are the same from the IDL code and the C++ code!
   
 
@@ -108,7 +107,6 @@ mat fXA = 2*fAX*/
       }
     }
   }
-
    for (auto i=0; i<steps; i++) {
       d->rate_eqtn.at(i,0)(span(1),span(0),span::all).fill(vib_einA[0]);   
       d->rate_eqtn.at(i,0)(span(10),span(10),span::all).fill(vib_einA[9]); 
@@ -120,26 +118,31 @@ mat fXA = 2*fAX*/
        d->rate_eqtn.at(j,0)(span(i+11),span(i+1),span::all).fill(sum(einA.row(i)));
      }
    }
-  cerr << "Done." << endl;
+
+  cerr << "CollData generated." << endl;
 
   T_rot_fl = T_rot0_fl *pow((1.5E13/rdisk),T_rot_alpha_fl);
+  
   ivec T_rot_index=where(T_rot_fl, [] (double datum) {return datum >= 3500;});
 
-  int T_rot_cnt = T_rot_index.size();
-
-  if (T_rot_cnt != 0) {
+//cout << "T_rot_cnt:  " << T_rot_cnt << endl;
+cout << "T_rot_fl:  " << T_rot_fl << endl;
+cerr << "T_rot_index:  " << T_rot_index << endl;
+  if (T_rot_index.at(0) != -1) {
     for (auto elem : T_rot_index )
     {
       T_rot_fl[elem]=3500;
     }
   }
 
+cerr << "Test.";
+
   T_rot_cl=T_rot0_cl * pow((1.496E13/rdisk), T_rot_alpha_cl);
   H_den=H_den0 * pow((1.496E13/rdisk),H_den_alpha);
   T_rot_index = where(T_rot_cl, [] (double datum) {return datum > 3500;});
-  T_rot_cnt=T_rot_index.size();
-
-  if (T_rot_cnt != 0) {
+//  T_rot_cnt=T_rot_index.size();
+cerr << "T_rot_index:  " << T_rot_index << endl;
+  if (T_rot_index.at(0) != -1) {
     for (auto elem : T_rot_index)
     {
       T_rot_cl[elem]=3500;
@@ -274,30 +277,40 @@ skip_coll:
 	     for (int i=0; i<10; i++)
 	     {
 	      // tau_0.subcube(span(i),span::all,span(j))=sum(Nv.subcube(span(0,11),span(0,j),span(k))) * 7.55858e12 * 0.02654*fXA.submat(span(i),span::all)*lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);   //Check this!
-	      d->tau_0.subcube(span(i),span::all,span(j))=7.7585e12 * 0.02654 * accu(d->Nv.slice(k).submat(span(0,11),span(0,j))) * fXA.submat(span(i),span::all) % lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
+	      d->tau_0.subcube(span(i),span::all,span(j))=7.7585e12 * 0.02654 * arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),2) * fXA.submat(span(i),span::all) % lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
 	     }
 	   }
-	   auto max_iter=d->tau_0.slice(j).col(0).n_elem; 
+	  // auto max_iter=d->tau_0.slice(j).col(0).n_elem; 
+           auto max_iter=d->tau_0.slice(j).row(0).n_elem;
 	   for (auto ii=0; ii<max_iter; ii++)
 	   {
+           cerr << "ii="<<ii<<endl;
 	     if (d->tau_0.at(0,ii,j) < 20)
 	     {
 	       ivec dFdt_0_index=where(tau, [&] (double elem) {return elem == round(d->tau_0.at(0,ii,j)*10)/10;});
 	       auto count = dFdt_0_index.size();
 	       cerr << "dFdt_0_index:"  << dFdt_0_index << endl;
 	       cerr << "count:  " << count << endl; 
-	       if (count != 0)
+	       if (dFdt_0_index.at(0) != -1)
 	       {
-		// dFdt_0.subcube(span::all,span(ii),span(j)).fill(dFdt.at(dFdt_0_index.at(0)));    //weird line!!!!!
+	         d->dFdt_0.subcube(span::all,span(ii),span(j)).fill(dFdt.at(dFdt_0_index.at(0)));    //weird line!!!!!
 	       }
 
 	     }
 	     else 
-	     { 
+	     {
+cerr << "In else"; 
 	       d->dFdt_0.slice(j).row(ii).fill((1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j)))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
 	     }
+cerr << "Outta dat.";
 	   }
 	   //dwdn.subcube(span::all,span::all,span(j))=dFdt_0.subcube(span::all,span::all,span(j))*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
+cerr << "Hello!" << endl;
+
+cerr << "dwdn.slice(j):  " << endl;
+cerr << d->dwdn.slice(j) << endl;
+cerr << "fXA:  " << endl;
+cerr << fXA << endl;
 
 	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
 
@@ -372,7 +385,7 @@ skip_coll:
     }
     if (coll_loop==1) {
       Nv_nocoll=Nv;
-      tot_col_fluor_nocoll = accu(Nv*7.55858e12);
+      tot_col_fluor_nocoll = totalDim(Nv*7.55858e12,2);
     }
 
   }
@@ -705,7 +718,7 @@ FitData::FitData(int numGuesses)
   fin.close();
 
 
-//transpose these to get the write dimensinos--eventually transpose instead in host files
+/*//transpose these to get the write dimensinos--eventually transpose instead in host files
   HD100546_luminosity=HD100546_luminosity.t();
   wavenum=wavenum.t();
   einA=einA.t();
@@ -718,7 +731,7 @@ FitData::FitData(int numGuesses)
  
 //figure out how to deal with these... might just have to access them in a different order, or reverse the cube slicing?
   cout << "X12CO:  " << X12CO << endl;
-  cout << "X13CO:  " << X13CO << endl;
+  cout << "X13CO:  " << X13CO << endl;*/
 
 
 

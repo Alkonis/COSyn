@@ -173,7 +173,7 @@ namespace idlarma {
       j_max=input.n_slices;
     } else if (dim==3) {
       i_max=input.n_rows;
-      i_max=input.n_cols;
+      j_max=input.n_cols;
     } else {
       output << 0 << 0 << endr
              << 0 << 0 << endr;

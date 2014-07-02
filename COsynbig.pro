@@ -244,6 +244,12 @@ close,1
 restore,filename='inc/HD100546_luminosity.dat' ;units are erg/s/Ang
 L=L*rel_lum
 ;Calculate oscillator strengths from Einstein A's
+
+print,"eina"
+print,eina
+print,"wavenum"
+print,wavenum
+read,x,prompt="?"
 fAX=EinA*(3.038/2.03)/wavenum^2	;Taken from Beegle et al. 1999
 fXA=2*fAX			;Take into account stat weight
 
@@ -405,6 +411,11 @@ skip_coll:
 		ENDFOR
 
 		dWdN(*,*,j)=dfdt_0(*,*,j)*.02654*2.0*(lam_ang*1e-4)*(lam_ang*1e-8)*fXA/(SQRT(!pi)*c*1e5)
+                print,"dwdn slice j"
+                print,dWdn(*,*,j)
+                print, "fXA"
+                print,fxa
+                read,x,prompt="?"
 		g(*,*,j,k)=dWdN(*,*,j)*!pi*Fuv/(hc*wavenum)
 		
 
