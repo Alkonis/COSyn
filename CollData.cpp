@@ -20,9 +20,9 @@ public:
   cerr << "Layers,steps:" << endl;
   cerr << layers << endl;
   cerr << steps << endl;
-  dFdt_0 = zeros<cube>(12,10,layers);
-  tau_0  = zeros<cube>(12,10,layers);
-  dwdn   = zeros<cube>(12,10,layers);
+  dFdt_0 = zeros<cube>(10,12,layers);
+  tau_0  = zeros<cube>(10,12,layers);
+  dwdn   = zeros<cube>(10,12,layers);
   Nv     = zeros<cube>(21,layers,steps);
 
   cerr << "Creating rate equation." << endl;                                                                                           

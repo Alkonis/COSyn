@@ -3,16 +3,15 @@
 #include <cstdlib>
 //optimizations so far:  read in files ONCE in FitData() rather than in each iteration
 //                       removal of redundant declarations
-//
-
-//What to do
-
+//                       memory allocation of rate_eqtn variables in access order
+//                       adoption of an optimized linear algebra computation library (armadillo)
 
 
-//To do:  Fix variable names
-//        Benchmark!
-//        Keep going!!!!!!!!!
-//        Woohoo!!!
+//To do:  fix transposition of rate_eqtn variables
+//        benchmark rate_eqtn solving
+//        add XC180
+//        check the lineup of XCO13/XCO12 vars with idl 
+//        draw spectrum
 
 using namespace std;
 using namespace idlarma;
@@ -359,7 +358,7 @@ cerr << fXA << endl;
 	   vec sol;
 	   cout << "matrix for solving:" << endl;
 	   cout << d->rate_eqtn.at(k,0).slice(j);
-	   solve(sol,d->rate_eqtn.at(k,0).slice(j),z);
+	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 	   d->Nv.slice(k).col(j)= sol;  //check this to be sure the array is filling in the right dimension
 	   cerr << "Solved!" << endl;
 
