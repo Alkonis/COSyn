@@ -1,7 +1,6 @@
 #include "COfit.h"
 #include <iostream>
 #include <cstdlib>
-
 //optimizations so far:  read in files ONCE in FitData() rather than in each iteration
 //                       removal of redundant declarations
 //
@@ -154,10 +153,13 @@ mat fXA = 2*fAX*/
 
   cerr << "Starting collisions...";
   
-  if (rel_lum > 0.001)   
-  {
  //   CollData d = new CollData(this->layers, this->steps);
+//  if (rel_lum <= 1e-3) goto skip_fluorcalc;
+//{
     vec b_tot = sqrt(2*1.38e-16*6.02e23*T_rot_fl/28 + pow(v_turb,2));
+
+
+
     vec tau = linspace<vec>(0,20,2000);   //check valueis here   idl = findgen(2e3)/1e2) === findgen(2000/100)  == [0, 20], N=2000
     vec F_tau=zeros<vec>(2000);
  
@@ -202,134 +204,390 @@ mat fXA = 2*fAX*/
     cout << dFdt << endl;
 
     cerr << "Collisions...";
+
+
+      cube Nv_coll;
+      mat tot_col_fluor;
+      mat tot_col_fluor_back;                      //move, perhaps, to colldata?
+
+      cube Nv_nocoll;
+      mat tot_col_fluor_nocoll;
+
+
     //=============COLLISIONS=============
-    for (int k=0; k<steps; k++) 
+
+
+    for (int coll_loop=0; coll_loop<2; coll_loop++) 
+
     {
-      cerr <<"Steps loop, k=" << k << endl;
-      for (int z=0; z<8; z++)
+      for (int k=0; k<steps; k++) 
       {
-        for (int q=0; q<layers; q++) 
-        {
-          d->rate_eqtn.at(k,0).at(z+1,z+1,q)=-vib_einA[z];  
-          d->rate_eqtn.at(k,0).at(z+2,z+2,q)=vib_einA[z+1]; 
-        }
-      }
-    
-      for (int q=0; q<layers; q++)
-      {
-        d->rate_eqtn.at(k,0).subcube(span(0),span::all,span(k)).fill(vib_einA[0]);  //1,0,all,k
-        d->rate_eqtn.at(k,0).subcube(span(9),span(9),span::all).fill(-vib_einA[8]);  //9,9,all,k
-      }
 
-     if (0  == 0)
-     {
-       auto k_HCO_dn = (7.57e-15*T_rot_cl[k]/(1-exp(-3084/T_rot_cl[k])))*H_den[k];
-       auto k_HCO_up=k_HCO_dn*exp(-3084/T_rot_cl[k]);
-       cout << "k_HCO_dn:"  << k_HCO_dn << endl;
-       cout << "k_HCO_up:"  << k_HCO_up << endl;
+	cerr <<"Steps loop, k=" << k << endl;
+	for (int z=0; z<8; z++)
+	{
+	  for (int q=0; q<layers; q++) 
+	  {
+	    d->rate_eqtn.at(k,0).at(z+1,z+1,q)=-vib_einA[z];  
+	    d->rate_eqtn.at(k,0).at(z+2,z+2,q)=vib_einA[z+1]; 
+	  }
+	}
+      
+	for (int q=0; q<layers; q++)
+	{
+	  d->rate_eqtn.at(k,0).subcube(span(0),span::all,span(k)).fill(vib_einA[0]);  //1,0,all,k
+	  d->rate_eqtn.at(k,0).subcube(span(9),span(9),span::all).fill(-vib_einA[8]);  //9,9,all,k
+	}
 
-       d->rate_eqtn.at(k,0).subcube(span(0),span(0),span::all)-=k_HCO_up;
-       d->rate_eqtn.at(k,0).subcube(span(1),span(0),span::all)+=k_HCO_dn;
-       //0,0,all,k ; 1,0,all,k)
-       for (int i=1; i<9; i++) 
+       if (0  == 0)
        {
-         d->rate_eqtn.at(k,0).subcube(span(i-1),span(i),span::all)+=k_HCO_up;
-         d->rate_eqtn.at(k,0).subcube(span(i  ),span(i),span::all) = d->rate_eqtn.at(k  ,0).subcube(span(i),span(i),span::all)-k_HCO_dn-k_HCO_up;
-         d->rate_eqtn.at(k,0).subcube(span(i+1),span(i),span::all)+=k_HCO_dn;
-       }
-     
-      cerr << "UV pumping...";
-       //===================ULTRAVIOLET PUMPING========================
-       cout << "Hd100546_luminosity: " << HD100546_luminosity << endl;
-       cout << "rdisk:  " << rdisk << endl;
-       cout << "rdisk[k]:  " << rdisk[k] << endl;
-       cout << "Fuv:  " << endl;
-       mat Fuv = HD100546_luminosity / ( 4*3.1415926535897*pow(rdisk[k],2) );
-       cout << Fuv << endl; 
-       for (int j=0; j<layers; j++)
-       {
-         cerr << "Layers loop, j=" << j << endl;
-         if (j>0)
-         {
-           for (int i=0; i<10; i++)
+	 auto k_HCO_dn = (7.57e-15*T_rot_cl[k]/(1-exp(-3084/T_rot_cl[k])))*H_den[k];
+	 auto k_HCO_up=k_HCO_dn*exp(-3084/T_rot_cl[k]);
+	 cout << "k_HCO_dn:"  << k_HCO_dn << endl;
+	 cout << "k_HCO_up:"  << k_HCO_up << endl;
+
+	 d->rate_eqtn.at(k,0).subcube(span(0),span(0),span::all)-=k_HCO_up;
+	 d->rate_eqtn.at(k,0).subcube(span(1),span(0),span::all)+=k_HCO_dn;
+	 //0,0,all,k ; 1,0,all,k)
+	 for (int i=1; i<9; i++) 
+	 {
+	   d->rate_eqtn.at(k,0).subcube(span(i-1),span(i),span::all)+=k_HCO_up;
+	   d->rate_eqtn.at(k,0).subcube(span(i  ),span(i),span::all) = d->rate_eqtn.at(k  ,0).subcube(span(i),span(i),span::all)-k_HCO_dn-k_HCO_up;
+	   d->rate_eqtn.at(k,0).subcube(span(i+1),span(i),span::all)+=k_HCO_dn;
+	 }
+
+skip_coll:
+       
+	cerr << "UV pumping...";
+	 //===================ULTRAVIOLET PUMPING========================
+	 cout << "Hd100546_luminosity: " << HD100546_luminosity << endl;
+	 cout << "rdisk:  " << rdisk << endl;
+	 cout << "rdisk[k]:  " << rdisk[k] << endl;
+	 cout << "Fuv:  " << endl;
+	 mat Fuv = HD100546_luminosity / ( 4*3.1415926535897*pow(rdisk[k],2) );
+	 cout << Fuv << endl; 
+	 for (int j=0; j<layers; j++)
+	 {
+	   cerr << "Layers loop, j=" << j << endl;
+	   if (j>0)
+	   {
+	     for (int i=0; i<10; i++)
+	     {
+	      // tau_0.subcube(span(i),span::all,span(j))=sum(Nv.subcube(span(0,11),span(0,j),span(k))) * 7.55858e12 * 0.02654*fXA.submat(span(i),span::all)*lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);   //Check this!
+	      d->tau_0.subcube(span(i),span::all,span(j))=7.7585e12 * 0.02654 * accu(d->Nv.slice(k).submat(span(0,11),span(0,j))) * fXA.submat(span(i),span::all) % lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
+	     }
+	   }
+	   auto max_iter=d->tau_0.slice(j).col(0).n_elem; 
+	   for (auto ii=0; ii<max_iter; ii++)
+	   {
+	     if (d->tau_0.at(0,ii,j) < 20)
+	     {
+	       ivec dFdt_0_index=where(tau, [&] (double elem) {return elem == round(d->tau_0.at(0,ii,j)*10)/10;});
+	       auto count = dFdt_0_index.size();
+	       cerr << "dFdt_0_index:"  << dFdt_0_index << endl;
+	       cerr << "count:  " << count << endl; 
+	       if (count != 0)
+	       {
+		// dFdt_0.subcube(span::all,span(ii),span(j)).fill(dFdt.at(dFdt_0_index.at(0)));    //weird line!!!!!
+	       }
+
+	     }
+	     else 
+	     { 
+	       d->dFdt_0.slice(j).row(ii).fill((1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j)))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
+	     }
+	   }
+	   //dwdn.subcube(span::all,span::all,span(j))=dFdt_0.subcube(span::all,span::all,span(j))*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
+
+	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
+
+	   for (int ii=0; ii<10; ii++) 
+	   {
+	    // g.at(ii,0).subcube(span::all,span(j),span(k))=dwdn.subcube(span::all,span::all,span(j))*3.1415926535897 % Fuv / (hc * wavenum);
+	    cerr << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
+	    d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
+	   } 
+        
+	   //add in g-factors:
+	   double gsum=0;
+	   
+	   for (int ii=0; ii<10; ii++)
+	   { 
+	     gsum+=d->g.at(ii).at(0,j,k);
+	   }
+	   d->rate_eqtn.at(k,0).at(0,0,j)-=gsum;
+	   for (int i=0; i<10; i++)
+	   {
+	     gsum = 0;
+	     for (int ii=0; ii<10; ii++)
+	     {
+	       gsum+=d->g.at(ii).at(i,j,k);
+	     }
+	     d->rate_eqtn.at(k,0).subcube(span(i),span(i),span(j))-=gsum;
+
+	   }
+	  cerr << "Test2..." << endl;
+	   for (int i=0; i<8; i++)
+	   {
+	     for (int ii=0; ii<11; ii++)
+	     {
+	       d->rate_eqtn.at(k,0).at(ii,11+i,j)+=+d->g.at(i,0).at(ii,j,k); //ii 11+i j k
+	     }
+	   }
+	   d->rate_eqtn.at(k,0).at(1,10,j)=0;
+	   
+	   mat U;
+	   mat s;
+	   mat V;
+	   
+	   vec z = zeros<vec>(21);
+	   z.at(20)=1;
+	     
+	   vec sol;
+	   cout << "matrix for solving:" << endl;
+	   cout << d->rate_eqtn.at(k,0).slice(j);
+	   solve(sol,d->rate_eqtn.at(k,0).slice(j),z);
+	   d->Nv.slice(k).col(j)= sol;  //check this to be sure the array is filling in the right dimension
+	   cerr << "Solved!" << endl;
+
+	   ivec Nv_index=whererow(Nv.slice(k).row(j), [] (double datum) {return datum < 0;});
+	   if (Nv_index.at(0) != -1) 
            {
-            // tau_0.subcube(span(i),span::all,span(j))=sum(Nv.subcube(span(0,11),span(0,j),span(k))) * 7.55858e12 * 0.02654*fXA.submat(span(i),span::all)*lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);   //Check this!
-            d->tau_0.subcube(span(i),span::all,span(j))=7.7585e12 * 0.02654 * accu(d->Nv.slice(k).submat(span(0,11),span(0,j))) * fXA.submat(span(i),span::all) % lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
-           }
-         }
-         auto max_iter=d->tau_0.slice(j).col(0).n_elem; 
-         for (auto ii=0; ii<max_iter; ii++)
-         {
-           if (d->tau_0.at(0,ii,j) < 20)
-           {
-             ivec dFdt_0_index=where(tau, [&] (double elem) {return elem == round(d->tau_0.at(0,ii,j)*10)/10;});
-             auto count = dFdt_0_index.size();
-             cerr << "dFdt_0_index:"  << dFdt_0_index << endl;
-             cerr << "count:  " << count << endl; 
-             if (count != 0)
+             for (int jj=0; jj<Nv_index.n_elem; jj++) 
              {
-              // dFdt_0.subcube(span::all,span(ii),span(j)).fill(dFdt.at(dFdt_0_index.at(0)));    //weird line!!!!!
+               Nv.at(Nv_index(jj),j,k)=0;
              }
-
            }
-           else 
-           { 
-             d->dFdt_0.slice(j).row(ii).fill((1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j)))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
-           }
-         }
-         //dwdn.subcube(span::all,span::all,span(j))=dFdt_0.subcube(span::all,span::all,span(j))*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
-         d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
-         for (int ii=0; ii<10; ii++) 
-         {
-          // g.at(ii,0).subcube(span::all,span(j),span(k))=dwdn.subcube(span::all,span::all,span(j))*3.1415926535897 % Fuv / (hc * wavenum);
-          cerr << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
-          d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
-         }         
-         //add in g-factors:
-         double gsum=0;
-         
-         for (int ii=0; ii<10; ii++)
-         { 
-           gsum+=d->g.at(ii).at(0,j,k);
-         }
-         d->rate_eqtn.at(k,0).at(0,0,j)-=gsum;
-         for (int i=0; i<10; i++)
-         {
-           gsum = 0;
-           for (int ii=0; ii<10; ii++)
-           {
-             gsum+=d->g.at(ii).at(i,j,k);
-           }
-           d->rate_eqtn.at(k,0).subcube(span(i),span(i),span(j))-=gsum;
-
-         }
-        cerr << "Test2..." << endl;
-         for (int i=0; i<8; i++)
-         {
-           for (int ii=0; ii<11; ii++)
-           {
-             d->rate_eqtn.at(k,0).at(ii,11+i,j)+=+d->g.at(i,0).at(ii,j,k); //ii 11+i j k
-           }
-         }
-         d->rate_eqtn.at(k,0).at(1,10,j)=0;
-         
-         mat U;
-         mat s;
-         mat V;
-         
-         vec z = zeros<vec>(21);
-         z.at(20)=1;
-           
-         vec sol;
-         cout << "matrix for solving:" << endl;
-         cout << d->rate_eqtn.at(k,0).slice(j);
-         solve(sol,d->rate_eqtn.at(k,0).slice(j),z);
-         d->Nv.slice(k).col(j)= sol;  //check this to be sure the array is filling in the right dimension
-         cerr << "Solved!" << endl;
+ 	 }
        }
      }
-   }
-  } 
+
+//}
+//skip_fluorcalc:
+
+    if (coll_loop==0) {
+      Nv_coll=Nv;
+      tot_col_fluor = totalDim(Nv*7.55858e12,2);      //check all uses of accu/total in teh code!!!!!! dimension specification!
+       tot_col_fluor_back=tot_col_fluor;
+    }
+    if (coll_loop==1) {
+      Nv_nocoll=Nv;
+      tot_col_fluor_nocoll = accu(Nv*7.55858e12);
+    }
+
+  }
+
+
+//=========================================================================
+// Angle of Incidence Correction (tweak for each star--use input file!)
+//========================================================================
+
+  vec m_disk=1.5*(5.59647e-10)*sqrt(T_rot_fl / Mstar)*pow(rdisk,0.5);
+  vec m_uv = (5.59647e-10)*sqrt(T_rot_fl/Mstar)*sqrt(rdisk);
+
+  vec phi = -atan((m_uv-m_disk)/(1+m_uv*m_disk));
+  phi.at(0)=3.1415926535897/2;                         //standardize pi!
+
+  auto xi = tot_col_fluor.row(0).n_elem;
+  auto yi = tot_col_fluor.col(0).n_elem;
+
+  for (int j=0; j<yi; j++) 
+  {
+    tot_col_fluor(span(0,xi),span(j))=sin(phi.at(j))*tot_col_fluor(span(0,xi),span(j));
+    tot_col_fluor_nocoll(span(0,xi),span(j))=sin(phi.at(j))*tot_col_fluor_nocoll(span(0,xi),span(j));
+  }
+
+  auto tot_col=tot_col_fluor(span(0,9),span::all);
+  auto tot_col_coll=tot_col;
+
+  double r = dist/1.496e13;
+  rdisk=rdisk/1.496e13;            //convert to AU
+
+
+
+//===================================================================================================
+//  MOLECULAR DATA
+//==================================================================================================
+
+
+  mat N_12CO_vj;
+  mat N_13CO_vj;
+  mat N_C180_vj;
+
+  for (int i=0; i<steps; i++)
+  {
+  
+  //=======================
+  //   12CO
+  //======================
+  for (int j=0; j< tot_col.row(0).n_elem; j++)
+  {
+
+
+
+  }
+  
+  //====================
+  //  13CO
+  //====================
+  for (int j=0; j<3; j++)
+  {
+
+
+  }
+
+  //====================
+  //  C180
+  //===================
+  
+
+
+
+  }
+
+  double freq_size=log10(f_f/f_i)/log10(1+v/(3*c));
+  vec freq = zeros<vec>(freq_size);
+  freq.at(0)=f_i;
+  vec vfreq = freq;
+  vfreq.fill(0);
+
+  for (int i=1; i<freq_size; i++)
+  {
+    freq.at(i)=f_i*(pow(1+v/(3*c),i));
+  }
+
+  vfreq=(freq(round(freq.n_elem/2))-freq)*c/freq(round(freq.n_elem/2));                      //check
+
+
+  ivec freq_index=where(freq, [] (double datum) {return (datum >= f_i) && (datum <= f_f);});
+
+//define annuli
+
+  vec annuli = zeros<vec>(rdisk.n_elem);
+
+  for (int i=0; i<steps-1; i++)
+  {
+    annuli.at(i)=3.1415926535897*(pow(rdisk.at(i+1),2)-pow(rdisk.at(i),2));
+  }
+  annuli(steps-1)=3.1415926535897*(pow(rdisk.at(steps-1)+1,2)-pow(rdisk.at(steps-1),2));
+
+  mat stick_spec_12CO = zeros<mat>(freq_size,steps);
+  mat stick_spec_13CO = stick_spec_12CO;
+  mat stick_spec_C180=stick_spec_12CO;
+  mat stick_spec_tot=stick_spec_12CO;
+
+  //======================
+  //  X12CO
+  //=====================
+  for (int i=0; i<steps; i++)  //Loop over annuli
+  {
+    //==============================
+    //  X12CO
+    //=============================
+    for (int j=0; j<tot_col.row(0).n_elem-1; j++)  //vibrational levels
+    {
+
+    
+      for (int k=0; k<X12CO.n_slices; k++)  //Loop over rotational levels
+      {
+ 
+
+      }
+
+    }
+ 
+
+    //==============================
+    //  X13CO
+    //==============================
+    for (int j=0; j<3; j++)   //Loop over vibrational levels--check for-loop bounds in some earlier integral loops... might need to be adjusted!
+    {
+
+      for (int k=0; k<X13CO.n_slices; k++)
+      {
+
+      }    
+
+    }
+
+    //=============================
+    //  XC180
+    //=============================
+    
+     
+
+      for (int k=0; k<XC180.n_slices; k++)
+      {
+
+
+      }
+  
+    stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C180.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
+
+  }
+
+  annuli.at(0)=1e28;
+  mat iten_tot=stick_spec_tot;
+  iten_tot.row(0)=iten_tot.row(0)*2.5;
+  mat Lum_tot = iten_tot;
+
+  for (int i=0; i<steps; i++)
+  {
+    Lum_tot.row(i)=iten_tot.row(i)*annuli.at(i);
+  }
+
+  mat Flux_tot = Lum_tot/(4*3.1415926535897*pow(data->stardist,2));
+
+
+//===================================
+//  SCRIPT 4 of 4
+//====================================
+
+  double r_in=rdisk.at(0);
+  double r_out=rdisk.at(rdisk.n_elem-1);
+
+  double dv=1;
+
+  mat flux_tot_slit=Flux_tot;
+
+//account for slit loss
+  vec slit_loss=100.17*pow(rdisk,-1.260);
+  double disk_Beyond_slit = 63;
+
+  for (int i=0; i<rdisk.n_elem; i++)
+  {
+    if (rdisk.at(i) > disk_Beyond_slit)
+    {
+      flux_tot_slit.col(i)=flux_tot_slit.col(i)*slit_loss.at(i);
+    }
+  }
+
+  auto n_rings=rdisk.n_elem;
+
+  vec dr = rdisk;
+
+  for (int i=0; i<n_rings; i++)
+  {
+    if (rdisk(i) < 0.1)    {
+      dr(i)=0.01;
+    } else {
+    dr(i)=1.0;
+    }
+  }
+
+  vec vmax = zeros<vec>(n_rings);
+  vec max=round(sqrt(887.2*Mstar/rdisk));
+
+//construct frequency scale!
+
+//  vec vfreq = zeros<vec>(freq.n_elem);
+//  vfreq=(freq(round(freq.n_elem/2))-freq)*c/freq(round(freq.n_elem/2));
+
+//  freq_index=where(freq, [] (double datum) {return (freq >= f_i) && (freq <= f_f);});     //these have already been done before.. redundant?
+
+  auto total_spec=iten_tot;
+  auto vel_spec=total_spec.col(0);
+
   return 0;
 }
 

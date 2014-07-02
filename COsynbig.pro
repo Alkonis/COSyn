@@ -461,7 +461,7 @@ ENDIF
 ; is 0.35 as claimed by Bouwman, then the angle is ~8deg. Since there is an inner wall, we 
 ;we assume the flux there is nearly normal
 
-ENDFOR ; END OF COLL LOOP.
+ENDFOR ; END OF COLL LOOP
 
 ;now correct for angle of incidence of light onto disk
 ;H(r)=SQRT(kTR^3/mum_H*GMstar)=5.59647E-10*SQRT(T/(Mstar/Msun))*R^3/2

@@ -1,16 +1,24 @@
 #include<iostream>
 #include<stdio.h>
-//#include<armadillo>
+#include<armadillo>
 #include<vector>
 
 
 
 
-//*  WHERECLASS
-//   C++ port of IDL WHERE() class for armadillo row/column vectors using lambda functions
-//
+//*  IDLARMA
+//  
+//  C++ implentation of useful IDL functions wrapped through the Armadillo linear algebra libary.
+
+
+//   idlarma::where
+//   C++ port of IDL WHERE() function for armadillo row/column vectors using lambda functions
 //   USAGE:  idlwhere::where(input_data, [] (double datum) {return (input_condition)});
-//      
+
+//   idlarma::deriv
+//   C++ port of the IDL deriv function
+//   USAGE:  deriv(y,x), computes dy/dx
+
 
 namespace idlarma {
 
@@ -34,14 +42,26 @@ namespace idlarma {
       count++;
     }
 
-    output.resize(outputPointer);
+
+    // Resize to the array of the size needed to support the indices.
+    // If no matches were found, then it will return an ivec of length 1 with value -1.
+    // Since -1 is an invalid index, this can be used to detect a match failure.    
+    if (outputPointer!=0) 
+    {
+      output.resize(outputPointer);
+    }
+    else
+    {
+      output.resize(1);
+      output.at(0)=-1;
+    }
 
     return output;
   }
 
   template<typename cond>
 
-  ivec where(rowvec data, cond lambda) {
+  ivec whererow(rowvec data, cond lambda) {
     
     int count=0;
     int outputPointer=0;
@@ -56,8 +76,20 @@ namespace idlarma {
       count++;
     }
     
-    output.resize(outputPointer);
-    
+   
+    // Resize to the array of the size needed to support the indices.
+    // If no matches were found, then it will return an ivec of length 1 with value -1.
+    // Since -1 is an invalid index, this can be used to detect a match failure.    
+    if (outputPointer!=0) 
+    {
+      output.resize(outputPointer);
+    }
+    else
+    {
+      output.resize(1);
+      output.at(0)=-1;
+    }
+ 
     return output;
   }
 
@@ -77,7 +109,20 @@ namespace idlarma {
       count++;
     }
 
-    output.resize(outputPointer);
+
+
+    // Resize to the array of the size needed to support the indices.
+    // If no matches were found, then it will return an ivec of length 1 with value -1.
+    // Since -1 is an invalid index, this can be used to detect a match failure.    
+    if (outputPointer!=0) 
+    {
+      output.resize(outputPointer);
+    }
+    else
+    {
+      output.resize(1);
+      output.at(0)=-1;
+    }
 
     return output;
   }
@@ -110,9 +155,51 @@ namespace idlarma {
                              - y2*(x0-x2+x1-x2)/((x0-x2)*(x1-x2));
     return output;
   }
+
+
+  mat totalDim(cube input, int dim)
+  {
+
+    mat output;
+    
+    int i_max;
+    int j_max;
+
+    if (dim==1) {
+      i_max=input.n_cols;
+      j_max=input.n_slices;
+    } else if (dim==2) {
+      i_max=input.n_rows;
+      j_max=input.n_slices;
+    } else if (dim==3) {
+      i_max=input.n_rows;
+      i_max=input.n_cols;
+    } else {
+      output << 0 << 0 << endr
+             << 0 << 0 << endr;
+      return output;
+    }
+
+    output=zeros<mat>(i_max,j_max);
+   
+    for (int i=0; i<i_max; i++)
+    {
+      for (int j=0; j<j_max; j++)
+      {
+        if (dim==1) {
+          output(i,j)=accu(input(span::all,span(i),span(j)));
+        } else if (dim==2) {
+	  output(i,j)=accu(input(span(i),span::all,span(j)));
+        } else if (dim==3) {
+          output(i,j)=accu(input(span(i),span(j),span::all));
+        }
+      }
+    }
+    return output;
+  }
 }
 
-/*EXAMPLE PROGRAM
+/*EXAMPLE PROGRAM--WHERE
 
 using namespace idlwhere;
 
@@ -130,3 +217,24 @@ int main() {
   return 0;
 }
 */
+
+/*EXAMPLE PROGRAM--TOTALDIM */
+
+
+/*int main() {
+  cube data = zeros<cube>(2,2,2);
+ 
+  data.slice(0) << 1 << 3 << endr
+                << 5 << 7 << endr;
+  data.slice(1) << 2 << 4 << endr
+                << 6 << 8 << endr;
+
+  cout << data << endl;
+
+  mat tot = totalDim(data, 2);
+  
+  cout << tot << endl;
+
+  return 0;
+
+}*/

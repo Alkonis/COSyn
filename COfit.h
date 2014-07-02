@@ -8,6 +8,8 @@
 #include "lib/idlarma.h"
 #include "CollData.cpp"
 
+//namespace stdmath = math;
+
 using namespace std;
 using namespace arma;
 
@@ -32,12 +34,15 @@ class FitData{
   static constexpr double X12CO_13CO_cl = 65.;
   static constexpr double X12CO_C180_cl = 560.;
 
+  static constexpr double Mstar=10000;
+
   static constexpr double inst_res=6.0;
   static constexpr double c=2.997924562e5;
   static constexpr double hc=6.626196e-27*2.997924562e10;
   static constexpr double hck=(6.62196e-27*2.997924562e10)/(1.380622e-16);
   static constexpr double cer=8.85282e-13;
   static constexpr double vib_einA[10]={34.60,67.68,98.40,126.99,153.59,178.31,201.35,223.10,224.15,265.21};
+  static constexpr double stardist=(103*3.0856e18);
 
   static constexpr double v = 2.5;
   static constexpr double k = 1.380622E-16;
@@ -73,16 +78,19 @@ class FitData{
   //float* wavenum[12];
   vec T_rot_fl;
   vec T_rot_cl;
-  vec H_den; 
+  vec H_den;
+ 
   mat wavenum             = zeros<mat>(12,10);
   mat einA                = zeros<mat>(12,10);
   mat lam_ang             = zeros<mat>(12,10);
   mat HD100546_luminosity = zeros<mat>(12,10);
 
+//Molecular data
   cube X12CO = zeros<cube>(10,7,120);
   cube X13CO = zeros<cube>(3,7,120);
+  cube XC180;                         //get this done!
 
- //CollisionData
+ //Collision data
 
   mat fAX;
   mat fXA; 
@@ -92,7 +100,7 @@ class FitData{
   cube dwdn;
   cube Nv;
   
-  field<cube> rate_eqtn;
+  field<cube> rate_eqtn;  //copy this over to colldata on the start of each coll_loop! do this for others that need reiteration as well
   field<cube> g;
 
 
