@@ -306,8 +306,8 @@ skip_coll:
 
 cerr << "dwdn.slice(j):  " << endl;
 cerr << d->dwdn.slice(j) << endl;
-cerr << "fXA:  " << endl;
-cerr << fXA << endl;
+cout << "fXA:  " << endl;
+cout << fXA << endl;
 	   for (int ii=0; ii<10; ii++) 
 	   {
 	    // g.at(ii,0).subcube(span::all,span(j),span(k))=dwdn.subcube(span::all,span::all,span(j))*3.1415926535897 % Fuv / (hc * wavenum);
@@ -324,7 +324,7 @@ cerr << fXA << endl;
 	   }
 	   d->rate_eqtn.at(k,0).at(0,0,j)-=gsum;
 
-
+           cerr <<  "GSUM:  " << gsum << endl;
 	   for (int i=0; i<11; i++)
 	   {
 	     gsum = 0;
@@ -335,7 +335,14 @@ cerr << fXA << endl;
 	     d->rate_eqtn.at(k,0).subcube(span(i),span(i),span(j))-=gsum;
 
 	   }
-	   
+           mat gprint = zeros<mat>(10,12);
+           for (int i=0; i<10; i++) 
+	   {
+             gprint.row(i)=d->g.at(i,0).slice(k).col(i).t();
+	   } 
+           
+           cerr << "G: " << gprint << endl;
+           cin.get();
            for (int i=0; i<9; i++)
 	   {
 	     for (int ii=0; ii<11; ii++)
