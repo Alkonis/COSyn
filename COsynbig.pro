@@ -55,7 +55,7 @@ X12CO_C18O_fl =550./16.25       ;O-16/18 ratio
 X12CO_13CO_cl =65.		;C-12/13 ratio
 X12CO_C18O_cl =560.
 H_den0=2.5e10
-H_den_alpha=0.15
+H_den_alpha=0.1 
 
 FOR bigi=0,num_guesses-1 DO BEGIN ;THE BIG LOOP
 
@@ -393,8 +393,12 @@ skip_coll:
 	read,x,prompt="?"
 	FOR j=0,layers-1 DO BEGIN
 		IF j GT 0 THEN BEGIN
-			FOR i=0,9 DO tau_0(i,*,j)=TOTAL(Nv(0:11,0:j,k),2)*7.55858e12 $
-				*0.02654*fXA(i,*)*lam_ang(i,*)*1e-8/(SQRT(!pi)*b_tot(k))
+			FOR i=0,9 DO BEGIN 
+                          tau_0(i,*,j)=TOTAL(Nv(0:11,0:j,k),2)*7.55858e12*0.02654*fXA(i,*)*lam_ang(i,*)*1e-8/(SQRT(!pi)*b_tot(k))*0.02654*fXA(i,*)*lam_ang(i,*)*1e-8/(SQRT(!pi)*b_tot(k))
+                          print, "fXA(i,*):  " 
+                          print, fXA(i,*)
+                        ENDFOR
+
 		ENDIF
 
 		FOR ii=0,N_ELEMENTS(tau_0(0,*,j))-1 DO BEGIN	
@@ -420,6 +424,9 @@ skip_coll:
 		
 
 		;now add g-factors:
+               print, "GSUM:  "
+               print, TOTAL(g(*,0,j,k),1)
+               read,x,prompt="?"
                 rate_eqtn(0,0,j,k)=rate_eqtn(0,0,j,k)-TOTAL(g(*,0,j,k),1) ;sum of all
                                                         ;transitions from v=0 
 							;ground state

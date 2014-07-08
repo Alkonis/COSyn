@@ -98,23 +98,23 @@ mat fXA = 2*fAX*/
   CollData* d = new CollData(this->layers, this->steps);
   for (auto i=0; i<steps;i++) {
     for (auto j=0; j<layers;j++) {
-      for (auto k=0; k<9;k++) {
-        for (auto q=0; q<10; q++)
+      for (auto k=0; k<10;k++) {
+        for (auto q=0; q<11; q++)
         {
-          d->rate_eqtn(i,0)(k+11,q,j)=einA.at(k,q);//k+11, q,j,i,   k ,q
+          d->rate_eqtn(i,0)(k+11,q,j)=einA.at(k,q);//k+11, q,j,i,   k ,q  //why no zero here
         }
       }
     }
   }
    for (auto i=0; i<steps; i++) {
       d->rate_eqtn.at(i,0)(span(1),span(0),span::all).fill(vib_einA[0]);   
-      d->rate_eqtn.at(i,0)(span(10),span(10),span::all).fill(vib_einA[9]); 
+      d->rate_eqtn.at(i,0)(span(10),span(10),span::all).fill(-vib_einA[9]); 
    }
 
    for (auto j=0; j<steps; j++){
      for (auto i=0; i<9; i++)
      {
-       d->rate_eqtn.at(j,0)(span(i+11),span(i+1),span::all).fill(sum(einA.row(i)));
+       d->rate_eqtn.at(j,0)(span(i+11),span(i+11),span::all).fill(-sum(einA.row(i)));
      }
    }
 
@@ -162,7 +162,7 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
 
 
 
-    vec tau = linspace<vec>(0,20,2000);   //check valueis here   idl = findgen(2e3)/1e2) === findgen(2000/100)  == [0, 20], N=2000
+    vec tau = linspace<vec>(0,20,2000);   //check values here   idl = findgen(2e3)/1e2) === findgen(2000/100)  == [0, 20], N=2000
     vec F_tau=zeros<vec>(2000);
  
     //==============INTEGRATE FUNCTION USING TRAPEZOID RULE================
@@ -226,18 +226,18 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
       {
 
 	cerr <<"Steps loop, k=" << k << endl;
-	for (int z=0; z<8; z++)
+	for (int z=0; z<9; z++)
 	{
 	  for (int q=0; q<layers; q++) 
 	  {
 	    d->rate_eqtn.at(k,0).at(z+1,z+1,q)=-vib_einA[z];  
-	    d->rate_eqtn.at(k,0).at(z+2,z+2,q)=vib_einA[z+1]; 
+	    d->rate_eqtn.at(k,0).at(z+2,z+1,q)=vib_einA[z+1]; 
 	  }
 	}
       
 	for (int q=0; q<layers; q++)
 	{
-	  d->rate_eqtn.at(k,0).subcube(span(0),span::all,span(k)).fill(vib_einA[0]);  //1,0,all,k
+	  d->rate_eqtn.at(k,0).subcube(span(1),span(0),span::all).fill(vib_einA[0]);  //1,0,all,k
 	  d->rate_eqtn.at(k,0).subcube(span(9),span(9),span::all).fill(-vib_einA[8]);  //9,9,all,k
 	}
 
@@ -276,20 +276,18 @@ skip_coll:
 	     for (int i=0; i<10; i++)
 	     {
 	      // tau_0.subcube(span(i),span::all,span(j))=sum(Nv.subcube(span(0,11),span(0,j),span(k))) * 7.55858e12 * 0.02654*fXA.submat(span(i),span::all)*lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);   //Check this!
-	      d->tau_0.subcube(span(i),span::all,span(j))=7.7585e12 * 0.02654 * arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),2) * fXA.submat(span(i),span::all) % lam_ang.submat(span(i),span::all)*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
+	      d->tau_0.subcube(span(i),span::all,span(j))=7.7585e12 * 0.02654 * arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),1) % fXA.submat(span(i),span::all).t() % lam_ang.submat(span(i),span::all).t()*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
 	     }
 	   }
 	  // auto max_iter=d->tau_0.slice(j).col(0).n_elem; 
            auto max_iter=d->tau_0.slice(j).row(0).n_elem;
 	   for (auto ii=0; ii<max_iter; ii++)
 	   {
-           cerr << "ii="<<ii<<endl;
 	     if (d->tau_0.at(0,ii,j) < 20)
 	     {
 	       ivec dFdt_0_index=where(tau, [&] (double elem) {return elem == round(d->tau_0.at(0,ii,j)*10)/10;});
 	       auto count = dFdt_0_index.size();
-	       cerr << "dFdt_0_index:"  << dFdt_0_index << endl;
-	       cerr << "count:  " << count << endl; 
+	       cout << "dFdt_0_index:"  << dFdt_0_index <<  "  count:  " << count << endl; 
 	       if (dFdt_0_index.at(0) != -1)
 	       {
 	         d->dFdt_0.subcube(span::all,span(ii),span(j)).fill(dFdt.at(dFdt_0_index.at(0)));    //weird line!!!!!
@@ -298,37 +296,36 @@ skip_coll:
 	     }
 	     else 
 	     {
-cerr << "In else"; 
 	       d->dFdt_0.slice(j).row(ii).fill((1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j)))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
 	     }
-cerr << "Outta dat.";
 	   }
 	   //dwdn.subcube(span::all,span::all,span(j))=dFdt_0.subcube(span::all,span::all,span(j))*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
-cerr << "Hello!" << endl;
+
+
+	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
 
 cerr << "dwdn.slice(j):  " << endl;
 cerr << d->dwdn.slice(j) << endl;
 cerr << "fXA:  " << endl;
 cerr << fXA << endl;
-
-	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
-
 	   for (int ii=0; ii<10; ii++) 
 	   {
 	    // g.at(ii,0).subcube(span::all,span(j),span(k))=dwdn.subcube(span::all,span::all,span(j))*3.1415926535897 % Fuv / (hc * wavenum);
-	    cerr << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
+	    cout << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
 	    d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
 	   } 
         
 	   //add in g-factors:
 	   double gsum=0;
-	   
+
 	   for (int ii=0; ii<10; ii++)
 	   { 
 	     gsum+=d->g.at(ii).at(0,j,k);
 	   }
 	   d->rate_eqtn.at(k,0).at(0,0,j)-=gsum;
-	   for (int i=0; i<10; i++)
+
+
+	   for (int i=0; i<11; i++)
 	   {
 	     gsum = 0;
 	     for (int ii=0; ii<10; ii++)
@@ -338,8 +335,8 @@ cerr << fXA << endl;
 	     d->rate_eqtn.at(k,0).subcube(span(i),span(i),span(j))-=gsum;
 
 	   }
-	  cerr << "Test2..." << endl;
-	   for (int i=0; i<8; i++)
+	   
+           for (int i=0; i<9; i++)
 	   {
 	     for (int ii=0; ii<11; ii++)
 	     {
@@ -357,26 +354,33 @@ cerr << fXA << endl;
 	     
 	   vec sol;
 	   cout << "matrix for solving:" << endl;
-	   cout << d->rate_eqtn.at(k,0).slice(j);
+	   cout << d->rate_eqtn.at(k,0).slice(j).t();
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 	   d->Nv.slice(k).col(j)= sol;  //check this to be sure the array is filling in the right dimension
 	   cerr << "Solved!" << endl;
 
-	   ivec Nv_index=whererow(Nv.slice(k).row(j), [] (double datum) {return datum < 0;});
+	   ivec Nv_index;
+           cerr << "Whereing..." << endl;
+           cerr << "d->Nv.slice(k).col(j):  " << d->Nv.slice(k).col(j) << endl;
+           Nv_index=where(d->Nv.slice(k).col(j), [] (double datum) {return datum < 0;});
+           cerr << "Where'd!" << endl;
 	   if (Nv_index.at(0) != -1) 
            {
              for (int jj=0; jj<Nv_index.n_elem; jj++) 
              {
-               Nv.at(Nv_index(jj),j,k)=0;
+               d->Nv.at(Nv_index[jj],j,k)=0;
              }
            }
+
+           cerr << "End of solve loop" << endl;
+
  	 }
        }
      }
 
 //}
 //skip_fluorcalc:
-
+    cerr << "Checking coll_loop" << endl;
     if (coll_loop==0) {
       Nv_coll=Nv;
       tot_col_fluor = totalDim(Nv*7.55858e12,2);      //check all uses of accu/total in teh code!!!!!! dimension specification!
@@ -386,7 +390,7 @@ cerr << fXA << endl;
       Nv_nocoll=Nv;
       tot_col_fluor_nocoll = totalDim(Nv*7.55858e12,2);
     }
-
+    cerr << "Coll loop incrementing...";
   }
 
 
