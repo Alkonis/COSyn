@@ -39,7 +39,7 @@ public:
   {                                                                                                                                    
     cout << i << endl;                                                                                                          
     rate_eqtn.at(i,0)=zeros<cube>(21,21,layers);                                                                                    
-    rate_eqtn.at(i,0)(span(20),span::all,span::all).fill(1);                                                                           
+    rate_eqtn.at(i,0)(span::all,span(20),span::all).fill(1);                                                                           
   }                                                                                                                                    
 /*  for (auto i=0; i<steps;i++) {                                                                                                        
     for (auto j=0; i<layers;j++) {                                                                                                     

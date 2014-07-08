@@ -62,7 +62,7 @@ namespace idlarma {
   template<typename cond>
 
   ivec whererow(rowvec data, cond lambda) {
-    
+    cerr << "Inwhere" << endl;
     int count=0;
     int outputPointer=0;
     ivec output = zeros<ivec>(data.size());
@@ -76,16 +76,18 @@ namespace idlarma {
       count++;
     }
     
-   
+    cerr <<"Resizing..." << endl;
     // Resize to the array of the size needed to support the indices.
     // If no matches were found, then it will return an ivec of length 1 with value -1.
     // Since -1 is an invalid index, this can be used to detect a match failure.    
     if (outputPointer!=0) 
     {
+      cerr << "Have results" << endl;
       output.resize(outputPointer);
     }
     else
     {
+      cerr << "NO results!" << endl;
       output.resize(1);
       output.at(0)=-1;
     }
