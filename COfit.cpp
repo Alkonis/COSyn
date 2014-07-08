@@ -7,11 +7,17 @@
 //                       adoption of an optimized linear algebra computation library (armadillo)
 
 
-//To do:  fix transposition of rate_eqtn variables
+//To do:  Fix transposition (later)
 //        benchmark rate_eqtn solving
 //        add XC180
 //        check the lineup of XCO13/XCO12 vars with idl 
 //        draw spectrum
+//        properly loop coll_loop; copy static vars of rate_eqtn into FitData and clone for each loop
+//        Properly skip fluorcalc, etc
+//        add input file
+//        fix g-factors
+//        add molecular data computations
+//
 
 using namespace std;
 using namespace idlarma;
@@ -433,9 +439,14 @@ cout << fXA << endl;
 //==================================================================================================
 
 
-  mat N_12CO_vj;
-  mat N_13CO_vj;
-  mat N_C180_vj;
+  cube N_12CO_vj = zeros<tot_col.col(0).n_elem-1,120, tot_col.row(0).n_elem;                 //flipping these indices...
+  cube N_13CO_vj = zeros<3,120,tot_col.row(0).n_elem;
+  cube N_C180_vj = zeros<1,120,tot_col.row(0).n_elem;
+
+  vec Jup;
+  vec Jdn;
+  vec wvn;
+  vec einA;
 
   for (int i=0; i<steps; i++)
   {
@@ -443,11 +454,17 @@ cout << fXA << endl;
   //=======================
   //   12CO
   //======================
+
+//in idl, why is cl commented out for 13CO and C18O but not X12CO?
+
   for (int j=0; j< tot_col.row(0).n_elem; j++)
   {
+    Jup = X12CO(span(3),span(j),span::all);          //because the indices are reversed in c++, do all these first/second indices flipped.
+    Jdn = X12CO(span(1),span(j),span::all);
+    wvn = X12CO(span(6),span(j),span::all);
+    EinA= X12CO(span(4),span(j),span::all);
 
-
-
+    N_13CO_vj.slice(i).row(j)=tot_col_fluor(j+1,i)%(2*Jup+1) * exp(-hck*Bv12(j)*Jup % (Jup+1)/T_rot_fl(i))/(T_rot_fl(i)/(hck*Bv12(j))) + t_col_coll(j+1,i)*(2*Jup+1)*exp(-hck*Vc12(j) * Jup % (Jup+1)/T_rot_cl(i))/(T_rot_cl(i)/(hck*Bv12(j)));
   }
   
   //====================
@@ -455,7 +472,12 @@ cout << fXA << endl;
   //====================
   for (int j=0; j<3; j++)
   {
-
+    Jup = X13CO(span(3),span(j),span::all);
+    Jdn = X13CO(span(1),span(j),span::all);
+    wvn = X13CO(span(6),span(j),span::all);
+    EinA= X13CO(span(4),span(j),span::All);
+   
+    N_13CO_vJ.slice(i).row(j)=(tot_col_fluor_nocol(j+1,i).X12CO_13CO_fl)%(2*Jup+1) * exp(-hck*Bv13(j)*Jup % (Jup+1) / T-rot_fl(i)) / (T_rot_fl(i)/(hck*Bv13(j)));
 
   }
 
@@ -463,11 +485,16 @@ cout << fXA << endl;
   //  C180
   //===================
   
+    Jup = XC18O(span(3),span(0),span::all);
+    Jdn = XC180(span(1),span(0),span::all);
+    wvn = XC18O(span(6),span(j),span::all);
+    EinA= XC13O(span(4),span(j),span::all);
 
-
+    N_C18O_vj.slice(i).row(j)=(t_col_fluor_nocoll(j+1,i)/X12CO_C18O_fl)*(2*Jup+1) * exp(-hck*Bv18(j)*Jup%(Jup+1)/T_rot_fl(i)) / (T_rot_fl(i)/(hck*Bv18(j)));
 
   }
 
+  
   double freq_size=log10(f_f/f_i)/log10(1+v/(3*c));
   vec freq = zeros<vec>(freq_size);
   freq.at(0)=f_i;
@@ -509,11 +536,20 @@ cout << fXA << endl;
     //=============================
     for (int j=0; j<tot_col.row(0).n_elem-1; j++)  //vibrational levels
     {
-
+      Jup = X12CO(span(3),span(j),span::all);
+      Jdn = X12CO(span(1),span(j),span::all);
+      wvn = X12CO(span(6),span(j),span::all);
+      EinA= X12CO(span(4),span(j),span::all);
     
       for (int k=0; k<X12CO.n_slices; k++)  //Loop over rotational levels
       {
- 
+        if ( (wvn(k) >= f_i) && (wvn(k) <= f_f) )
+        {
+          A0=N_13CO_vj.at(j,k,i)*hc*wvn(k)*EinA(k);                         //should the first two indices be reversed here?
+          A1=wvn(k);
+          A2=b_tot(i)*wvn(k)/(c*1e5);
+          stick_spec_12CO.col(i)+=(A0/(SQRT(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2))
+        }
 
       }
 
@@ -526,9 +562,17 @@ cout << fXA << endl;
     for (int j=0; j<3; j++)   //Loop over vibrational levels--check for-loop bounds in some earlier integral loops... might need to be adjusted!
     {
 
+      Jup = X13CO(span(3),span(j),span::all);
+      Jdn = X13CO(span(1),span(j),span::all);
+      wvn = X13CO(span(6),span(j),span::all);
+      EinA= X13CO(span(4),span(j),span::all);
+
       for (int k=0; k<X13CO.n_slices; k++)
       {
-
+          A0=N_13CO_vj.at(j,k,i)*hc*wvn(k)*EinA(k);                         //should the first two indices be reversed here?
+          A1=wvn(k);
+          A2=b_tot(i)*wvn(k)/(c*1e5);
+          stick_spec_13CO.col(i)+=(A0/(SQRT(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2))
       }    
 
     }
@@ -538,11 +582,17 @@ cout << fXA << endl;
     //=============================
     
      
+      Jup = XC18O(span(3),span(0),span::all);
+      Jdn = XC18O(span(1),span(0),span::all);
+      wvn = XC18O(span(6),span(0),span::all);
+      EinA= XC18O(span(4),span(0),span::all);
 
       for (int k=0; k<XC180.n_slices; k++)
       {
-
-
+          A0=N_13CO_vj.at(j,k,i)*hc*wvn(k)*EinA(k);                         //should the first two indices be reversed here?
+          A1=wvn(k);
+          A2=b_tot(i)*wvn(k)/(c*1e5);
+          stick_spec_C18O.col(i)+=(A0/(SQRT(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2))
       }
   
     stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C180.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
@@ -705,7 +755,7 @@ FitData::FitData(int numGuesses)
 //     MOLECULAR DATA
 //===========================
 
-  fin.open("CO_molecdat/X12CO");
+/*  fin.open("CO_molecdat/X12CO");
   for (int i=0; i<119; i++) {
     for (int j=0; j<7; j++) {
       for (int k=0; k<10; k++) {
@@ -725,7 +775,47 @@ FitData::FitData(int numGuesses)
       }
     }
   }
+  fin.close();*/
+
+  mat temp = zeros<mat>(7,10);
+  fin.open("CO_molecdat/X12CO");
+
+  for (int k=0; k<119; k++)
+  {
+    for (int i=0; i<7; i++)
+    {
+      for (int j=0; j<10; j++)
+      {
+        fin >> temp(i,j);
+      }
+    }
+    X12CO.slice(k)=temp.t();
+  }
+
   fin.close();
+
+  fin.open("CO_molecdat/X13CO");
+  temp = zeros<mat>(7,3);
+
+  for (int k=0; k<119; k++)
+  {
+    for (int i=0; i<7; i++)
+    {
+      for (int j=0; j<3; j++)
+      {
+        fin >> temp(i,j);
+      }
+    }
+    X13CO.slice(k)=temp.t();
+  }
+
+  fin.close();
+
+  fin.open("XC180");
+
+
+  fin.close();
+
 
 
 /*//transpose these to get the write dimensinos--eventually transpose instead in host files
@@ -789,9 +879,23 @@ FitData::~FitData()
   delete this->randData;
 }
 
+int createInput() 
+{
+  
+
+  return 1;
+} 
+
+int readInput(string inpFile)
+{
+
+
+  return 1;
+}
+
 int main(int argc, char* argv[]) 
 {
-  cout <<  "Starting...";
+  cout << "Begin!" << endl;
   data = new FitData(atoi(argv[1]));
   data->runTrials();
   delete data;
