@@ -167,7 +167,11 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
 
 
 
+<<<<<<< HEAD
     vec tau = linspace<vec>(0,19.99,2000);   //check values here   idl = findgen(2e3)/1e2) === findgen(2000/100)  == [0, 20], N=2000
+=======
+    vec tau = linspace<vec>(0,20,2000);   //check values here   idl = findgen(2e3)/1e2) === findgen(2000/100)  == [0, 20], N=2000
+>>>>>>> 57ec06f8181d5cc998d51f95f4bd19265db75972
     vec F_tau=zeros<vec>(2000);
  
     //==============INTEGRATE FUNCTION USING TRAPEZOID RULE================
@@ -301,20 +305,36 @@ skip_coll:
 	     }
 	   }
 	   //dwdn.subcube(span::all,span::all,span(j))=dFdt_0.subcube(span::all,span::all,span(j))*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
+<<<<<<< HEAD
            cout << "dFdt_0.slice(j):  " << d->dFdt_0.slice(j) << endl;
 	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
 
 cout << "dwdn.slice(j):  " << endl;
 cout << d->dwdn.slice(j) << endl;
+=======
+
+
+	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
+
+cerr << "dwdn.slice(j):  " << endl;
+cerr << d->dwdn.slice(j) << endl;
+>>>>>>> 57ec06f8181d5cc998d51f95f4bd19265db75972
 cout << "fXA:  " << endl;
 cout << fXA << endl;
 	   for (int ii=0; ii<10; ii++) 
 	   {
+<<<<<<< HEAD
 	     // g.at(ii,0).subcube(span::all,span(j),span(k))=dwdn.subcube(span::all,span::all,span(j))*3.1415926535897 % Fuv / (hc * wavenum);
 	     cout << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
              cout << (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t() << endl;
 	     d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
            } 
+=======
+	    // g.at(ii,0).subcube(span::all,span(j),span(k))=dwdn.subcube(span::all,span::all,span(j))*3.1415926535897 % Fuv / (hc * wavenum);
+	    cout << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
+	    d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
+	   } 
+>>>>>>> 57ec06f8181d5cc998d51f95f4bd19265db75972
         
 	   //add in g-factors:
 	   double gsum=0;
@@ -325,9 +345,14 @@ cout << fXA << endl;
 	   }
 	   d->rate_eqtn.at(k,0).at(0,0,j)-=gsum;
 
+<<<<<<< HEAD
            cout <<  "GSUM1:  " << gsum << endl;
 
 	   for (int i=1; i<11; i++)
+=======
+           cerr <<  "GSUM1:  " << gsum << endl;
+	   for (int i=0; i<11; i++)
+>>>>>>> 57ec06f8181d5cc998d51f95f4bd19265db75972
 	   {
 	     gsum = 0;
 	     for (int ii=0; ii<10; ii++)
@@ -335,16 +360,26 @@ cout << fXA << endl;
 	       gsum+=d->g.at(ii).at(i,j,k);
 	     }
 	     d->rate_eqtn.at(k,0).subcube(span(i),span(i),span(j))-=gsum;
+<<<<<<< HEAD
              cout << "Gsum2:  " << gsum << endl;  
 	   }
 
+=======
+             cerr << "Gsum2:  " << gsum << endl;  
+	   }
+>>>>>>> 57ec06f8181d5cc998d51f95f4bd19265db75972
            mat gprint = zeros<mat>(10,12);
            for (int i=0; i<10; i++) 
 	   {
              gprint.row(i)=d->g.at(i,0).slice(k).col(i).t();
 	   } 
            
+<<<<<<< HEAD
            cout << "Gprint: " << gprint << endl;
+=======
+           cerr << "G: " << gprint << endl;
+           cin.get();
+>>>>>>> 57ec06f8181d5cc998d51f95f4bd19265db75972
            for (int i=0; i<9; i++)
 	   {
 	     for (int ii=0; ii<11; ii++)
@@ -369,10 +404,17 @@ cout << fXA << endl;
 	   cerr << "Solved!" << endl;
 
 	   ivec Nv_index;
+<<<<<<< HEAD
            cout << "Whereing..." << endl;
            cout << "d->Nv.slice(k).col(j):  " << d->Nv.slice(k).col(j) << endl;
            Nv_index=where(d->Nv.slice(k).col(j), [] (double datum) {return datum < 0;});
            cout << "Where'd!" << endl;
+=======
+           cerr << "Whereing..." << endl;
+           cerr << "d->Nv.slice(k).col(j):  " << d->Nv.slice(k).col(j) << endl;
+           Nv_index=where(d->Nv.slice(k).col(j), [] (double datum) {return datum < 0;});
+           cerr << "Where'd!" << endl;
+>>>>>>> 57ec06f8181d5cc998d51f95f4bd19265db75972
 	   if (Nv_index.at(0) != -1) 
            {
              for (int jj=0; jj<Nv_index.n_elem; jj++) 
@@ -381,7 +423,11 @@ cout << fXA << endl;
              }
            }
 
+<<<<<<< HEAD
            cout << "End of solve loop" << endl;
+=======
+           cerr << "End of solve loop" << endl;
+>>>>>>> 57ec06f8181d5cc998d51f95f4bd19265db75972
 
  	 }
        }
@@ -792,6 +838,7 @@ FitData::FitData(int numGuesses)
     X12CO.slice(k)=temp.t();
   }
 
+<<<<<<< HEAD
   fin.close();
 
   fin.open("CO_molecdat/X13CO");
@@ -811,6 +858,27 @@ FitData::FitData(int numGuesses)
 
   fin.close();
 
+=======
+  fin.close();
+
+  fin.open("CO_molecdat/X13CO");
+  temp = zeros<mat>(7,3);
+
+  for (int k=0; k<119; k++)
+  {
+    for (int i=0; i<7; i++)
+    {
+      for (int j=0; j<3; j++)
+      {
+        fin >> temp(i,j);
+      }
+    }
+    X13CO.slice(k)=temp.t();
+  }
+
+  fin.close();
+
+>>>>>>> 57ec06f8181d5cc998d51f95f4bd19265db75972
   fin.open("XC180");
 
 
