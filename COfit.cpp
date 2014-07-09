@@ -10,13 +10,11 @@
 //To do:  Fix transposition (later)
 //        benchmark rate_eqtn solving
 //        add XC180
-//        check the lineup of XCO13/XCO12 vars with idl 
 //        draw spectrum
 //        properly loop coll_loop; copy static vars of rate_eqtn into FitData and clone for each loop
 //        Properly skip fluorcalc, etc
 //        add input file
 //        fix g-factors
-//        add molecular data computations
 //
 
 using namespace std;
