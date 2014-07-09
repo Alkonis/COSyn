@@ -25,10 +25,10 @@ using namespace idlarma;
 FitData* data;
 
 constexpr double FitData::vib_einA[];
-
+constexpr double FitData::Bv12[];
+constexpr double FitData::Bv13[];
 
 int FitData::numGuesses;
-
 
 //returns an array of size numGuesses filled with random numbers on the interval (offset, modulus+offset)
 double* FitData::FillArray(int modulus, int offset)
@@ -164,6 +164,7 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
  //   CollData d = new CollData(this->layers, this->steps);
 //  if (rel_lum <= 1e-3) goto skip_fluorcalc;
 //{
+//
     vec b_tot = sqrt(2*1.38e-16*6.02e23*T_rot_fl/28 + pow(v_turb,2));
 
 
@@ -330,7 +331,7 @@ cout << fXA << endl;
 	   }
 	   d->rate_eqtn.at(k,0).at(0,0,j)-=gsum;
 
-           cerr <<  "GSUM:  " << gsum << endl;
+           cerr <<  "GSUM1:  " << gsum << endl;
 	   for (int i=0; i<11; i++)
 	   {
 	     gsum = 0;
@@ -339,7 +340,7 @@ cout << fXA << endl;
 	       gsum+=d->g.at(ii).at(i,j,k);
 	     }
 	     d->rate_eqtn.at(k,0).subcube(span(i),span(i),span(j))-=gsum;
-
+             cerr << "Gsum2:  " << gsum << endl;  
 	   }
            mat gprint = zeros<mat>(10,12);
            for (int i=0; i<10; i++) 
@@ -439,14 +440,14 @@ cout << fXA << endl;
 //==================================================================================================
 
 
-  cube N_12CO_vj = zeros<tot_col.col(0).n_elem-1,120, tot_col.row(0).n_elem;                 //flipping these indices...
-  cube N_13CO_vj = zeros<3,120,tot_col.row(0).n_elem;
-  cube N_C180_vj = zeros<1,120,tot_col.row(0).n_elem;
+  cube N_12CO_vj = zeros<cube>(tot_col.col(0).n_elem-1,120,tot_col.row(0).n_elem);                 //flipping these indices...
+  cube N_13CO_vj = zeros<cube>(3,120,tot_col.row(0).n_elem);
+  cube N_C18O_vj = zeros<cube>(1,120,tot_col.row(0).n_elem);
 
   vec Jup;
   vec Jdn;
   vec wvn;
-  vec einA;
+  vec EinA;
 
   for (int i=0; i<steps; i++)
   {
@@ -460,11 +461,11 @@ cout << fXA << endl;
   for (int j=0; j< tot_col.row(0).n_elem; j++)
   {
     Jup = X12CO(span(3),span(j),span::all);          //because the indices are reversed in c++, do all these first/second indices flipped.
-    Jdn = X12CO(span(1),span(j),span::all);
-    wvn = X12CO(span(6),span(j),span::all);
-    EinA= X12CO(span(4),span(j),span::all);
+    Jdn = data->X12CO(span(1),span(j),span::all);
+    wvn = data->X12CO(span(6),span(j),span::all);
+    EinA= data->X12CO(span(4),span(j),span::all);
 
-    N_13CO_vj.slice(i).row(j)=tot_col_fluor(j+1,i)%(2*Jup+1) * exp(-hck*Bv12(j)*Jup % (Jup+1)/T_rot_fl(i))/(T_rot_fl(i)/(hck*Bv12(j))) + t_col_coll(j+1,i)*(2*Jup+1)*exp(-hck*Vc12(j) * Jup % (Jup+1)/T_rot_cl(i))/(T_rot_cl(i)/(hck*Bv12(j)));
+    N_13CO_vj.slice(i).row(j)=tot_col_fluor.at(j+1,i) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) + tot_col_coll.at(j+1,i)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
   }
   
   //====================
@@ -472,12 +473,12 @@ cout << fXA << endl;
   //====================
   for (int j=0; j<3; j++)
   {
-    Jup = X13CO(span(3),span(j),span::all);
-    Jdn = X13CO(span(1),span(j),span::all);
-    wvn = X13CO(span(6),span(j),span::all);
-    EinA= X13CO(span(4),span(j),span::All);
+    Jup = data->X13CO(span(3),span(j),span::all);
+    Jdn = data->X13CO(span(1),span(j),span::all);
+    wvn = data->X13CO(span(6),span(j),span::all);
+    EinA= data->X13CO(span(4),span(j),span::all);
    
-    N_13CO_vJ.slice(i).row(j)=(tot_col_fluor_nocol(j+1,i).X12CO_13CO_fl)%(2*Jup+1) * exp(-hck*Bv13(j)*Jup % (Jup+1) / T-rot_fl(i)) / (T_rot_fl(i)/(hck*Bv13(j)));
+    N_13CO_vj.slice(i).row(j)=(tot_col_fluor_nocoll.at(j+1,i)/X12CO_13CO_fl)*(2*Jup+1) * exp(-hck*Bv13[j] * Jup % (Jup+1) / T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv13[j]));
 
   }
 
@@ -485,12 +486,12 @@ cout << fXA << endl;
   //  C180
   //===================
   
-    Jup = XC18O(span(3),span(0),span::all);
-    Jdn = XC180(span(1),span(0),span::all);
-    wvn = XC18O(span(6),span(j),span::all);
-    EinA= XC13O(span(4),span(j),span::all);
+    Jup = data->XC18O(span(3),span(0),span::all);
+    Jdn = data->XC18O(span(1),span(0),span::all);
+    wvn = data->XC18O(span(6),span(0),span::all);
+    EinA= data->XC18O(span(4),span(0),span::all);
 
-    N_C18O_vj.slice(i).row(j)=(t_col_fluor_nocoll(j+1,i)/X12CO_C18O_fl)*(2*Jup+1) * exp(-hck*Bv18(j)*Jup%(Jup+1)/T_rot_fl(i)) / (T_rot_fl(i)/(hck*Bv18(j)));
+    N_C18O_vj.slice(i).row(0)=(tot_col_fluor_nocoll.at(1,i)/X12CO_C18O_fl)*(2*Jup+1) * exp(-hck*Bv18[0]*Jup%(Jup+1)/T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv18[0]));
 
   }
 
@@ -523,8 +524,12 @@ cout << fXA << endl;
 
   mat stick_spec_12CO = zeros<mat>(freq_size,steps);
   mat stick_spec_13CO = stick_spec_12CO;
-  mat stick_spec_C180=stick_spec_12CO;
+  mat stick_spec_C18O=stick_spec_12CO;
   mat stick_spec_tot=stick_spec_12CO;
+
+  double A0;
+  double A1;
+  double A2;
 
   //======================
   //  X12CO
@@ -536,10 +541,10 @@ cout << fXA << endl;
     //=============================
     for (int j=0; j<tot_col.row(0).n_elem-1; j++)  //vibrational levels
     {
-      Jup = X12CO(span(3),span(j),span::all);
-      Jdn = X12CO(span(1),span(j),span::all);
-      wvn = X12CO(span(6),span(j),span::all);
-      EinA= X12CO(span(4),span(j),span::all);
+      Jup = data->X12CO(span(3),span(j),span::all);
+      Jdn = data->X12CO(span(1),span(j),span::all);
+      wvn = data->X12CO(span(6),span(j),span::all);
+      EinA= data->X12CO(span(4),span(j),span::all);
     
       for (int k=0; k<X12CO.n_slices; k++)  //Loop over rotational levels
       {
@@ -548,7 +553,7 @@ cout << fXA << endl;
           A0=N_13CO_vj.at(j,k,i)*hc*wvn(k)*EinA(k);                         //should the first two indices be reversed here?
           A1=wvn(k);
           A2=b_tot(i)*wvn(k)/(c*1e5);
-          stick_spec_12CO.col(i)+=(A0/(SQRT(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2))
+          stick_spec_12CO.col(i)+=(A0/(sqrt(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2));
         }
 
       }
@@ -562,17 +567,17 @@ cout << fXA << endl;
     for (int j=0; j<3; j++)   //Loop over vibrational levels--check for-loop bounds in some earlier integral loops... might need to be adjusted!
     {
 
-      Jup = X13CO(span(3),span(j),span::all);
-      Jdn = X13CO(span(1),span(j),span::all);
-      wvn = X13CO(span(6),span(j),span::all);
-      EinA= X13CO(span(4),span(j),span::all);
+      Jup = data->X13CO(span(3),span(j),span::all);
+      Jdn = data->X13CO(span(1),span(j),span::all);
+      wvn = data->X13CO(span(6),span(j),span::all);
+      EinA= data->X13CO(span(4),span(j),span::all);
 
       for (int k=0; k<X13CO.n_slices; k++)
       {
-          A0=N_13CO_vj.at(j,k,i)*hc*wvn(k)*EinA(k);                         //should the first two indices be reversed here?
-          A1=wvn(k);
-          A2=b_tot(i)*wvn(k)/(c*1e5);
-          stick_spec_13CO.col(i)+=(A0/(SQRT(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2))
+          A0=N_13CO_vj.at(j,k,i)*hc*wvn(k)*EinA[k];                         //should the first two indices be reversed here?
+          A1=wvn[k];
+          A2=b_tot[i]*wvn[k]/(c*1e5);
+          stick_spec_13CO.col(i)+=(A0/(sqrt(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2));
       }    
 
     }
@@ -582,20 +587,20 @@ cout << fXA << endl;
     //=============================
     
      
-      Jup = XC18O(span(3),span(0),span::all);
-      Jdn = XC18O(span(1),span(0),span::all);
-      wvn = XC18O(span(6),span(0),span::all);
-      EinA= XC18O(span(4),span(0),span::all);
+      Jup = data->XC18O(span(3),span(0),span::all);
+      Jdn = data->XC18O(span(1),span(0),span::all);
+      wvn = data->XC18O(span(6),span(0),span::all);
+      EinA= data->XC18O(span(4),span(0),span::all);
 
-      for (int k=0; k<XC180.n_slices; k++)
+      for (int k=0; k<XC18O.n_slices; k++)
       {
-          A0=N_13CO_vj.at(j,k,i)*hc*wvn(k)*EinA(k);                         //should the first two indices be reversed here?
-          A1=wvn(k);
-          A2=b_tot(i)*wvn(k)/(c*1e5);
-          stick_spec_C18O.col(i)+=(A0/(SQRT(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2))
+          A0=N_13CO_vj.at(0,k,i)*hc*wvn[k]*EinA[k];                         //should the first two indices be reversed here?
+          A1=wvn[k];
+          A2=b_tot[i]*wvn[k]/(c*1e5);
+          stick_spec_C18O.col(i)+=(A0/(sqrt(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2));
       }
   
-    stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C180.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
+    stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C18O.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
 
   }
 

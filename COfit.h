@@ -30,9 +30,9 @@ class FitData{
   static constexpr double H_den_alpha=.15;
   static constexpr double inc = 40 * 3.14159265358979323 / 180;
   static constexpr double X12CO_13CO_fl = 65./30;
-  static constexpr double X12CO_C180_fl = 550./16.25;
+  static constexpr double X12CO_C18O_fl = 550./16.25;
   static constexpr double X12CO_13CO_cl = 65.;
-  static constexpr double X12CO_C180_cl = 560.;
+  static constexpr double X12CO_C18O_cl = 560.;
 
   static constexpr double Mstar=10000;
 
@@ -88,7 +88,7 @@ class FitData{
 //Molecular data
   cube X12CO = zeros<cube>(10,7,120);
   cube X13CO = zeros<cube>(3,7,120);
-  cube XC180;                         //get this done!
+  cube XC18O = zeros<cube>(0,7,120);                         //get this done!
 
  //Collision data
 
