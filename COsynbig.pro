@@ -329,7 +329,8 @@ print, b_tot
 
 tau=findgen(2e3)/1e2
 F_tau=fltarr(2000)
-
+print,"tau:"
+print,tau
 ;Integrate function for given value of tau using trapezoid rule
 sum=0
 n=float(1E3)                   ; Number of steps for integral

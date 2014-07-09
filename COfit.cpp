@@ -167,7 +167,7 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
 
 
 
-    vec tau = linspace<vec>(0,20,2000);   //check values here   idl = findgen(2e3)/1e2) === findgen(2000/100)  == [0, 20], N=2000
+    vec tau = linspace<vec>(0,19.99,2000);   //check values here   idl = findgen(2e3)/1e2) === findgen(2000/100)  == [0, 20], N=2000
     vec F_tau=zeros<vec>(2000);
  
     //==============INTEGRATE FUNCTION USING TRAPEZOID RULE================
@@ -179,27 +179,23 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
  
     cerr << "Integrating...";
     double sum;
-    auto n = 1000;
-    auto a = 0;
-    auto b = 5;
+    double n = 1000;
+    double a = 0;
+    double b = 5;
 
     double delta=(b-a)/n;
-    delta=0.005;
 
     cout << "integrating"  << endl;
     cout << "DELTA:  " << delta << endl;
     for (int i=0; i<2000; i++) 
     {
       sum=0.5 * ( (1 - exp(-tau(i)*exp(-pow(a,2)))) + (1 - exp(-tau(i)*exp(-pow(b,2)))) );
-      cout << "First sum:  " << sum << endl;
       for (int j=0; j<n; j++)  
       {
         auto x=a+delta*j;
         sum=sum+(1-exp(-tau(i)*exp(-pow(x,2))));
       }
-      cout << "Second sum:  " << sum << endl;
       sum = sum*delta;
-      cout << "Third sum:  " << sum << endl;
       F_tau(i)=sum;
     }
     
@@ -305,20 +301,20 @@ skip_coll:
 	     }
 	   }
 	   //dwdn.subcube(span::all,span::all,span(j))=dFdt_0.subcube(span::all,span::all,span(j))*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
-
-
+           cout << "dFdt_0.slice(j):  " << d->dFdt_0.slice(j) << endl;
 	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
 
-cerr << "dwdn.slice(j):  " << endl;
-cerr << d->dwdn.slice(j) << endl;
+cout << "dwdn.slice(j):  " << endl;
+cout << d->dwdn.slice(j) << endl;
 cout << "fXA:  " << endl;
 cout << fXA << endl;
 	   for (int ii=0; ii<10; ii++) 
 	   {
-	    // g.at(ii,0).subcube(span::all,span(j),span(k))=dwdn.subcube(span::all,span::all,span(j))*3.1415926535897 % Fuv / (hc * wavenum);
-	    cout << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
-	    d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
-	   } 
+	     // g.at(ii,0).subcube(span::all,span(j),span(k))=dwdn.subcube(span::all,span::all,span(j))*3.1415926535897 % Fuv / (hc * wavenum);
+	     cout << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
+             cout << (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t() << endl;
+	     d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
+           } 
         
 	   //add in g-factors:
 	   double gsum=0;
@@ -329,8 +325,9 @@ cout << fXA << endl;
 	   }
 	   d->rate_eqtn.at(k,0).at(0,0,j)-=gsum;
 
-           cerr <<  "GSUM1:  " << gsum << endl;
-	   for (int i=0; i<11; i++)
+           cout <<  "GSUM1:  " << gsum << endl;
+
+	   for (int i=1; i<11; i++)
 	   {
 	     gsum = 0;
 	     for (int ii=0; ii<10; ii++)
@@ -338,16 +335,16 @@ cout << fXA << endl;
 	       gsum+=d->g.at(ii).at(i,j,k);
 	     }
 	     d->rate_eqtn.at(k,0).subcube(span(i),span(i),span(j))-=gsum;
-             cerr << "Gsum2:  " << gsum << endl;  
+             cout << "Gsum2:  " << gsum << endl;  
 	   }
+
            mat gprint = zeros<mat>(10,12);
            for (int i=0; i<10; i++) 
 	   {
              gprint.row(i)=d->g.at(i,0).slice(k).col(i).t();
 	   } 
            
-           cerr << "G: " << gprint << endl;
-           cin.get();
+           cout << "Gprint: " << gprint << endl;
            for (int i=0; i<9; i++)
 	   {
 	     for (int ii=0; ii<11; ii++)
@@ -372,10 +369,10 @@ cout << fXA << endl;
 	   cerr << "Solved!" << endl;
 
 	   ivec Nv_index;
-           cerr << "Whereing..." << endl;
-           cerr << "d->Nv.slice(k).col(j):  " << d->Nv.slice(k).col(j) << endl;
+           cout << "Whereing..." << endl;
+           cout << "d->Nv.slice(k).col(j):  " << d->Nv.slice(k).col(j) << endl;
            Nv_index=where(d->Nv.slice(k).col(j), [] (double datum) {return datum < 0;});
-           cerr << "Where'd!" << endl;
+           cout << "Where'd!" << endl;
 	   if (Nv_index.at(0) != -1) 
            {
              for (int jj=0; jj<Nv_index.n_elem; jj++) 
@@ -384,7 +381,7 @@ cout << fXA << endl;
              }
            }
 
-           cerr << "End of solve loop" << endl;
+           cout << "End of solve loop" << endl;
 
  	 }
        }
