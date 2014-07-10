@@ -12,6 +12,7 @@ public:
  cube Nv;
  
  field<cube> rate_eqtn;
+ field<cube> rate_eqtn2;
  field<cube> g;
 
   CollData(int layers, int steps)  {
@@ -27,6 +28,7 @@ public:
 
   cerr << "Creating rate equation." << endl;                                                                                           
   rate_eqtn = field<cube>(steps,1);       
+  rate_eqtn2 = field<cube>(steps,1);
   g=field<cube>(10,1);                                                                                                                 
   cerr << "Test1." << endl;                                                                                                            
                                                                                                                                        
