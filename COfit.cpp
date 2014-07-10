@@ -392,7 +392,7 @@ cout << d->dwdn.slice(j) << endl;
       }
       if (coll_loop==1) {
         Nv_nocoll=d->Nv;
-        tot_col_fluor_nocoll = totalDim(Nv*7.55858e12,2);
+        tot_col_fluor_nocoll = totalDim(d->Nv*7.55858e12,2);
       }
       cerr << "Coll loop incrementing...";
     }
@@ -411,21 +411,28 @@ cout << d->dwdn.slice(j) << endl;
   auto xi = tot_col_fluor.n_rows-1;
   auto yi = tot_col_fluor.n_cols-1;
   cerr << "phi:  " << phi << endl;
-  cerr << tot_col_fluor << endl;
+  cerr << tot_col_fluor_nocoll << endl;
   cerr << "n_rows:  " << tot_col_fluor.n_rows <<endl;
   cerr << "n_rcols:  " << tot_col_fluor.n_cols<<endl;
   cerr << "xi:  " << xi << endl;
   cerr << "yi:  " << yi << endl;
-  for (int j=0; j<yi; j++) 
+
+cerr << tot_col_fluor(span(0,xi),span(0)) << endl;
+cerr << "phi.at(0):  " << phi.at(0) << endl;
+
+
+//tot_col_fluor(span(0,xi),span(1))=sin(phi.at(1))*tot_col_fluor(span(0,xi),span(1));
+//cerr << tot_col_fluor(span(0,xi),span(1));
+  for (int j=0; j<yi; j++)                    //looks like I need to transpose indices on everything involving tot_col_fluor 
   {
- cerr << "Loop dat shit.  " << j << endl;
+ cerr << "Loop dat.  " << j << endl;
     tot_col_fluor(span(0,xi),span(j))=sin(phi.at(j))*tot_col_fluor(span(0,xi),span(j));
- cerr << "And a half mothafucka.  "  << endl;
+ cerr << "And a half.  "  << endl;
     tot_col_fluor_nocoll(span(0,xi),span(j))=sin(phi.at(j))*tot_col_fluor_nocoll(span(0,xi),span(j));
   }
-
-  auto tot_col=tot_col_fluor(span(0,9),span::all);
-  auto tot_col_coll=tot_col;
+cerr << "Out of loop!" << endl;
+  mat tot_col=tot_col_fluor(span(0,9),span::all);
+  mat tot_col_coll=tot_col;
 
   double r = dist/1.496e13;
   rdisk=rdisk/1.496e13;            //convert to AU
@@ -449,47 +456,57 @@ cout << d->dwdn.slice(j) << endl;
 
   for (int i=0; i<steps; i++)
   {
-  
-  //=======================
-  //   12CO
-  //======================
 
-//in idl, why is cl commented out for 13CO and C18O but not X12CO?
+    cerr << "steps loop i=" << i << endl;
 
-  for (int j=0; j< tot_col.row(0).n_elem; j++)
-  {
-    Jup = X12CO(span(3),span(j),span::all);          //because the indices are reversed in c++, do all these first/second indices flipped.
-    Jdn = data->X12CO(span(1),span(j),span::all);
-    wvn = data->X12CO(span(6),span(j),span::all);
-    EinA= data->X12CO(span(4),span(j),span::all);
+    //=======================
+    //   12CO
+    //======================
 
-    N_13CO_vj.slice(i).row(j)=tot_col_fluor.at(j+1,i) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) + tot_col_coll.at(j+1,i)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
-  }
-  
-  //====================
-  //  13CO
-  //====================
-  for (int j=0; j<3; j++)
-  {
-    Jup = data->X13CO(span(3),span(j),span::all);
-    Jdn = data->X13CO(span(1),span(j),span::all);
-    wvn = data->X13CO(span(6),span(j),span::all);
-    EinA= data->X13CO(span(4),span(j),span::all);
-   
-    N_13CO_vj.slice(i).row(j)=(tot_col_fluor_nocoll.at(j+1,i)/X12CO_13CO_fl)*(2*Jup+1) * exp(-hck*Bv13[j] * Jup % (Jup+1) / T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv13[j]));
+    cerr << "12CO" << endl;
+    cout << "X12CO: " << X12CO << endl; 
 
-  }
+cerr << "TEST." << endl;
+    cerr << X12CO.n_rows << endl;
+    cerr  << X12CO.n_cols << endl; 
+    cerr  << X12CO.n_slices << endl;
+    cerr << X12CO(span(3),span(0),span::all);
 
-  //====================
-  //  C180
-  //===================
-  
-    Jup = data->XC18O(span(3),span(0),span::all);
-    Jdn = data->XC18O(span(1),span(0),span::all);
-    wvn = data->XC18O(span(6),span(0),span::all);
-    EinA= data->XC18O(span(4),span(0),span::all);
+    for (int j=0; j< tot_col.row(0).n_elem-1; j++)
+    {
+      cerr << j << endl;
+      Jup = X12CO(span(3),span(j),span::all);          //because the indices are reversed in c++, do all these first/second indices flipped.
+      Jdn = X12CO(span(1),span(j),span::all);
+      wvn = X12CO(span(6),span(j),span::all);
+      EinA= X12CO(span(4),span(j),span::all);
+      cerr << "midway" << endl;
+      N_13CO_vj.slice(i).row(j)=tot_col_fluor.at(j+1,i) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) + tot_col_coll.at(j+1,i)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
+    }
+  cerr << "13CO" << endl;
+    //====================
+    //  13CO
+    //====================
+    for (int j=0; j<3; j++)
+    {
+      Jup = X13CO(span(3),span(j),span::all);
+      Jdn = X13CO(span(1),span(j),span::all);
+      wvn = X13CO(span(6),span(j),span::all);
+      EinA= X13CO(span(4),span(j),span::all);
+     
+      N_13CO_vj.slice(i).row(j)=(tot_col_fluor_nocoll.at(j+1,i)/X12CO_13CO_fl)*(2*Jup+1) * exp(-hck*Bv13[j] * Jup % (Jup+1) / T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv13[j]));
 
-    N_C18O_vj.slice(i).row(0)=(tot_col_fluor_nocoll.at(1,i)/X12CO_C18O_fl)*(2*Jup+1) * exp(-hck*Bv18[0]*Jup%(Jup+1)/T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv18[0]));
+    }
+  cerr << "C18O" << endl;
+    //====================
+    //  C180
+    //===================
+    
+      Jup = XC18O(span(3),span(0),span::all);
+      Jdn = XC18O(span(1),span(0),span::all);
+      wvn = XC18O(span(6),span(0),span::all);
+      EinA= XC18O(span(4),span(0),span::all);
+
+      N_C18O_vj.slice(i).row(0)=(tot_col_fluor_nocoll.at(1,i)/X12CO_C18O_fl)*(2*Jup+1) * exp(-hck*Bv18[0]*Jup%(Jup+1)/T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv18[0]));
 
   }
 
@@ -528,12 +545,13 @@ cout << d->dwdn.slice(j) << endl;
   double A0;
   double A1;
   double A2;
-
+cerr << "Beginning molecular processing over annuli:" << endl;
   //======================
   //  X12CO
   //=====================
   for (int i=0; i<steps; i++)  //Loop over annuli
   {
+   cerr << "annulus i=" << i << endl;
     //==============================
     //  X12CO
     //=============================
