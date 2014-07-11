@@ -88,7 +88,7 @@ class FitData{
 //Molecular data
   cube X12CO = zeros<cube>(10,7,120);
   cube X13CO = zeros<cube>(3,7,120);
-  cube XC18O = zeros<cube>(0,7,120);                         //get this done!
+  cube XC18O = zeros<cube>(1,7,120);                         //get this done!
 
  //Collision data
 

@@ -39,9 +39,6 @@ double* FitData::FillArray(int modulus, int offset)
 }
 
 int FitData::runTrial() {
-//fit model, compare, etc...
-//ranulli is the port of the IDL variable r--fix current r variable?
-
 
 //Define variables
 /*HD100546_luminosity = HD100546_luminosity*L;  //Luminosity scaling
@@ -219,10 +216,10 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
     
     vec dFdt=deriv(tau,F_tau);
 
-    cout << "F_tau:  " << endl;    
-    cout << F_tau << endl;
-    cout << "dFdt  :" << endl;
-    cout << dFdt << endl;
+//    cout << "F_tau:  " << endl;    
+//   cout << F_tau << endl;
+//    cout << "dFdt  :" << endl;
+//    cout << dFdt << endl;
 
 
 
@@ -235,7 +232,7 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
 
 
 
-    cerr << "Beginning collisional computations...";
+    cerr << "Beginning collisional computations..." << endl;
 
 //==========================================================
 //   BIG COLLISION LOOP
@@ -252,6 +249,8 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
 
       mat Fuv = HD100546_luminosity / ( 4*3.1415926535897*pow(rdisk[k],2) );
 
+      double gsum;
+
       for (int k=0; k<steps; k++) 
       {
 
@@ -263,21 +262,18 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
        {
 	 auto k_HCO_dn = (7.57e-15*T_rot_cl[k]/(1-exp(-3084/T_rot_cl[k])))*H_den[k];
 	 auto k_HCO_up=k_HCO_dn*exp(-3084/T_rot_cl[k]);
-	 cout << "k_HCO_dn:"  << k_HCO_dn << endl;
-	 cout << "k_HCO_up:"  << k_HCO_up << endl;
 
 	 d->rate_eqtn.at(k,0).subcube(span(0),span(0),span::all)-=k_HCO_up;
 	 d->rate_eqtn.at(k,0).subcube(span(1),span(0),span::all)+=k_HCO_dn;
-	 //0,0,all,k ; 1,0,all,k)
+
 	 for (int i=1; i<9; i++) 
 	 {
 	   d->rate_eqtn.at(k,0).subcube(span(i-1),span(i),span::all)+=k_HCO_up;
 	   d->rate_eqtn.at(k,0).subcube(span(i  ),span(i),span::all) = d->rate_eqtn.at(k  ,0).subcube(span(i),span(i),span::all)-k_HCO_dn-k_HCO_up;
 	   d->rate_eqtn.at(k,0).subcube(span(i+1),span(i),span::all)+=k_HCO_dn;
 	 }
-       }
 
-skip_coll:
+       }
 
 	 //===================ULTRAVIOLET PUMPING========================
 
@@ -298,7 +294,7 @@ skip_coll:
 	     {
 	       ivec dFdt_0_index=where(tau, [&] (double elem) {return elem == round(d->tau_0.at(0,ii,j)*10)/10;});
 	       auto count = dFdt_0_index.size();
-	       cout << "dFdt_0_index:"  << dFdt_0_index <<  "  count:  " << count << endl; 
+//	       cout << "dFdt_0_index:"  << dFdt_0_index <<  "  count:  " << count << endl; 
 	       if (dFdt_0_index.at(0) != -1)
 	       {
 	         d->dFdt_0.subcube(span::all,span(ii),span(j)).fill(dFdt.at(dFdt_0_index.at(0)));    //weird line!!!!!
@@ -310,22 +306,24 @@ skip_coll:
 	       d->dFdt_0.slice(j).row(ii).fill((1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j)))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
 	     }
 	   }
-           cout << "dFdt_0.slice(j):  " << d->dFdt_0.slice(j) << endl;
+//           cout << "dFdt_0.slice(j):  " << d->dFdt_0.slice(j) << endl;
 
 	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
 
-cout << "dwdn.slice(j):  " << endl;
-cout << d->dwdn.slice(j) << endl;
+//cout << "dwdn.slice(j):  " << endl;
+//cout << d->dwdn.slice(j) << endl;
 
 	   for (int ii=0; ii<10; ii++) 
 	   {
-	     cout << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
-             cout << (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t() << endl;
+//	     cout << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
+//             cout << (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t() << endl;
 	     d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
            } 
-        
-	   //add in g-factors:
-	   double gsum=0;
+       
+//=======================
+//  Add in G-factors
+//======================
+	   gsum=0;
 
 	   for (int ii=0; ii<10; ii++)
 	   { 
@@ -353,16 +351,19 @@ cout << d->dwdn.slice(j) << endl;
 	   }
 	   d->rate_eqtn.at(k,0).at(1,10,j)=0;
 	   
-	   
+
+//===================
+//  SOLVE
+//==================  
 	   vec z = zeros<vec>(21);
 	   z.at(20)=1;
 	     
-	   cout << "matrix for solving:" << endl;
-	   cout << d->rate_eqtn.at(k,0).slice(j).t();
+//	   cout << "matrix for solving:" << endl;
+//	   cout << d->rate_eqtn.at(k,0).slice(j).t();
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 	   d->Nv.slice(k).col(j)= sol;  //check this to be sure the array is filling in the right dimension
 
-           cout << "d->Nv.slice(k).col(j):  " << d->Nv.slice(k).col(j) << endl;
+//           cout << "d->Nv.slice(k).col(j):  " << d->Nv.slice(k).col(j) << endl;
            Nv_index=where(d->Nv.slice(k).col(j), [] (double datum) {return datum < 0;});
 	   if (Nv_index.at(0) != -1) 
            {
@@ -371,7 +372,7 @@ cout << d->dwdn.slice(j) << endl;
                d->Nv.at(Nv_index[jj],j,k)=0;
              }
            }
-           cout << "End of solve loop" << endl;
+//           cout << "End of solve loop" << endl;
 
  	 }
        }
@@ -384,7 +385,7 @@ cout << d->dwdn.slice(j) << endl;
         Nv_coll=d->Nv;
         cerr << "totalDim:  " << endl;
         cerr << totalDim(d->Nv*7.55858e12,2);
-        tot_col_fluor = totalDim(d->Nv*7.55858e12,2);      //check all uses of accu/total in teh code!!!!!! dimension specification!
+        tot_col_fluor = totalDim(d->Nv*7.55858e12,2).t();      //check all uses of accu/total in teh code!!!!!! dimension specification!
         cerr << "tot_col_fluor:  " <<  tot_col_fluor << endl;
         tot_col_fluor_back=tot_col_fluor;
         d->rate_eqtn=d->rate_eqtn2;
@@ -392,7 +393,7 @@ cout << d->dwdn.slice(j) << endl;
       }
       if (coll_loop==1) {
         Nv_nocoll=d->Nv;
-        tot_col_fluor_nocoll = totalDim(d->Nv*7.55858e12,2);
+        tot_col_fluor_nocoll = totalDim(d->Nv*7.55858e12,2).t();
       }
       cerr << "Coll loop incrementing...";
     }
@@ -408,30 +409,15 @@ cout << d->dwdn.slice(j) << endl;
   vec phi = -atan((m_uv-m_disk)/(1+m_uv%m_disk));
   phi.at(0)=3.1415926535897/2;                         //standardize pi!
 
-  auto xi = tot_col_fluor.n_rows-1;
-  auto yi = tot_col_fluor.n_cols-1;
-  cerr << "phi:  " << phi << endl;
-  cerr << tot_col_fluor_nocoll << endl;
-  cerr << "n_rows:  " << tot_col_fluor.n_rows <<endl;
-  cerr << "n_rcols:  " << tot_col_fluor.n_cols<<endl;
-  cerr << "xi:  " << xi << endl;
-  cerr << "yi:  " << yi << endl;
+  auto xi = tot_col_fluor.n_cols-1;
+  auto yi = tot_col_fluor.n_rows-1;
 
-cerr << tot_col_fluor(span(0,xi),span(0)) << endl;
-cerr << "phi.at(0):  " << phi.at(0) << endl;
-
-
-//tot_col_fluor(span(0,xi),span(1))=sin(phi.at(1))*tot_col_fluor(span(0,xi),span(1));
-//cerr << tot_col_fluor(span(0,xi),span(1));
   for (int j=0; j<yi; j++)                    //looks like I need to transpose indices on everything involving tot_col_fluor 
   {
- cerr << "Loop dat.  " << j << endl;
-    tot_col_fluor(span(0,xi),span(j))=sin(phi.at(j))*tot_col_fluor(span(0,xi),span(j));
- cerr << "And a half.  "  << endl;
-    tot_col_fluor_nocoll(span(0,xi),span(j))=sin(phi.at(j))*tot_col_fluor_nocoll(span(0,xi),span(j));
+    tot_col_fluor.row(j)=sin(phi.at(j))*tot_col_fluor.row(j);
+    tot_col_fluor_nocoll.row(j)=sin(phi.at(j))*tot_col_fluor_nocoll.row(j);
   }
-cerr << "Out of loop!" << endl;
-  mat tot_col=tot_col_fluor(span(0,9),span::all);
+  mat tot_col=tot_col_fluor(span::all,span(0,9));
   mat tot_col_coll=tot_col;
 
   double r = dist/1.496e13;
@@ -445,14 +431,16 @@ cerr << "Out of loop!" << endl;
   
   cerr << "Beginning the processing of molecular data..." << endl;
 
-  cube N_12CO_vj = zeros<cube>(tot_col.col(0).n_elem-1,120,tot_col.row(0).n_elem);                 //flipping these indices...
-  cube N_13CO_vj = zeros<cube>(3,120,tot_col.row(0).n_elem);
-  cube N_C18O_vj = zeros<cube>(1,120,tot_col.row(0).n_elem);
+  cube N_12CO_vj = zeros<cube>(tot_col.n_cols-1,120,tot_col.n_rows);                 //flipping these indices...
+  cube N_13CO_vj = zeros<cube>(3,120,tot_col.n_rows);
+  cube N_C18O_vj = zeros<cube>(1,120,tot_col.n_rows);
 
-  vec Jup;
-  vec Jdn;
-  vec wvn;
-  vec EinA;
+
+  //cerr << "tot_col rows,cols:  " << tot_col.n_rows << " " << tot_col.n_cols << endl;
+  rowvec Jup;
+  rowvec Jdn;
+  rowvec wvn;
+  rowvec EinA;
 
   for (int i=0; i<steps; i++)
   {
@@ -464,23 +452,14 @@ cerr << "Out of loop!" << endl;
     //======================
 
     cerr << "12CO" << endl;
-    cout << "X12CO: " << X12CO << endl; 
 
-cerr << "TEST." << endl;
-    cerr << X12CO.n_rows << endl;
-    cerr  << X12CO.n_cols << endl; 
-    cerr  << X12CO.n_slices << endl;
-    cerr << X12CO(span(3),span(0),span::all);
-
-    for (int j=0; j< tot_col.row(0).n_elem-1; j++)
+    for (int j=0; j< tot_col.n_cols-1; j++)
     {
-      cerr << j << endl;
-      Jup = X12CO(span(3),span(j),span::all);          //because the indices are reversed in c++, do all these first/second indices flipped.
-      Jdn = X12CO(span(1),span(j),span::all);
-      wvn = X12CO(span(6),span(j),span::all);
-      EinA= X12CO(span(4),span(j),span::all);
-      cerr << "midway" << endl;
-      N_13CO_vj.slice(i).row(j)=tot_col_fluor.at(j+1,i) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) + tot_col_coll.at(j+1,i)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
+      Jup = X12CO(span(j),span(3),span::all);          //because the indices are reversed in c++, do all these first/second indices flipped.
+      Jdn = X12CO(span(j),span(1),span::all);
+      wvn = X12CO(span(j),span(6),span::all);
+      EinA= X12CO(span(j),span(4),span::all);
+      N_12CO_vj.slice(i).row(j)=tot_col_fluor.at(i,j+1) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) + tot_col_coll.at(i,j+1)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
     }
   cerr << "13CO" << endl;
     //====================
@@ -488,29 +467,30 @@ cerr << "TEST." << endl;
     //====================
     for (int j=0; j<3; j++)
     {
-      Jup = X13CO(span(3),span(j),span::all);
-      Jdn = X13CO(span(1),span(j),span::all);
-      wvn = X13CO(span(6),span(j),span::all);
-      EinA= X13CO(span(4),span(j),span::all);
+      Jup = X13CO(span(j),span(3),span::all);
+      Jdn = X13CO(span(j),span(1),span::all);
+      wvn = X13CO(span(j),span(6),span::all);
+      EinA= X13CO(span(j),span(4),span::all);
      
-      N_13CO_vj.slice(i).row(j)=(tot_col_fluor_nocoll.at(j+1,i)/X12CO_13CO_fl)*(2*Jup+1) * exp(-hck*Bv13[j] * Jup % (Jup+1) / T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv13[j]));
+      N_13CO_vj.slice(i).row(j)=(tot_col_fluor_nocoll.at(i,j+1)/X12CO_13CO_fl)*(2*Jup+1) % exp(-hck*Bv13[j] * Jup % (Jup+1) / T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv13[j]));
 
     }
   cerr << "C18O" << endl;
+ cerr << "rows,cols,slices XC138O  " << XC18O.n_rows << " " << XC18O.n_cols << " " << XC18O.n_slices << endl;
     //====================
-    //  C180
+    //  C18O
     //===================
     
-      Jup = XC18O(span(3),span(0),span::all);
-      Jdn = XC18O(span(1),span(0),span::all);
-      wvn = XC18O(span(6),span(0),span::all);
-      EinA= XC18O(span(4),span(0),span::all);
+      Jup = XC18O(span(0),span(3),span::all);
+      Jdn = XC18O(span(0),span(1),span::all);
+      wvn = XC18O(span(0),span(6),span::all);
+      EinA= XC18O(span(0),span(4),span::all);
 
-      N_C18O_vj.slice(i).row(0)=(tot_col_fluor_nocoll.at(1,i)/X12CO_C18O_fl)*(2*Jup+1) * exp(-hck*Bv18[0]*Jup%(Jup+1)/T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv18[0]));
+      N_C18O_vj.slice(i).row(0)=(tot_col_fluor_nocoll.at(i,1)/X12CO_C18O_fl)*(2*Jup+1) % exp(-hck*Bv18[0]*Jup%(Jup+1)/T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv18[0]));
 
   }
 
-  
+  cerr << "Ended steps loops.";
   double freq_size=log10(f_f/f_i)/log10(1+v/(3*c));
   vec freq = zeros<vec>(freq_size);
   freq.at(0)=f_i;
@@ -549,6 +529,8 @@ cerr << "Beginning molecular processing over annuli:" << endl;
   //======================
   //  X12CO
   //=====================
+  
+  double rpi=sqrt(3.1415926535897);
   for (int i=0; i<steps; i++)  //Loop over annuli
   {
    cerr << "annulus i=" << i << endl;
@@ -557,43 +539,41 @@ cerr << "Beginning molecular processing over annuli:" << endl;
     //=============================
     for (int j=0; j<tot_col.row(0).n_elem-1; j++)  //vibrational levels
     {
-      Jup = data->X12CO(span(3),span(j),span::all);
-      Jdn = data->X12CO(span(1),span(j),span::all);
-      wvn = data->X12CO(span(6),span(j),span::all);
-      EinA= data->X12CO(span(4),span(j),span::all);
+      Jup = X12CO(span(j),span(3),span::all);
+      Jdn = X12CO(span(j),span(1),span::all);
+      wvn = X12CO(span(j),span(6),span::all);
+      EinA= X12CO(span(j),span(4),span::all);
     
       for (int k=0; k<X12CO.n_slices; k++)  //Loop over rotational levels
       {
         if ( (wvn(k) >= f_i) && (wvn(k) <= f_f) )
         {
-          A0=N_13CO_vj.at(j,k,i)*hc*wvn(k)*EinA(k);                         //should the first two indices be reversed here?
-          A1=wvn(k);
-          A2=b_tot(i)*wvn(k)/(c*1e5);
-          stick_spec_12CO.col(i)+=(A0/(sqrt(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2));
+          A1=wvn.at(k);
+          A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
+          A2=b_tot(i)*A1/(c*1e5);
+          stick_spec_12CO.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
         }
-
       }
-
     }
  
-
     //==============================
     //  X13CO
     //==============================
+    
     for (int j=0; j<3; j++)   //Loop over vibrational levels--check for-loop bounds in some earlier integral loops... might need to be adjusted!
     {
 
-      Jup = data->X13CO(span(3),span(j),span::all);
-      Jdn = data->X13CO(span(1),span(j),span::all);
-      wvn = data->X13CO(span(6),span(j),span::all);
-      EinA= data->X13CO(span(4),span(j),span::all);
+      Jup = X13CO(span(j),span(3),span::all);
+      Jdn = X13CO(span(j),span(1),span::all);
+      wvn = X13CO(span(j),span(6),span::all);
+      EinA= X13CO(span(j),span(4),span::all);
 
       for (int k=0; k<X13CO.n_slices; k++)
       {
-          A0=N_13CO_vj.at(j,k,i)*hc*wvn(k)*EinA[k];                         //should the first two indices be reversed here?
-          A1=wvn[k];
-          A2=b_tot[i]*wvn[k]/(c*1e5);
-          stick_spec_13CO.col(i)+=(A0/(sqrt(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2));
+          A1=wvn.at(k);
+          A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
+          A2=b_tot.at(i)*A1/(c*1e5);
+          stick_spec_13CO.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
       }    
 
     }
@@ -603,23 +583,23 @@ cerr << "Beginning molecular processing over annuli:" << endl;
     //=============================
     
      
-      Jup = data->XC18O(span(3),span(0),span::all);
-      Jdn = data->XC18O(span(1),span(0),span::all);
-      wvn = data->XC18O(span(6),span(0),span::all);
-      EinA= data->XC18O(span(4),span(0),span::all);
+      Jup = XC18O(span(0),span(3),span::all);
+      Jdn = XC18O(span(0),span(1),span::all);
+      wvn = XC18O(span(0),span(6),span::all);
+      EinA= XC18O(span(0),span(4),span::all);
 
       for (int k=0; k<XC18O.n_slices; k++)
       {
-          A0=N_13CO_vj.at(0,k,i)*hc*wvn[k]*EinA[k];                         //should the first two indices be reversed here?
-          A1=wvn[k];
-          A2=b_tot[i]*wvn[k]/(c*1e5);
-          stick_spec_C18O.col(i)+=(A0/(sqrt(3.1415926535897)*A2)) * exp (pow(-((A1-freq)/A2),2));
+          A1=wvn.at(k);
+          A0=N_13CO_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
+          A2=b_tot[i]*A1/(c*1e5);
+          stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
       }
   
     stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C18O.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
 
   }
-
+  cerr << "Left loop!"  << endl;
   annuli.at(0)=1e28;
   mat iten_tot=stick_spec_tot;
   iten_tot.row(0)=iten_tot.row(0)*2.5;
@@ -636,7 +616,7 @@ cerr << "Beginning molecular processing over annuli:" << endl;
 //===================================
 //  SCRIPT 4 of 4
 //====================================
-
+ cerr << "Script 4!" << endl;
   double r_in=rdisk.at(0);
   double r_out=rdisk.at(rdisk.n_elem-1);
 
@@ -645,6 +625,7 @@ cerr << "Beginning molecular processing over annuli:" << endl;
   mat flux_tot_slit=Flux_tot;
 
 //account for slit loss
+cerr << "Slit loss.." << endl;
   vec slit_loss=100.17*pow(rdisk,-1.260);
   double disk_Beyond_slit = 63;
 
@@ -668,7 +649,7 @@ cerr << "Beginning molecular processing over annuli:" << endl;
     dr(i)=1.0;
     }
   }
-
+cerr << "vmax" << endl;
   vec vmax = zeros<vec>(n_rings);
   vec max=round(sqrt(887.2*Mstar/rdisk));
 
@@ -681,7 +662,144 @@ cerr << "Beginning molecular processing over annuli:" << endl;
 
   auto total_spec=iten_tot;
   auto vel_spec=total_spec.col(0);
+cerr << "END" << endl;
 
+//=======================
+
+  int num_lines=22;
+
+  vec v_line5=(2032.3528-freq)*2.9979e5/2032.3528;
+  vec v_line4=(2034.4083-freq)*2.9979e5/2034.4083;
+  vec v_line1=(2033.4174-freq)*2.9979e5/2033.4174;
+  vec v_line2=(2033.1423-freq)*2.9979e5/2033.1423;
+  vec v_line3=(2032.8258-freq)*2.9979e5/2032.8258;
+  vec v_line0=(2030.1586-freq)*2.9979e5/2030.1586;
+
+  vec fco_list = {2034.9211, 2034.7209, 2034.1352,2034.0473,2032.8701, 2032.8096, 2032.5616, 2032.2011, 2030.5160, 2030.3076, 2029.6559, 2029.4227, 2029.4297, 2029.3679, 2029.2362, 2029.1276};
+  
+  mat v_line_arr = zeros<mat>(20,freq.n_elem);
+cerr << "Loop.." << endl;
+  for (int k=0; k<16; k++)
+  {
+    v_line_arr.row(k)=((fco_list.at(k)-freq)*2.9979e5/fco_list.at(k)).t();
+  }
+cerr << "Loopdone." << endl;
+//lowj lines--skipped!
+
+  mat v_line = zeros<mat>(num_lines,v_line0.n_elem);
+  v_line.row(0)=v_line0.t();
+  v_line.row(1)=v_line1.t();
+  v_line.row(2)=v_line2.t();
+  v_line.row(3)=v_line3.t();
+  v_line.row(4)=v_line4.t();
+  v_line.row(5)=v_line5.t();
+
+  for (int k=0; k<16; k++) 
+  {
+    v_line.row(6+k)=v_line_arr.row(k);
+  }
+
+  vec grid = zeros<vec>(26);
+
+  ivec v_line_index0 = where(v_line0, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index1 = where(v_line1, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index2 = where(v_line2, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index3 = where(v_line3, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index4 = where(v_line4, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index5 = where(v_line5, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index6 = whererow(v_line.row(6), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index7 = whererow(v_line.row(7), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index8 = whererow(v_line.row(8), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index9 = whererow(v_line.row(9), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index10 = whererow(v_line.row(10), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index11 = whererow(v_line.row(11), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index12 = whererow(v_line.row(12), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index13 = whererow(v_line.row(13), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index14 = whererow(v_line.row(14), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index15 = whererow(v_line.row(15), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index16 = whererow(v_line.row(16), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index17 = whererow(v_line.row(17), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index18 = whererow(v_line.row(18), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index19 = whererow(v_line.row(19), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index20 = whererow(v_line.row(20), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  ivec v_line_index21 = whererow(v_line.row(21), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+
+  vec iten_line0=totalDim(iten_tot.row(v_line_index0),1)*5.65e-3;
+  vec iten_line1=totalDim(iten_tot.row(v_line_index1),1)*5.65e-3;
+  vec iten_line2=totalDim(iten_tot.row(v_line_index2),1)*5.65e-3;
+  vec iten_line3=totalDim(iten_tot.row(v_line_index3),1)*5.65e-3;
+  vec iten_line4=totalDim(iten_tot.row(v_line_index4),1)*5.65e-3;
+  vec iten_line5=totalDim(iten_tot.row(v_line_index5),1)*5.65e-3;
+  vec iten_line6=totalDim(iten_tot.row(v_line_index6),1)*5.65e-3;
+  vec iten_line7=totalDim(iten_tot.row(v_line_index7),1)*5.65e-3;
+  vec iten_line8=totalDim(iten_tot.row(v_line_index8),1)*5.65e-3;
+  vec iten_line9=totalDim(iten_tot.row(v_line_index9),1)*5.65e-3;
+  vec iten_line10=totalDim(iten_tot.row(v_line_index10),1)*5.65e-3;
+  vec iten_line11=totalDim(iten_tot.row(v_line_index11),1)*5.65e-3;
+  vec iten_line12=totalDim(iten_tot.row(v_line_index12),1)*5.65e-3;
+  vec iten_line13=totalDim(iten_tot.row(v_line_index13),1)*5.65e-3;
+  vec iten_line14=totalDim(iten_tot.row(v_line_index14),1)*5.65e-3;
+  vec iten_line15=totalDim(iten_tot.row(v_line_index15),1)*5.65e-3;
+  vec iten_line16=totalDim(iten_tot.row(v_line_index16),1)*5.65e-3;
+  vec iten_line17=totalDim(iten_tot.row(v_line_index17),1)*5.65e-3;
+  vec iten_line18=totalDim(iten_tot.row(v_line_index18),1)*5.65e-3;
+  vec iten_line19=totalDim(iten_tot.row(v_line_index19),1)*5.65e-3;
+  vec iten_line20=totalDim(iten_tot.row(v_line_index20),1)*5.65e-3;
+  vec iten_line21=totalDim(iten_tot.row(v_line_index21),1)*5.65e-3;
+
+  mat gs = zeros<mat>(11,2);
+
+  gs.col(0)={-5,-4,-3,-2,-1,0,1,2,3,4,5};
+  gs.col(1)=exp(-pow(gs.col(0),2)/pow(12./1.665,2))/arma::sum(exp(-pow(gs.col(0),2)/pow(6./1.665,2)));
+
+  for (int j=0; j<n_rings; j++)
+  {
+    double n_seg=4*round(vmax.at(j))/dv;
+    vec vseg=zeros<vec>(n_seg);
+    int i=-1;
+    while (vseg(i) > -vmax(j))
+    {
+      i++;
+      vseg.at(i)=vmax.at(j)-i;
+    }
+    while (vseg.at(i) != vmax.at(j)-1)
+    {
+      i++;
+      vseg.at(i)=vseg.at(i-1)+1;
+    }
+  
+  vec phase = zeros<vec>(n_seg);
+  phase(0)=0;
+
+  for (int ii=0; ii<n_seg/2; ii++)
+  {
+    phase.at(ii)=acos(vseg.at(ii)/vseg.at(0));
+  }
+  for (int ii=n_seg/2+1; ii <n_seg; ii++)
+  {
+    phase.at(ii)=2*3.1415926535897-acos(vseg(ii)/vseg(0));
+  }
+
+  vec dphase=zeros<vec>(n_seg);
+  
+  for (int i=1; i<n_seg-1; i++)
+  {
+    dphase.at(i)=(phase.at(i+1)-phase.at(i))/2+(phase.at(i)-phase.at(i-1))/2;
+  }
+  dphase.at(0)=phase.at(1);
+  dphase.at(n_seg-1)=dphase.at(1);
+
+  vec area = zeros<vec>(n_seg);
+
+  for (int i=0; i< n_seg; i++)
+  {
+    area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
+
+  } 
+  }
+
+  cerr << "END THO!"  << endl;
+  delete(d);
   return 0;
 }
 
@@ -710,9 +828,11 @@ int FitData::runTrials() {
   rel_lum=20;
   
   this->runTrial();
+ cerr << "=============================" << endl << "END TRIAL ONE" << endl << "=========================" << endl;
 
   for(int i=0; i<this->numGuesses;i++) {
     //set parameters here
+  cerr << "Aux trial number " << i << " begin now" << endl;
     layers=randData[0][i];
     disk_in=randData[1][i];
     dist=1.496e13*disk_in;
@@ -832,8 +952,16 @@ FitData::FitData(int numGuesses)
 
   fin.close();
 
-  fin.open("XC180");
-
+  fin.open("CO_molecdat/XC18O");
+  temp = zeros<mat>(7,1);
+  for (int k=0; k<119; k++)
+  {
+    for (int i=0; i<7; i++)
+    {
+      fin >> temp(i,0);
+    }
+    XC18O.slice(k)=temp.t();
+  }
 
   fin.close();
 
@@ -918,6 +1046,7 @@ int main(int argc, char* argv[])
   cout << "Begin!" << endl;
   data = new FitData(atoi(argv[1]));
   data->runTrials();
+  cerr << "Trials ran!" << endl;
   delete data;
   return 1;
 }
