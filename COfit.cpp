@@ -5,17 +5,15 @@
 //                       removal of redundant declarations
 //                       memory allocation of rate_eqtn variables in access order
 //                       adoption of an optimized linear algebra computation library (armadillo)
-
+//                       some optimizations to calculation order in big loops
 
 //To do:  Fix transposition (later)
 //        benchmark rate_eqtn solving
-//        add XC180
 //        draw spectrum
 //        properly loop coll_loop; copy static vars of rate_eqtn into FitData and clone for each loop
 //        Properly skip fluorcalc, etc
 //        add input file
 //        fix g-factors
-//
 
 using namespace std;
 using namespace idlarma;
@@ -29,6 +27,7 @@ constexpr double FitData::Bv13[];
 int FitData::numGuesses;
 
 //returns an array of size numGuesses filled with random numbers on the interval (offset, modulus+offset)
+//used to generate the matrix of guess data
 double* FitData::FillArray(int modulus, int offset)
 {
   double* array = new double[numGuesses];
@@ -39,11 +38,6 @@ double* FitData::FillArray(int modulus, int offset)
 }
 
 int FitData::runTrial() {
-
-//Define variables
-/*HD100546_luminosity = HD100546_luminosity*L;  //Luminosity scaling
-mat fAX = (3.038/2.03)*EinA/wavenum^2
-mat fXA = 2*fAX*/
 
 //============================
 //Divide into annulli
@@ -531,6 +525,7 @@ cerr << "Beginning molecular processing over annuli:" << endl;
   //=====================
   
   double rpi=sqrt(3.1415926535897);
+
   for (int i=0; i<steps; i++)  //Loop over annuli
   {
    cerr << "annulus i=" << i << endl;
@@ -650,8 +645,9 @@ cerr << "Slit loss.." << endl;
     }
   }
 cerr << "vmax" << endl;
+
   vec vmax = zeros<vec>(n_rings);
-  vec max=round(sqrt(887.2*Mstar/rdisk));
+  vmax=round(sqrt(887.2*Mstar/rdisk));
 
 //construct frequency scale!
 
@@ -699,31 +695,56 @@ cerr << "Loopdone." << endl;
     v_line.row(6+k)=v_line_arr.row(k);
   }
 
-  vec grid = zeros<vec>(26);
+//determine grid size here!
+  mat grid = zeros<mat>(15000,26);
 
-  ivec v_line_index0 = where(v_line0, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index1 = where(v_line1, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index2 = where(v_line2, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index3 = where(v_line3, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index4 = where(v_line4, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index5 = where(v_line5, [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index6 = whererow(v_line.row(6), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index7 = whererow(v_line.row(7), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index8 = whererow(v_line.row(8), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index9 = whererow(v_line.row(9), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index10 = whererow(v_line.row(10), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index11 = whererow(v_line.row(11), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index12 = whererow(v_line.row(12), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index13 = whererow(v_line.row(13), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index14 = whererow(v_line.row(14), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index15 = whererow(v_line.row(15), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index16 = whererow(v_line.row(16), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index17 = whererow(v_line.row(17), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index18 = whererow(v_line.row(18), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index19 = whererow(v_line.row(19), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index20 = whererow(v_line.row(20), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
-  ivec v_line_index21 = whererow(v_line.row(21), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  field <ivec> v_line_indices(22,1);
+  field<vec> iten_lines(22,1);
 
+  v_line_indices(0 ,0) = whererow(v_line.row(0),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(1 ,0) = whererow(v_line.row(1),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(2 ,0) = whererow(v_line.row(2),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(3 ,0) = whererow(v_line.row(3),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(4 ,0) = whererow(v_line.row(4),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(5 ,0) = whererow(v_line.row(5),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(6 ,0) = whererow(v_line.row(6),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(7 ,0) = whererow(v_line.row(7),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(8 ,0) = whererow(v_line.row(8),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(9 ,0) = whererow(v_line.row(9),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(10,0) = whererow(v_line.row(10), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(11,0) = whererow(v_line.row(11), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(12,0) = whererow(v_line.row(12), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(13,0) = whererow(v_line.row(13), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(14,0) = whererow(v_line.row(14), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(15,0) = whererow(v_line.row(15), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(16,0) = whererow(v_line.row(16), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(17,0) = whererow(v_line.row(17), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(18,0) = whererow(v_line.row(18), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(19,0) = whererow(v_line.row(19), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(20,0) = whererow(v_line.row(20), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+  v_line_indices(21,0) = whererow(v_line.row(21), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
+
+  for (int i=0; i<22; i++)
+  {
+cerr << "i " << i << endl;
+    int itencols=iten_tot.n_cols;
+    int v_line_num=v_line_indices(i,0).n_elem;
+    mat temp = zeros<mat>(v_line_indices(i,0).n_elem,itencols);
+//    cerr << "iten_tot.n_rows ncols:  " << iten_tot.n_rows << " " << iten_tot.n_cols << endl;
+//   cerr << "itencols" << itencols << endl;
+    for (int j=0; j<v_line_num; j++)
+    {
+//       cerr << "j " << j << endl;
+//        cerr << "iten_tot_ncols:  " << iten_tot.n_cols << endl;
+//cerr << "v_line_indices(i.0).n_elem:"  << v_line_indices(i,0).n_elem;
+//        cerr << "v_line_indices(i,0).at(j):"  << v_line_indices(i,0).at(j) << endl;
+      temp.row(j)=iten_tot.row(v_line_indices(i,0).at(j));
+    }
+
+    iten_lines(i,0)=arma::sum(temp,1)*5.65e-3;
+
+  }
+/*
   vec iten_line0=totalDim(iten_tot.row(v_line_index0),1)*5.65e-3;
   vec iten_line1=totalDim(iten_tot.row(v_line_index1),1)*5.65e-3;
   vec iten_line2=totalDim(iten_tot.row(v_line_index2),1)*5.65e-3;
@@ -746,60 +767,161 @@ cerr << "Loopdone." << endl;
   vec iten_line19=totalDim(iten_tot.row(v_line_index19),1)*5.65e-3;
   vec iten_line20=totalDim(iten_tot.row(v_line_index20),1)*5.65e-3;
   vec iten_line21=totalDim(iten_tot.row(v_line_index21),1)*5.65e-3;
-
+*/
   mat gs = zeros<mat>(11,2);
+cerr << "test" << endl;
 
-  gs.col(0)={-5,-4,-3,-2,-1,0,1,2,3,4,5};
-  gs.col(1)=exp(-pow(gs.col(0),2)/pow(12./1.665,2))/arma::sum(exp(-pow(gs.col(0),2)/pow(6./1.665,2)));
+  for (int i=0; i<11; i++)
+  {
+    gs.at(i,0)=i-5; //<<-5 << -4 << -3 << -2<<-1<<0<<1<<2<<3<<4<<5<<endr;
+  }
+  gs.col(1)=exp(-pow(gs.col(0),2)/pow((12/1.665),2))/6.1967;
+
+  int grid_ptr=0;
+//==========================================
+//  RINGS LOOP                     
+//==========================================
+cerr << "n_rings:  " << n_rings << endl;
+cerr << "steps:  " << steps  << endl;
 
   for (int j=0; j<n_rings; j++)
   {
+cerr << j << endl;
     double n_seg=4*round(vmax.at(j))/dv;
     vec vseg=zeros<vec>(n_seg);
-    int i=-1;
-    while (vseg(i) > -vmax(j))
+{ 
+    int z=-1;
+
+    while (1)
     {
-      i++;
-      vseg.at(i)=vmax.at(j)-i;
+      z++;
+      vseg.at(z)=vmax.at(j)-z;
+      if (vseg.at(z) > -vmax.at(j)) break;
     }
-    while (vseg.at(i) != vmax.at(j)-1)
+
+    while (1)
     {
-      i++;
-      vseg.at(i)=vseg.at(i-1)+1;
+      z++;
+      vseg.at(z)=vseg.at(z-1)+1;
+      if (vseg.at(z) > -vmax.at(j)) break;
     }
+}
+cerr << "yo" << endl;
+    vec phase = zeros<vec>(n_seg);
+    phase(0)=0;
+
+    for (int ii=0; ii<n_seg/2; ii++)
+    {
+      phase.at(ii)=acos(vseg.at(ii)/vseg.at(0));
+    }
+    for (int ii=n_seg/2+1; ii <n_seg; ii++)
+    {
+      phase.at(ii)=2*3.1415926535897-acos(vseg(ii)/vseg(0));
+    }
+    vec dphase=zeros<vec>(n_seg);
+    
+    for (int i=1; i<n_seg-1; i++)
+    {
+      dphase.at(i)=(phase.at(i+1)-phase.at(i))/2+(phase.at(i)-phase.at(i-1))/2;
+    }
+    dphase.at(0)=phase.at(1);
+    dphase.at(n_seg-1)=dphase.at(1);
+
+    vec area = zeros<vec>(n_seg);
+cerr << "yo2" << endl;
+    if (j != n_rings-1)
+    {
+ cerr << "AYYYY" << endl;
+      for (int i=0; i< n_seg; i++)
+      {
+        cerr << "inloop i=" << i << endl;
+	area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
+        vel_spec=vel_spec+interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
+        grid.at(grid_ptr,0)=rdisk.at(j);
+        grid.at(grid_ptr,1)=vseg.at(i);
+        grid.at(grid_ptr,2)=phase.at(i);
+        grid.at(grid_ptr,3)=area.at(i)*2.25;
+        for (int ii=4; ii<22; ii++) grid.at(grid_ptr,ii)=iten_lines(ii,0).at(j);
+        grid_ptr++;
+      } 
+    }
+    else
+    {
+ cerr << "AYYYYYY2" << endl;
+      for (int i=0; i<n_seg; i++)
+      {
+        cerr << "inloop i=" << i << endl;
+        area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
+        vel_spec=vel_spec+interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
+        grid.at(grid_ptr,0)=rdisk.at(j);
+        grid.at(grid_ptr,1)=vseg.at(i);
+        grid.at(grid_ptr,2)=phase.at(i);
+        grid.at(grid_ptr,3)=area.at(i)*2.25;
+        for (int ii=4; ii<22; ii++) grid.at(grid_ptr,ii)=iten_lines(ii,0).at(j);
+        grid_ptr++;
+
+      } 
+    }
+   cerr << "Setting spectra..." << endl;
+    total_spec.col(j)=vel_spec;
+
+  }
+cerr << "OUT OF GRID LOOP" << endl;
+  double v_planet=5;
+  double r_planet=13;
+  double phase_planet=53*3.1415926535897/180;
+  double planet_intens=((2*6.62-27*pow(2.9979,2)*pow(2030,3)/(exp(6.626e-27*2.9979e10*2030/(1.38e-16*1e3))-1)));
+  double planet_size=0;
+
+  for (int i=0; i<11;  i++)
+  {
+    grid.at(grid_ptr,0)=r_planet;
+    grid.at(grid_ptr,1)=v_planet+gs.at(0,i);
+    grid.at(grid_ptr,2)=phase_planet;
+    grid.at(grid_ptr,3)=planet_size;
+    for (int j=4; j<22; j++)
+    {
+      grid.at(grid_ptr,j)=0;
+    }
+    grid.at(grid_ptr,9)=planet_intens*gs.at(1,10);
+    grid_ptr++;
+  }
+
+  cerr << "grid_ptr:  " << grid_ptr << endl; 
+  vec centroid = freq;
+  centroid.fill(0);
   
-  vec phase = zeros<vec>(n_seg);
-  phase(0)=0;
-
-  for (int ii=0; ii<n_seg/2; ii++)
+  double omega=55*3.1415926535897/180;
+  double Lc=5.13-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16); // continuum luminosity
+  ivec index1;
+  for (int j=0; j<2*max(grid.row(1)); j++)
   {
-    phase.at(ii)=acos(vseg.at(ii)/vseg.at(0));
+
+    field <ivec> indexn(22,1);
+    index1=where(grid.row(1), [&] (double datum) {return (datum <= (max(grid.row(1)-j))) && (grid.row(1) > (max(grid.row(1))-(j+1)));});
+   for (int k=0; k<22; k++)
+   {
+     indexn(k,0)=where(v_line(k,0), [&] (double datum) {return (datum <= mean(grid(1,index1))+0.5);});
+   } 
+
   }
-  for (int ii=n_seg/2+1; ii <n_seg; ii++)
+
+  vec phi2=grid(2,index1);
+  vec rp=grid(0,index1)*sqrt(pow(cos(phi2),2)+pow(sin(phi2),2)*pow(cos(inc),2));
+
+  vec theta=zeros<vec>(index1.n_elem);
+
+ 
+  for (int i=0; i<phi.n_elem; i++)
   {
-    phase.at(ii)=2*3.1415926535897-acos(vseg(ii)/vseg(0));
+    if (phi2.at(i) < 3.1415926535897) theta.at(i)=acos( cos(phi2.at(i)) / sqrt(cos(pow(phi2.at(i),2)))) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2);
+    else theta.at(i)=2*3.1415926535897 - acos( cos(phi2.at(i)) / sqrt(cos(pow(phi2.at(i),2)) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2)));
   }
 
-  vec dphase=zeros<vec>(n_seg);
-  
-  for (int i=1; i<n_seg-1; i++)
-  {
-    dphase.at(i)=(phase.at(i+1)-phase.at(i))/2+(phase.at(i)-phase.at(i-1))/2;
-  }
-  dphase.at(0)=phase.at(1);
-  dphase.at(n_seg-1)=dphase.at(1);
-
-  vec area = zeros<vec>(n_seg);
-
-  for (int i=0; i< n_seg; i++)
-  {
-    area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
-
-  } 
-  }
 
   cerr << "END THO!"  << endl;
   delete(d);
+  cerr << "DELETED THO"  << endl;
   return 0;
 }
 

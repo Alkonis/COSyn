@@ -200,53 +200,58 @@ namespace idlarma {
     return output;
   }
 
-  vec interpolate(vec v, vec x, vec u)
+  vec interpol(vec v, vec x, vec u)
   {
 
-    auto m=v.n_elem;
-    auto n=u.n_elem;                                                       //v,x input abs, u output abs
-    auto m1=m-1;
-    auto z=u.at(i);    
+    int m=v.n_elem;
+    int n=u.n_elem;                                                       //v,x input abs, u output abs
+    int m1=m-1;
+
     vec r=zeros<vec>(n);
 
+    double z;
     double mid;
 
-    auto low=0;
-    auto high=m1;
+    int low=0;
+    int high=m1;
+   
+    int del;
 
     if (x.at(1) >= x.at(0))
     {
       for (int i=0; i<n; i++) 
       {
+        z=u.at(i);
 
         if (z > x.at(high))
         {
-          if (z >= x.at(m1)
+          if (z >= x.at(m1))
           {
             mid=m1-1;
             goto skip;  
 
           }
-          double del=1;
-          while (z > x.at(min(high+del,m1))) del=del+del;
-          high=min(high+del,m1);
+           del=1;
+          while (z > x.at(high+min(del,m1))) del=del+del;
+          high=high+min(del,m1);
         }
 
-        if (z < x.at(low)
+        if (z < x.at(low))
         {
 
-          if (z <= x.at(0)
+          if (z <= x.at(0))
           {
             mid=0;
             goto skip;
           }
-          while (z < x.at(low) low=low/2;
+          while (z < x.at(low)) low=low/2;
         }
 
         while (high-low > 1)
         {
           mid=(low+high)/2;
-          if (z >= x.at(mid) low=mid else high=mid;
+          if (z >= x.at(mid)) low=mid;
+          else high=mid;
         }
         mid=low;
 skip:
@@ -260,14 +265,14 @@ skip:
       {
         if (z < x.at(high))
         {
-	  if (z <= x.at(m1)
+	  if (z <= x.at(m1))
 	  {
 	    mid-m1-1;
-	    goto skip;
+	    goto skip1;
 	  }
 	  del=1;
-	  while (z < x.at(min(high+del,m1))) del=2*del;
-	  high=min(high+del,m1);
+	  while (z < x.at(high+min(del,m1))) del=2*del;
+	  high=high+min(del,m1);
         }
 
         if (z > x.at(low))
@@ -277,17 +282,18 @@ skip:
             mid = 0;
             goto skip1;
           }          
-        while (z > x.at(low) low=low/2;    
+        while (z > x.at(low)) low=low/2;    
         }
 
         while (high-low > 1)
         {
-          mid=(klow+high)/2;
-          if (z <= x.at(mid) low=mid else high=mid;
+          mid=(low+high)/2;
+          if (z <= x.at(mid)) low=mid;
+          else high=mid;
         }
         mid=low;
 skip1:
-        r.at(i)=v.at(mid) + (z-d.at(mid)) * (v.at(mid+1) - v.at(mid))/(x.at(mid+1) - x.at(mid));
+        r.at(i)=v.at(mid) + (z-x.at(mid)) * (v.at(mid+1) - v.at(mid))/(x.at(mid+1) - x.at(mid));
       }
     }
   
