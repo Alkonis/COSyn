@@ -894,24 +894,37 @@ cerr << "OUT OF GRID LOOP" << endl;
   double omega=55*3.1415926535897/180;
   double Lc=5.13-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16); // continuum luminosity
   ivec index1;
+cerr << "Test" << endl;
   for (int j=0; j<2*max(grid.row(1)); j++)
   {
-
+cerr << "j=" << j << endl;
     field <ivec> indexn(22,1);
-    index1=where(grid.row(1), [&] (double datum) {return (datum <= (max(grid.row(1)-j))) && (grid.row(1) > (max(grid.row(1))-(j+1)));});
+    index1=whererow(grid.row(1), [&] (double datum) {return ((datum <= (max(grid.row(1)-j))) && ( datum > ( max(grid.row(1))-(j+1)) ) );});
    for (int k=0; k<22; k++)
    {
-     indexn(k,0)=where(v_line(k,0), [&] (double datum) {return (datum <= mean(grid(1,index1))+0.5);});
+    cerr << "yo" << endl;
+     vec temp2=zeros<vec>(index1.n_elem);
+     for (int i=0; i<index1.n_elem; i++)  {temp2.at(i)=grid(1,index1.at(i));}
+     double mean=arma::mean(temp2);
+     indexn(k,0)=whererow(v_line.row(k), [&] (double datum) {return (datum <= (mean+0.5));});
    } 
 
   }
+cerr << "Test2" << endl;
+  vec phi2=zeros<vec>(index1.n_elem);
+  for (int i=0; i<index1.n_elem; i++)
+  {
+    phi2.at(i)=grid(2,index1.at(i));
+  }
 
-  vec phi2=grid(2,index1);
-  vec rp=grid(0,index1)*sqrt(pow(cos(phi2),2)+pow(sin(phi2),2)*pow(cos(inc),2));
+  vec rp=zeros<vec>(index1.n_elem);
+  for (int i=0; i<index1.n_elem; i++)
+  {
+    rp.at(i)=grid(0,index1.at(i))*sqrt(pow(cos(phi2.at(i)),2)+pow(sin(phi2.at(i)),2)*pow(cos(inc),2));
+  }
 
   vec theta=zeros<vec>(index1.n_elem);
-
- 
+ cerr << "Test3" << endl;
   for (int i=0; i<phi.n_elem; i++)
   {
     if (phi2.at(i) < 3.1415926535897) theta.at(i)=acos( cos(phi2.at(i)) / sqrt(cos(pow(phi2.at(i),2)))) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2);
