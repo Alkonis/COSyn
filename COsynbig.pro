@@ -183,8 +183,6 @@ rdisk_index=WHERE(r LT 13.)
 rdisk=r*1.496E13
 steps=N_ELEMENTS(rdisk)
 
-print,rdisk
-read,x,prompt="?"
 
 ;ENTIRE CODE MUST BE RUN TWICE. ONCE WITH COLLISIONS AND ONCE WITHOUT.
 ;THIS IS A HACK TO PROPERLY TREAT RARE ISOTOPOLOGUES 
@@ -245,11 +243,6 @@ restore,filename='inc/HD100546_luminosity.dat' ;units are erg/s/Ang
 L=L*rel_lum
 ;Calculate oscillator strengths from Einstein A's
 
-print,"eina"
-print,eina
-print,"wavenum"
-print,wavenum
-read,x,prompt="?"
 fAX=EinA*(3.038/2.03)/wavenum^2	;Taken from Beegle et al. 1999
 fXA=2*fAX			;Take into account stat weight
 
@@ -308,17 +301,6 @@ ENDIF
 b_tot=SQRT(2.*1.38e-16*6.02e23*T_rot_fl/28. + v_turb^2) ;UNITS=cm/s
 
 
-print, "T_rot_fl"
-print,T_rot_fl
-
-print, "T_rot_cl"
-print,T_rot_cl
-
-print, "H_den"
-print, H_den
-
-print, "b_tot"
-print, b_tot
 ;;;;;;;;;;;;;;;;
 ;;;; STEP 7 ;;;;
 ;;;;;;;;;;;;;;;;
@@ -329,8 +311,6 @@ print, b_tot
 
 tau=findgen(2e3)/1e2
 F_tau=fltarr(2000)
-print,"tau:"
-print,tau
 ;Integrate function for given value of tau using trapezoid rule
 sum=0
 n=float(1E3)                   ; Number of steps for integral
@@ -351,11 +331,6 @@ ENDFOR
 ;WHEN TAU > 20, then F(tau)=SQRT(ln(tau))
 dFdt=deriv(tau,F_tau)
 
-print,"F_tau:"
-print,F_tau
-
-print,"dFdt"
-print,dFdt
 
 ;;;;;;;;;;;;;;;;
 ;;;; STEP 8 ;;;;
@@ -373,11 +348,6 @@ FOR k=0,steps-1 DO BEGIN
 IF coll_loop EQ 1 THEN goto, skip_coll        
         k_HCO_dn=(7.57e-15*T_rot_cl(k)/(1-exp(-3084./T_rot_cl(k))))*H_den(k)
         k_HCO_up=k_HCO_dn*exp(-3084./T_rot_cl(k))
-        print,"k_HCO_dn"
-        print, k_HCO_dn
-
-        print,"k_HCO_up"
-        print,k_HCO_up
 	rate_eqtn(0,0,*,k)=rate_eqtn(0,0,*,k)-k_HCO_up
 	rate_eqtn(1,0,*,k)=rate_eqtn(1,0,*,k)+k_HCO_dn
         
@@ -390,14 +360,10 @@ skip_coll:
 
 ;;;;;;;;;;NOW ADD UV PUMPING;;;;;;;;;;;;;;;
 	Fuv=L/(4*!pi*rdisk(k)^2)
-        print,Fuv
-	read,x,prompt="?"
 	FOR j=0,layers-1 DO BEGIN
 		IF j GT 0 THEN BEGIN
 			FOR i=0,9 DO BEGIN 
                           tau_0(i,*,j)=TOTAL(Nv(0:11,0:j,k),2)*7.55858e12*0.02654*fXA(i,*)*lam_ang(i,*)*1e-8/(SQRT(!pi)*b_tot(k))*0.02654*fXA(i,*)*lam_ang(i,*)*1e-8/(SQRT(!pi)*b_tot(k))
-                          print, "fXA(i,*):  " 
-                          print, fXA(i,*)
                         ENDFOR
 
 		ENDIF
@@ -405,9 +371,6 @@ skip_coll:
 		FOR ii=0,N_ELEMENTS(tau_0(0,*,j))-1 DO BEGIN	
 			IF tau_0(0,ii,j) LT 20.0 THEN BEGIN 
 				dFdt_0_index=WHERE(tau EQ ROUND(tau_0(0,ii,j)*10.)/10.,count)
-				print,dFdt_0_index
-				PRINT,DFDT(DFDT_0(*,II,J))
-				read,x, PROMPT="?"
 				IF count NE 0 THEN dFdt_0(*,ii,j)=dFdt(dFdt_0_index) 
 			ENDIF ELSE BEGIN
 				dFdt_0(*,ii,j)=1./(2.*tau_0(0,ii,j)*SQRT(alog(tau_0(0,ii,j))))
@@ -416,18 +379,10 @@ skip_coll:
 		ENDFOR
 
 		dWdN(*,*,j)=dfdt_0(*,*,j)*.02654*2.0*(lam_ang*1e-4)*(lam_ang*1e-8)*fXA/(SQRT(!pi)*c*1e5)
-                print,"dwdn slice j"
-                print,dWdn(*,*,j)
-                print, "fXA"
-                print,fxa
-                read,x,prompt="?"
 		g(*,*,j,k)=dWdN(*,*,j)*!pi*Fuv/(hc*wavenum)
 		
 
 		;now add g-factors:
-               print, "GSUM:  "
-               print, TOTAL(g(*,0,j,k),1)
-               read,x,prompt="?"
                 rate_eqtn(0,0,j,k)=rate_eqtn(0,0,j,k)-TOTAL(g(*,0,j,k),1) ;sum of all
                                                         ;transitions from v=0 
 							;ground state
@@ -439,8 +394,6 @@ skip_coll:
 
 		;Now solve the system of equations to calculate the relative 
 		;populations:
-                print, rate_eqtn(*,*,j,k)
-                read,x, PROMPT="?"
 		SVDC, rate_eqtn(*,*,j,k), w, u, v, /DOUBLE
 		z=fltarr(21) & z(*)=0.0 & z(20)=1.0 	;"solution" to system 
 							;of equations
@@ -880,8 +833,10 @@ iten_line19=TOTAL(Iten_tot(v_line_index19,*),1)*5.65e-3
 iten_line20=TOTAL(Iten_tot(v_line_index20,*),1)*5.65e-3
 iten_line21=TOTAL(Iten_tot(v_line_index21,*),1)*5.65e-3
 
-
-
+print,size(iten_line0)
+help,freq
+print,size(freq)
+read,x,prompt="?"
 gs=FLTARR(2,11)
 gs(0,*)=FINDGEN(11)-5.0 ; [-5,-4,-3,-2,-1,0,1,2,3,4,5]
 gs(1,*)=exp(-gs(0,*)^2/(12./1.665)^2)/TOTAL(exp(-gs(0,*)^2/(6./1.665)^2))
