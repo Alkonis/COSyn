@@ -742,7 +742,7 @@ cerr << v_line.row(0) << endl;
 cerr << "v_line_indices(" <<i<< ",0).n_elem:  " << v_line_indices(i,0).n_elem << endl;
 
   }
-cerr << arma::mean(freq) << endl;
+
   for (int i=0; i<22; i++)
   {
     int itencols=iten_tot.n_cols;
@@ -781,7 +781,6 @@ cerr << arma::mean(freq) << endl;
   vec iten_line21=totalDim(iten_tot.row(v_line_index21),1)*5.65e-3;
 */
   mat gs = zeros<mat>(11,2);
-cerr << "test" << endl;
 
   for (int i=0; i<11; i++)
   {
@@ -820,7 +819,7 @@ cerr << j << endl;
       if (vseg.at(z) > -vmax.at(j)) break;
     }
 }
-cerr << "yo" << endl;
+
     vec phase = zeros<vec>(n_seg);
     phase(0)=0;
 
@@ -842,10 +841,8 @@ cerr << "yo" << endl;
     dphase.at(n_seg-1)=dphase.at(1);
 
     vec area = zeros<vec>(n_seg);
-cerr << "yo2" << endl;
     if (j != n_rings-1)
     {
- cerr << "AYYYY" << endl;
       for (int i=0; i< n_seg; i++)
       {
         cerr << "inloop i=" << i << endl;
@@ -861,7 +858,6 @@ cerr << "yo2" << endl;
     }
     else
     {
- cerr << "AYYYYYY2" << endl;
       for (int i=0; i<n_seg; i++)
       {
         cerr << "inloop i=" << i << endl;
@@ -947,16 +943,14 @@ int maxloop=2*max(grid.row(1));
       {
 	if (phi2.at(i) < 3.1415926535897) 
 	{
-	  cerr << "Loopy!" << endl;
 	  theta.at(i)=acos( cos(phi2.at(i)) / sqrt(cos(pow(phi2.at(i),2)))) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2);
 	}
 	else  
 	{
-	  cerr << "Loopy2!" << endl;
 	  theta.at(i)=2*3.1415926535897 - acos( cos(phi2.at(i)) / sqrt(cos(pow(phi2.at(i),2)) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2)));
 	}
       }
-      vec deltay=rp*cos(theta+omega);
+      vec deltay=rp%cos(theta+omega);
       
       for (int i=4;i<26;i++)
       {
@@ -973,7 +967,7 @@ int maxloop=2*max(grid.row(1));
       }
     }
   }
-
+cout << "grid:  " << grid << endl;
   for (int j=0; j<n_rings; j++)
   {
     total_spec.col(j)=total_spec.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(total_spec.col(j));
@@ -984,10 +978,13 @@ int maxloop=2*max(grid.row(1));
   inst_prof=exp(-pow(vfreq,2)/pow(inst_res/1.665,2));
 //shift inst_prof?
   inst_prof=inst_prof/arma::sum(inst_prof);
+cout << "inst_prof:  "  << inst_prof;
+cout << "final_spec: "<< final_spec << endl;
 cerr << "FFT..." << endl;
   cx_vec conv_spec=ifft(fft(final_spec)%fft(inst_prof))/2;
   cx_vec cent_conv=ifft(fft(centroid)%fft(inst_prof));
-
+cout << "conv_spec:  " << conv_spec << endl;;
+cout << "cent_conv:  " <<  cent_conv << endl;;
   delete(d);
 cin.get();
   return 0;

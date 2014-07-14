@@ -1144,6 +1144,11 @@ conv_spec=FFT(FFT(final_spec)*FFT(inst_prof),1)/2.	;account for reflection in FF
 cent_conv=FFT(FFT(centroid)*FFT(inst_prof),1)
 cent_conv=cent_conv*total(abs(centroid))/total(abs(cent_conv))
 conv_spec=conv_spec*total(flux_tot_slit)/total(conv_spec)
+print,"cent_conv"
+print,cent_conv
+print,"conv_spec"
+print,conv_spec
+
 
 diff_array(*,bigi)=((rbig_masked-1)*1.5e-12 - INTERPOL(conv_spec,freq-freq*5./2.9979e5,fbig))
 index_diff=WHERE(FINITE(diff_array(*,bigi)) EQ 1)
