@@ -13,6 +13,7 @@ num_guesses=1501
 matrix=FLTARR(7,num_guesses)
 ;diff_array=FLTARR(N_ELEMENTS(rbig),num_guesses)
 
+
 qw=8L
 
 matrix(0,*)=RANDOMU(qw+47L,num_guesses)*900.+100   ;range layers from 100-1000
@@ -617,7 +618,15 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 		  	   A0=N_12CO_vJ(k,j,i)*hc*wvn(k)*EinA(k)
 			   A1=wvn(k)
 			   A2=b_tot(i)*wvn(k)/(c*1e5)
+print,A0
+print,A1
+print,A2
+read,x,prompt="a0,a1,a2"
 			   stick_spec_12CO(*,i)=stick_spec_12CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)	
+print,exp(-((A1-freq)/A2)^2)
+read,x,prompt="exp factor:"
+print,stick_Spec_12CO(*,i)
+read,x,prompt="stick_Spec_12co(*,i)"
 			ENDIF
 
 		ENDFOR

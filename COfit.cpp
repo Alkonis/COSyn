@@ -9,11 +9,10 @@
 
 //To do:  Fix transposition (later)
 //        benchmark rate_eqtn solving
-//        draw spectrum
-//        properly loop coll_loop; copy static vars of rate_eqtn into FitData and clone for each loop
 //        Properly skip fluorcalc, etc
 //        add input file
-//        fix g-factors
+//        fix g-factors (?)
+//        fix grid
 
 using namespace std;
 using namespace idlarma;
@@ -51,20 +50,16 @@ int FitData::runTrial() {
 
   HD100546_luminosity = HD100546_luminosity*rel_lum;
   ranulli.push_back(disk_in);
-cerr << "before" << endl; 
   if (r<0.1)
   {
- cerr << "in if" << endl;
     while ((ranulli.back() < 1) && (ranulli.back() < disk_out))
     {
- cerr << "loop" << endl;
       r_index_a=r_index_a+1;
       ranulli.push_back(disk_in+0.01*r_index_a);
     }
   }
 
   maxra = ranulli.back();
- cout << "TEST" << endl;
   if ((maxra < 1) && (maxra >= .1))
   {
     while ((ranulli.back() < 1.0) || (ranulli.back() < disk_out))
@@ -74,7 +69,6 @@ cerr << "before" << endl;
     }
   }
   maxrb=ranulli.back();
- cout << "TEST2" << endl;
   if ((maxrb <= disk_out) && (maxrb >= 1.0))
   {
     while  (ranulli.back() < disk_out)
@@ -84,7 +78,6 @@ cerr << "before" << endl;
     }
   }
 
-  cout << "Ranulli: " << ranulli.at(0) << endl;
   steps=ranulli.size();  //check that this size function is correct
   
   vec rdisk= zeros<vec>(steps);
@@ -94,7 +87,6 @@ cerr << "before" << endl;
     rdisk.at(i)=ranulli.at(i)*1.496E13;
   }
  
-  cout << "rdisk:  " << rdisk << endl;
 //benchmark here!  Make sure these results are the same from the IDL code and the C++ code!
   
 
@@ -164,7 +156,7 @@ cout << "T_rot_index:  " << T_rot_index << endl;
   H_den=H_den0 * pow((1.496E13/rdisk),H_den_alpha);
   T_rot_index = where(T_rot_cl, [] (double datum) {return datum > 3500;});
 //  T_rot_cnt=T_rot_index.size();
-cerr << "T_rot_index:  " << T_rot_index << endl;
+cout << "T_rot_index:  " << T_rot_index << endl;
   if (T_rot_index.at(0) != -1) {
     for (auto elem : T_rot_index)
     {
@@ -379,14 +371,9 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
 
 //}
 //skip_fluorcalc:
-      cerr << "Checking coll_loop" << endl;
-      cerr << "COLL LOOP:  " << coll_loop << endl;
       if (coll_loop==0) {
         Nv_coll=d->Nv;
-        cerr << "totalDim:  " << endl;
-        cerr << totalDim(d->Nv*7.55858e12,2);
         tot_col_fluor = totalDim(d->Nv*7.55858e12,2).t();      //check all uses of accu/total in teh code!!!!!! dimension specification!
-        cerr << "tot_col_fluor:  " <<  tot_col_fluor << endl;
         tot_col_fluor_back=tot_col_fluor;
         d->rate_eqtn=d->rate_eqtn2;
         cerr << "Beginning pass without collisions..." << endl;
@@ -395,7 +382,6 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
         Nv_nocoll=d->Nv;
         tot_col_fluor_nocoll = totalDim(d->Nv*7.55858e12,2).t();
       }
-      cerr << "Coll loop incrementing...";
     }
 
 
@@ -441,11 +427,11 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
   rowvec Jdn;
   rowvec wvn;
   rowvec EinA;
-
+cerr << "First..." << endl;
   for (int i=0; i<steps; i++)
   {
 
-    cerr << "steps loop i=" << i << endl;
+    cerr << "molecular steps loop i=" << i << endl;
 
     //=======================
     //   12CO
@@ -462,85 +448,83 @@ cerr << "T_rot_index:  " << T_rot_index << endl;
       N_12CO_vj.slice(i).row(j)=tot_col_fluor.at(i,j+1) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) + tot_col_coll.at(i,j+1)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
     }
   cerr << "13CO" << endl;
-    //====================
-    //  13CO
-    //====================
-    for (int j=0; j<3; j++)
-    {
-      Jup = X13CO(span(j),span(3),span::all);
-      Jdn = X13CO(span(j),span(1),span::all);
-      wvn = X13CO(span(j),span(6),span::all);
-      EinA= X13CO(span(j),span(4),span::all);
-     
-      N_13CO_vj.slice(i).row(j)=(tot_col_fluor_nocoll.at(i,j+1)/X12CO_13CO_fl)*(2*Jup+1) % exp(-hck*Bv13[j] * Jup % (Jup+1) / T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv13[j]));
+  //====================
+  //  13CO
+  //====================
+  for (int j=0; j<3; j++)
+  {
+    Jup = X13CO(span(j),span(3),span::all);
+    Jdn = X13CO(span(j),span(1),span::all);
+    wvn = X13CO(span(j),span(6),span::all);
+    EinA= X13CO(span(j),span(4),span::all);
 
-    }
-  cerr << "C18O" << endl;
- cerr << "rows,cols,slices XC138O  " << XC18O.n_rows << " " << XC18O.n_cols << " " << XC18O.n_slices << endl;
-    //====================
-    //  C18O
-    //===================
-    
-      Jup = XC18O(span(0),span(3),span::all);
-      Jdn = XC18O(span(0),span(1),span::all);
-      wvn = XC18O(span(0),span(6),span::all);
-      EinA= XC18O(span(0),span(4),span::all);
+    N_13CO_vj.slice(i).row(j)=(tot_col_fluor_nocoll.at(i,j+1)/X12CO_13CO_fl)*(2*Jup+1) % exp(-hck*Bv13[j] * Jup % (Jup+1) / T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv13[j]));
 
-      N_C18O_vj.slice(i).row(0)=(tot_col_fluor_nocoll.at(i,1)/X12CO_C18O_fl)*(2*Jup+1) % exp(-hck*Bv18[0]*Jup%(Jup+1)/T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv18[0]));
+  }
+  //====================
+  //  C18O
+  //===================
+
+  Jup = XC18O(span(0),span(3),span::all);
+  Jdn = XC18O(span(0),span(1),span::all);
+  wvn = XC18O(span(0),span(6),span::all);
+  EinA= XC18O(span(0),span(4),span::all);
+
+  N_C18O_vj.slice(i).row(0)=(tot_col_fluor_nocoll.at(i,1)/X12CO_C18O_fl)*(2*Jup+1) % exp(-hck*Bv18[0]*Jup%(Jup+1)/T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv18[0]));
 
   }
 
   cerr << "Ended steps loops.";
   double freq_size=log10(f_f/f_i)/log10(1+v/(3*c));
-cerr << "1" << endl;
+  cerr << "1" << endl;
   vec freq = zeros<vec>(freq_size+1);
   freq.at(0)=f_i;
   vec vfreq = freq;
   vfreq.fill(0);
- 
-cerr << "2"<< endl;
-cerr << "freq.n_elem" << freq.n_elem << endl;
-cerr << "freq_size" << freq_size << endl;
+
+  cerr << "2"<< endl;
+  cerr << "freq.n_elem" << freq.n_elem << endl;
+  cerr << "freq_size" << freq_size << endl;
   for (int i=1; i<freq_size; i++)
   {
     freq.at(i)=f_i*(pow(1+v/(3*c),i));
   }
-cerr << "3" << endl;
+  cerr << "3" << endl;
   vfreq=(freq(round(freq.n_elem/2))-freq)*c/freq(round(freq.n_elem/2));                      //check
-cerr << 4 << endl;
+  cerr << 4 << endl;
 
   ivec freq_index=where(freq, [] (double datum) {return (datum >= f_i) && (datum <= f_f);});
-cerr << 5 << endl;
-//define annuli
+  cerr << 5 << endl;
+  //define annuli
 
   vec annuli = zeros<vec>(rdisk.n_elem);
-cerr << 6 << endl;
+  cerr << 6 << endl;
   for (int i=0; i<steps-1; i++)
   {
     annuli.at(i)=3.1415926535897*(pow(rdisk.at(i+1),2)-pow(rdisk.at(i),2));
   }
-cerr << 7 << endl;
+  cerr << 7 << endl;
   annuli(steps-1)=3.1415926535897*(pow(rdisk.at(steps-1)+1,2)-pow(rdisk.at(steps-1),2));
-cerr << 8 << endl;
+  cerr << 8 << endl;
   mat stick_spec_12CO = zeros<mat>(freq_size+1,steps);
   mat stick_spec_13CO = stick_spec_12CO;
   mat stick_spec_C18O = stick_spec_12CO;
   mat stick_spec_tot  = stick_spec_12CO;
-cerr << 8 << endl;
+  cerr << 8 << endl;
   double A0;
   double A1;
   double A2;
 
-cerr << "Beginning molecular processing over annuli:" << endl;
+  cerr << "Beginning molecular processing over annuli:" << endl;
   //======================
   //  X12CO
   //=====================
-  
+
   double rpi=sqrt(3.1415926535897);
 
   for (int i=0; i<steps; i++)  //Loop over annuli
   {
-   cerr << "annulus i=" << i << endl;
+    cerr << "annulus i=" << i << endl;
     //==============================
     //  X12CO
     //=============================
@@ -550,19 +534,30 @@ cerr << "Beginning molecular processing over annuli:" << endl;
       Jdn = X12CO(span(j),span(1),span::all);
       wvn = X12CO(span(j),span(6),span::all);
       EinA= X12CO(span(j),span(4),span::all);
-    
+
       for (int k=0; k<X12CO.n_slices; k++)  //Loop over rotational levels
       {
-        if ( (wvn(k) >= f_i) && (wvn(k) <= f_f) )
-        {
-          A1=wvn.at(k);
-          A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
-          A2=b_tot(i)*A1/(c*1e5);
-          stick_spec_12CO.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
-        }
+	if ( (wvn(k) >= f_i) && (wvn(k) <= f_f) )
+	{
+	  A1=wvn.at(k);
+	  A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
+	  A2=b_tot(i)*A1/(c*1e5);
+	  stick_spec_12CO.col(i)+=(A0/(rpi*A2)) * exp (-pow(((A1-freq)/A2),2));
+cerr << rpi << endl;
+cerr << A1 << endl;
+cerr << A0 << endl;
+cerr << A2 << endl;
+cin.get();
+cerr << (A0/(rpi*A2)) << endl;
+cerr << freq << endl;
+cin.get();
+cerr << exp(-pow(((A1-freq)/A2),2)) << endl;;
+
+cin.get();;
+	}
       }
     }
- 
+
     //==============================
     //  X13CO
     //==============================
@@ -606,6 +601,9 @@ cerr << "Beginning molecular processing over annuli:" << endl;
     stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C18O.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
 
   }
+cerr << stick_spec_tot << endl;
+cerr << "^ stick_spec_tot" << endl;
+cin.get();
   cerr << "Left loop!"  << endl;
   annuli.at(0)=1e28;
   mat iten_tot=stick_spec_tot;
@@ -739,8 +737,7 @@ cerr << v_line.row(0) << endl;
 
   for (int i=0; i<22; i++)
   {
-cerr << "v_line_indices(" <<i<< ",0).n_elem:  " << v_line_indices(i,0).n_elem << endl;
-
+    cerr << "v_line_indices(" <<i<< ",0).n_elem:  " << v_line_indices(i,0).n_elem << endl;
   }
 
   for (int i=0; i<22; i++)
@@ -751,11 +748,13 @@ cerr << "v_line_indices(" <<i<< ",0).n_elem:  " << v_line_indices(i,0).n_elem <<
     for (int j=0; j<v_line_num; j++)
     {
       temp.row(j)=iten_tot.row(v_line_indices(i,0).at(j));
+cerr << "temp.row(" << j << "):  "  << temp.row(j) << endl;;
     }
-
+cin.get();
     iten_lines(i,0)=arma::sum(temp,0).t()*5.65e-3;
 
   }
+cin.get();
 /*
   vec iten_line0=totalDim(iten_tot.row(v_line_index0),1)*5.65e-3;
   vec iten_line1=totalDim(iten_tot.row(v_line_index1),1)*5.65e-3;
@@ -797,10 +796,18 @@ cerr << "steps:  " << steps  << endl;
 
 
 cerr << "iten_lines(0,0).n_elem:  " << iten_lines(0,0).n_elem <<  endl;
+for (int i=0; i<22; i++)
+{
+  cerr << "iten_lines(" << i << "):  " << iten_lines(i,0) << endl;
+}
+cin.get();
   for (int j=0; j<n_rings; j++)
   {
 cerr << j << endl;
     double n_seg=4*round(vmax.at(j))/dv;
+cerr << "n_seg" << n_seg << endl;
+
+cin.get();
     vec vseg=zeros<vec>(n_seg);
 { 
     int z=-1;
@@ -845,7 +852,6 @@ cerr << j << endl;
     {
       for (int i=0; i< n_seg; i++)
       {
-        cerr << "inloop i=" << i << endl;
 	area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
         vel_spec=vel_spec+interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
         grid.at(grid_ptr,0)=rdisk.at(j);
@@ -860,7 +866,6 @@ cerr << j << endl;
     {
       for (int i=0; i<n_seg; i++)
       {
-        cerr << "inloop i=" << i << endl;
         area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
         vel_spec=vel_spec+interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
         grid.at(grid_ptr,0)=rdisk.at(j);
@@ -872,7 +877,6 @@ cerr << j << endl;
 
       } 
     }
-   cerr << "Setting spectra..." << endl;
     total_spec.col(j)=vel_spec;
 
   }
@@ -894,7 +898,6 @@ cerr << i << endl;
     {
       grid.at(grid_ptr,j)=0;
     }
- cerr << "afterloop" << endl;
     grid.at(grid_ptr,9)=planet_intens*gs(10,1);
     grid_ptr++;
   }
@@ -906,8 +909,9 @@ cerr << i << endl;
   double omega=55*3.1415926535897/180;
   double Lc=5.13-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16); // continuum luminosity
   ivec index1;
-cerr << "Test" << endl;
-int maxloop=2*max(grid.row(1));
+
+  int maxloop=2*max(grid.row(1));
+
   for (int j=0; j<maxloop; j++)
   {
     int index1n=index1.n_elem;
@@ -983,8 +987,8 @@ cout << "final_spec: "<< final_spec << endl;
 cerr << "FFT..." << endl;
   cx_vec conv_spec=ifft(fft(final_spec)%fft(inst_prof))/2;
   cx_vec cent_conv=ifft(fft(centroid)%fft(inst_prof));
-cout << "conv_spec:  " << conv_spec << endl;;
-cout << "cent_conv:  " <<  cent_conv << endl;;
+cout << "conv_spec:  " << conv_spec << endl;
+cout << "cent_conv:  " <<  cent_conv << endl;
   delete(d);
 cin.get();
   return 0;
