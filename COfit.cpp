@@ -446,6 +446,8 @@ cerr << "First..." << endl;
       wvn = X12CO(span(j),span(6),span::all);
       EinA= X12CO(span(j),span(4),span::all);
       N_12CO_vj.slice(i).row(j)=tot_col_fluor.at(i,j+1) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) + tot_col_coll.at(i,j+1)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
+//cerr << N_12CO_vj.slice(i) << endl;
+//cin.get();
     }
   cerr << "13CO" << endl;
   //====================
@@ -520,7 +522,6 @@ cerr << "First..." << endl;
   //  X12CO
   //=====================
 
-  double rpi=sqrt(3.1415926535897);
 
   for (int i=0; i<steps; i++)  //Loop over annuli
   {
@@ -537,23 +538,23 @@ cerr << "First..." << endl;
 
       for (int k=0; k<X12CO.n_slices; k++)  //Loop over rotational levels
       {
-	if ( (wvn(k) >= f_i) && (wvn(k) <= f_f) )
+        A1=wvn.at(k);
+	if ( (A1 >= f_i) && (A1 <= f_f) )
 	{
-	  A1=wvn.at(k);
 	  A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
-	  A2=b_tot(i)*A1/(c*1e5);
+	  A2=b_tot(i)*A1/(cexp);
 	  stick_spec_12CO.col(i)+=(A0/(rpi*A2)) * exp (-pow(((A1-freq)/A2),2));
-cerr << rpi << endl;
-cerr << A1 << endl;
-cerr << A0 << endl;
-cerr << A2 << endl;
-cin.get();
-cerr << (A0/(rpi*A2)) << endl;
-cerr << freq << endl;
-cin.get();
-cerr << exp(-pow(((A1-freq)/A2),2)) << endl;;
+//cerr << rpi << endl;
+//cerr << A1 << endl;
+//cerr << A0 << endl;
+//cerr << A2 << endl;
+//cin.get();
+//cerr << (A0/(rpi*A2)) << endl;
+//cerr << freq << endl;
+//cin.get();
+//cerr << exp(-pow(((A1-freq)/A2),2)) << endl;;
 
-cin.get();;
+//cin.get();;
 	}
       }
     }
@@ -573,9 +574,12 @@ cin.get();;
       for (int k=0; k<X13CO.n_slices; k++)
       {
           A1=wvn.at(k);
-          A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
-          A2=b_tot.at(i)*A1/(c*1e5);
-          stick_spec_13CO.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
+          if ((A1 >= f_i) && (A1 <= f_f)) 
+          {
+	    A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
+	    A2=b_tot.at(i)*A1/(cexp);
+	    stick_spec_13CO.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
+          }
       }    
 
     }
@@ -593,9 +597,12 @@ cin.get();;
       for (int k=0; k<XC18O.n_slices; k++)
       {
           A1=wvn.at(k);
-          A0=N_13CO_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
-          A2=b_tot[i]*A1/(c*1e5);
-          stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
+          if ((A1 >= f_i) && (A1 <= f_f))
+          {
+	    A0=N_13CO_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
+	    A2=b_tot[i]*A1/(cexp);
+	    stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
+          }
       }
   
     stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C18O.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!

@@ -38,10 +38,14 @@ class FitData{
   static constexpr double Mstar=2;
   static constexpr double stardist=(108);
   static constexpr double inst_res=6.0;
+
   static constexpr double c=2.997924562e5;
+  static constexpr double cexp=299792456000;
   static constexpr double hc=6.626196e-27*2.997924562e10;
   static constexpr double hck=(6.62196e-27*2.997924562e10)/(1.380622e-16);
   static constexpr double cer=8.85282e-13;
+  static constexpr double rpi=1.7724538509055159;
+  
   static constexpr double vib_einA[10]={34.60,67.68,98.40,126.99,153.59,178.31,201.35,223.10,244.15,265.21};
 
   static constexpr double v = 2.5;
