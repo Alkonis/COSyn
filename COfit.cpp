@@ -7,6 +7,8 @@
 //                       adoption of an optimized linear algebra computation library (armadillo)
 //                       some optimizations to calculation order in big loops
 
+
+
 //To do:  Fix transposition (later)
 //        benchmark rate_eqtn solving
 //        Properly skip fluorcalc, etc
@@ -239,12 +241,13 @@ cout << "T_rot_index:  " << T_rot_index << endl;
       vec sol;
       ivec Nv_index;
 
-      mat Fuv = HD100546_luminosity / ( 4*3.1415926535897*pow(rdisk[k],2) );
 
       double gsum;
 
       for (int k=0; k<steps; k++) 
       {
+
+        mat Fuv = HD100546_luminosity / ( 4*3.1415926535897*pow(rdisk[k],2) );
 
 	cerr <<"Steps loop, k=" << k << endl;
        
@@ -445,7 +448,12 @@ cerr << "First..." << endl;
       Jdn = X12CO(span(j),span(1),span::all);
       wvn = X12CO(span(j),span(6),span::all);
       EinA= X12CO(span(j),span(4),span::all);
-      N_12CO_vj.slice(i).row(j)=tot_col_fluor.at(i,j+1) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) + tot_col_coll.at(i,j+1)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
+cerr << "tot_col_flupr.at(i,j+1):  " << tot_col_fluor.at(i,j+1) << endl;
+cerr << "tot_col_fluor.at(j+1,i):  " << tot_col_fluor.at(j+1,i)<< endl;
+cin.get();
+      N_12CO_vj.slice(i).row(j)=tot_col_fluor.at(i,j+1) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) 
++ tot_col_coll.at(i,j+1)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
+
 //cerr << N_12CO_vj.slice(i) << endl;
 //cin.get();
     }
@@ -522,43 +530,42 @@ cerr << "First..." << endl;
   //  X12CO
   //=====================
 
-
   for (int i=0; i<steps; i++)  //Loop over annuli
   {
+double btotcomp=b_tot.at(i)/cexp;
     cerr << "annulus i=" << i << endl;
     //==============================
     //  X12CO
     //=============================
-    for (int j=0; j<tot_col.row(0).n_elem-1; j++)  //vibrational levels
+    int upbound=tot_col.row(0).n_elem-1;
+    for (int j=0; j<upbound; j++)  //vibrational levels
     {
       Jup = X12CO(span(j),span(3),span::all);
       Jdn = X12CO(span(j),span(1),span::all);
       wvn = X12CO(span(j),span(6),span::all);
       EinA= X12CO(span(j),span(4),span::all);
-
-      for (int k=0; k<X12CO.n_slices; k++)  //Loop over rotational levels
+      for (int k=0; k<X12CO.n_slices; k++) 
       {
         A1=wvn.at(k);
 	if ( (A1 >= f_i) && (A1 <= f_f) )
 	{
-	  A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
-	  A2=b_tot(i)*A1/(cexp);
-	  stick_spec_12CO.col(i)+=(A0/(rpi*A2)) * exp (-pow(((A1-freq)/A2),2));
-//cerr << rpi << endl;
-//cerr << A1 << endl;
-//cerr << A0 << endl;
-//cerr << A2 << endl;
-//cin.get();
-//cerr << (A0/(rpi*A2)) << endl;
-//cerr << freq << endl;
-//cin.get();
-//cerr << exp(-pow(((A1-freq)/A2),2)) << endl;;
 
+//cerr << "i,j,k:  " << i << " " << j << " " << k << endl;
+	  A0=N_12CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
+	  A2=btotcomp*A1;
+	  stick_spec_12CO.col(i)+=(A0/(rpi*A2)) * exp (-pow(((A1-freq)/A2),2));
+cerr << "N12CO_vj.at(j,k,i):  " << N_12CO_vj.at(j,k,i) << endl;;
+cerr << "A1:  "<< A1 << endl;
+cerr << "A0:  "<< A0 << endl;
+cerr << "A2:  " << A2 << endl;
+cerr <<"calc coeff:  " << (A0/(rpi*A2)) << endl;
+cin.get();
+cerr << "exponent:  " << exp(-pow(((A1-freq)/A2),2)) << endl;;
+cin.get();
 //cin.get();;
 	}
       }
     }
-
     //==============================
     //  X13CO
     //==============================
@@ -577,13 +584,12 @@ cerr << "First..." << endl;
           if ((A1 >= f_i) && (A1 <= f_f)) 
           {
 	    A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
-	    A2=b_tot.at(i)*A1/(cexp);
+	    A2=btotcomp*A1;
 	    stick_spec_13CO.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
           }
       }    
 
     }
-
     //=============================
     //  XC180
     //=============================
@@ -600,17 +606,15 @@ cerr << "First..." << endl;
           if ((A1 >= f_i) && (A1 <= f_f))
           {
 	    A0=N_13CO_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
-	    A2=b_tot[i]*A1/(cexp);
+	    A2=btotcomp*A1;
 	    stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
           }
       }
-  
     stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C18O.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
-
   }
 cerr << stick_spec_tot << endl;
 cerr << "^ stick_spec_tot" << endl;
-cin.get();
+//cin.get();
   cerr << "Left loop!"  << endl;
   annuli.at(0)=1e28;
   mat iten_tot=stick_spec_tot;
@@ -757,11 +761,11 @@ cerr << v_line.row(0) << endl;
       temp.row(j)=iten_tot.row(v_line_indices(i,0).at(j));
 cerr << "temp.row(" << j << "):  "  << temp.row(j) << endl;;
     }
-cin.get();
+//cin.get();
     iten_lines(i,0)=arma::sum(temp,0).t()*5.65e-3;
 
   }
-cin.get();
+//cin.get();
 /*
   vec iten_line0=totalDim(iten_tot.row(v_line_index0),1)*5.65e-3;
   vec iten_line1=totalDim(iten_tot.row(v_line_index1),1)*5.65e-3;
@@ -807,14 +811,14 @@ for (int i=0; i<22; i++)
 {
   cerr << "iten_lines(" << i << "):  " << iten_lines(i,0) << endl;
 }
-cin.get();
+//cin.get();
   for (int j=0; j<n_rings; j++)
   {
 cerr << j << endl;
     double n_seg=4*round(vmax.at(j))/dv;
 cerr << "n_seg" << n_seg << endl;
 
-cin.get();
+//cin.get();
     vec vseg=zeros<vec>(n_seg);
 { 
     int z=-1;
@@ -911,6 +915,7 @@ cerr << i << endl;
 
   cerr << "grid_ptr:  " << grid_ptr << endl; 
   vec centroid = freq;
+cout << "grid:  " << grid << endl;
   centroid.fill(0);
   
   double omega=55*3.1415926535897/180;
@@ -978,7 +983,6 @@ cerr << i << endl;
       }
     }
   }
-cout << "grid:  " << grid << endl;
   for (int j=0; j<n_rings; j++)
   {
     total_spec.col(j)=total_spec.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(total_spec.col(j));
@@ -1119,7 +1123,7 @@ FitData::FitData(int numGuesses)
   mat temp = zeros<mat>(7,10);
   fin.open("CO_molecdat/X12CO");
 
-  for (int k=0; k<119; k++)
+  for (int k=0; k<120; k++)
   {
     for (int i=0; i<7; i++)
     {
@@ -1133,10 +1137,13 @@ FitData::FitData(int numGuesses)
 
   fin.close();
 
+//cerr << X12CO << endl;
+//cin.get();
+
   fin.open("CO_molecdat/X13CO");
   temp = zeros<mat>(7,3);
 
-  for (int k=0; k<119; k++)
+  for (int k=0; k<120; k++)
   {
     for (int i=0; i<7; i++)
     {
@@ -1152,7 +1159,7 @@ FitData::FitData(int numGuesses)
 
   fin.open("CO_molecdat/XC18O");
   temp = zeros<mat>(7,1);
-  for (int k=0; k<119; k++)
+  for (int k=0; k<120; k++)
   {
     for (int i=0; i<7; i++)
     {

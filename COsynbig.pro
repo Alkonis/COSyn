@@ -518,7 +518,6 @@ Bv18=[1.840]
 
 ;CHANGE PATH TO LOCATION OF MOLECULAR DATA
 restore, filename='inc/CO_molecdat.dat'
-
 ;Use molecular data to calculate relative rotational populations 
 ; as a function of species, vibrational level and radius:
 
@@ -539,7 +538,9 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 	Jup =X12CO(j,3,*)
 	Jdn =X12CO(j,1,*)
 	wvn =X12CO(j,6,*)
-	EinA=X12CO(j,4,*)		
+	EinA=X12CO(j,4,*)	
+      print,tot_col_fluor(j+1,i)
+read,x,prompt='tot_col_fluor(j+1,i)'
 		N_12CO_vJ(*,j,i)=tot_col_fluor(j+1,i)*(2*Jup+1.) $
 				*exp(-hck*Bv12(j)*Jup*(Jup+1)/T_rot_fl(i)) $
 				/(T_rot_fl(i)/(hck*Bv12(j))) $
@@ -618,10 +619,11 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 		  	   A0=N_12CO_vJ(k,j,i)*hc*wvn(k)*EinA(k)
 			   A1=wvn(k)
 			   A2=b_tot(i)*wvn(k)/(c*1e5)
+print,N_12CO_vJ(k,j,i)
 print,A0
 print,A1
 print,A2
-read,x,prompt="a0,a1,a2"
+read,x,prompt="N_12CO_vJ(k.j,i),a0,a1,a2"
 			   stick_spec_12CO(*,i)=stick_spec_12CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)	
 print,exp(-((A1-freq)/A2)^2)
 read,x,prompt="exp factor:"

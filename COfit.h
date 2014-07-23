@@ -49,7 +49,9 @@ class FitData{
   static constexpr double vib_einA[10]={34.60,67.68,98.40,126.99,153.59,178.31,201.35,223.10,244.15,265.21};
 
   static constexpr double v = 2.5;
-  static constexpr double k = 1.380622E-16;
+  static constexpr double kb t
+:exit
+ 1.380622E-16;
   static constexpr double B = 1.9225;       
 
 //Rotational constants
