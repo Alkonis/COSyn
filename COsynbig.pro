@@ -300,7 +300,8 @@ IF rel_lum LE 1E-3 THEN BEGIN
 ENDIF
 
 b_tot=SQRT(2.*1.38e-16*6.02e23*T_rot_fl/28. + v_turb^2) ;UNITS=cm/s
-
+print,b_tot
+read,x,"b_tot=?"
 
 ;;;;;;;;;;;;;;;;
 ;;;; STEP 7 ;;;;
@@ -539,8 +540,8 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 	Jdn =X12CO(j,1,*)
 	wvn =X12CO(j,6,*)
 	EinA=X12CO(j,4,*)	
-      print,tot_col_fluor(j+1,i)
-read,x,prompt='tot_col_fluor(j+1,i)'
+;      print,tot_col_fluor(j+1,i)
+;read,x,prompt='tot_col_fluor(j+1,i)'
 		N_12CO_vJ(*,j,i)=tot_col_fluor(j+1,i)*(2*Jup+1.) $
 				*exp(-hck*Bv12(j)*Jup*(Jup+1)/T_rot_fl(i)) $
 				/(T_rot_fl(i)/(hck*Bv12(j))) $
@@ -619,16 +620,21 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 		  	   A0=N_12CO_vJ(k,j,i)*hc*wvn(k)*EinA(k)
 			   A1=wvn(k)
 			   A2=b_tot(i)*wvn(k)/(c*1e5)
-print,N_12CO_vJ(k,j,i)
-print,A0
-print,A1
-print,A2
-read,x,prompt="N_12CO_vJ(k.j,i),a0,a1,a2"
+;;print,N_12CO_vJ(k,j,i)
+;print,A0
+;print,A1
+;print,A2
+
+;read,x,prompt="N_12CO_vJ(k.j,i),a0,a1,a2"
+;print,-((A1-freq)/A2)^2
+;read,x,prompt="inexp"
+;print,exp(-((A1-freq)/A2)^2)
+;read,x,prompt="exp"
 			   stick_spec_12CO(*,i)=stick_spec_12CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)	
-print,exp(-((A1-freq)/A2)^2)
-read,x,prompt="exp factor:"
-print,stick_Spec_12CO(*,i)
-read,x,prompt="stick_Spec_12co(*,i)"
+;print,exp(-((A1-freq)/A2)^2)
+;read,x,prompt="exp factor:"
+;print,stick_Spec_12CO(*,i)
+;read,x,prompt="stick_Spec_12co(*,i)"
 			ENDIF
 
 		ENDFOR
@@ -666,7 +672,8 @@ read,x,prompt="stick_Spec_12co(*,i)"
 	ENDFOR
 
 stick_spec_tot(*,i)=(stick_spec_12CO(*,i)+stick_spec_13CO(*,i)+stick_spec_C18O(*,i))
-
+print,stick_spec_tot
+read,x,prompt="stick_Spec_tot"
 ENDFOR
 
 
@@ -844,10 +851,10 @@ iten_line19=TOTAL(Iten_tot(v_line_index19,*),1)*5.65e-3
 iten_line20=TOTAL(Iten_tot(v_line_index20,*),1)*5.65e-3
 iten_line21=TOTAL(Iten_tot(v_line_index21,*),1)*5.65e-3
 
-print,size(iten_line0)
-help,freq
-print,size(freq)
-read,x,prompt="?"
+;print,size(iten_line0)
+;help,freq
+;print,size(freq)
+;read,x,prompt="?"
 gs=FLTARR(2,11)
 gs(0,*)=FINDGEN(11)-5.0 ; [-5,-4,-3,-2,-1,0,1,2,3,4,5]
 gs(1,*)=exp(-gs(0,*)^2/(12./1.665)^2)/TOTAL(exp(-gs(0,*)^2/(6./1.665)^2))
@@ -1071,7 +1078,17 @@ FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
              AND v_line(*,20) LE MEAN(grid(1,index1))+0.5,count20)
    i21=WHERE(v_line(*,21) GT MEAN(grid(1,index1))-0.5 $
              AND v_line(*,21) LE MEAN(grid(1,index1))+0.5,count21)
-
+print,count0
+print,count1
+print,count2
+print,count3
+print,count4
+print,count5
+print,count6
+print,count7
+print,count8
+print,count9
+read,x,prompt="counts"
 ;Delta(y) is the projection of the velocity element along the axis of
 ;the slit. rp is the projected distance from the star to the disk on
 ;teh plane of the sky so that rp=ra*SQRT(cos(phase)^2+sin(phase)^2*cos(inc)^2)

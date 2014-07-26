@@ -176,7 +176,7 @@ cout << "T_rot_index:  " << T_rot_index << endl;
 //{
 //
     vec b_tot = sqrt(2*1.38e-16*6.02e23*T_rot_fl/28 + pow(v_turb,2));
-
+cout << "b_tot: " << b_tot << endl;
 
 
     vec tau = linspace<vec>(0,19.99,2000); 
@@ -283,8 +283,10 @@ cout << "T_rot_index:  " << T_rot_index << endl;
 	     }
 	   }
            auto max_iter=d->tau_0.slice(j).row(0).n_elem;
+
 	   for (auto ii=0; ii<max_iter; ii++)
 	   {
+
 	     if (d->tau_0.at(0,ii,j) < 20)
 	     {
 	       ivec dFdt_0_index=where(tau, [&] (double elem) {return elem == round(d->tau_0.at(0,ii,j)*10)/10;});
@@ -296,11 +298,14 @@ cout << "T_rot_index:  " << T_rot_index << endl;
 	       }
 
 	     }
+
 	     else 
 	     {
-	       d->dFdt_0.slice(j).row(ii).fill((1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j)))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
+	       d->dFdt_0.slice(j).col(ii).fill((1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j)))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
 	     }
+
 	   }
+
 //           cout << "dFdt_0.slice(j):  " << d->dFdt_0.slice(j) << endl;
 
 	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
@@ -387,7 +392,7 @@ cout << "T_rot_index:  " << T_rot_index << endl;
       }
     }
 
-
+cout << "Nv: " << d->Nv << endl;
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
@@ -397,7 +402,7 @@ cout << "T_rot_index:  " << T_rot_index << endl;
 
   vec phi = -atan((m_uv-m_disk)/(1+m_uv%m_disk));
   phi.at(0)=3.1415926535897/2;                         //standardize pi!
-
+  
   auto xi = tot_col_fluor.n_cols-1;
   auto yi = tot_col_fluor.n_rows-1;
 
@@ -448,14 +453,12 @@ cerr << "First..." << endl;
       Jdn = X12CO(span(j),span(1),span::all);
       wvn = X12CO(span(j),span(6),span::all);
       EinA= X12CO(span(j),span(4),span::all);
-cerr << "tot_col_flupr.at(i,j+1):  " << tot_col_fluor.at(i,j+1) << endl;
+/*cerr << "tot_col_flupr.at(i,j+1):  " << tot_col_fluor.at(i,j+1) << endl;
 cerr << "tot_col_fluor.at(j+1,i):  " << tot_col_fluor.at(j+1,i)<< endl;
-cin.get();
+cin.get();*/
       N_12CO_vj.slice(i).row(j)=tot_col_fluor.at(i,j+1) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) 
 + tot_col_coll.at(i,j+1)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
 
-//cerr << N_12CO_vj.slice(i) << endl;
-//cin.get();
     }
   cerr << "13CO" << endl;
   //====================
@@ -486,25 +489,18 @@ cin.get();
 
   cerr << "Ended steps loops.";
   double freq_size=log10(f_f/f_i)/log10(1+v/(3*c));
-  cerr << "1" << endl;
   vec freq = zeros<vec>(freq_size+1);
   freq.at(0)=f_i;
   vec vfreq = freq;
   vfreq.fill(0);
 
-  cerr << "2"<< endl;
-  cerr << "freq.n_elem" << freq.n_elem << endl;
-  cerr << "freq_size" << freq_size << endl;
   for (int i=1; i<freq_size; i++)
   {
     freq.at(i)=f_i*(pow(1+v/(3*c),i));
   }
-  cerr << "3" << endl;
   vfreq=(freq(round(freq.n_elem/2))-freq)*c/freq(round(freq.n_elem/2));                      //check
-  cerr << 4 << endl;
 
   ivec freq_index=where(freq, [] (double datum) {return (datum >= f_i) && (datum <= f_f);});
-  cerr << 5 << endl;
   //define annuli
 
   vec annuli = zeros<vec>(rdisk.n_elem);
@@ -513,14 +509,14 @@ cin.get();
   {
     annuli.at(i)=3.1415926535897*(pow(rdisk.at(i+1),2)-pow(rdisk.at(i),2));
   }
-  cerr << 7 << endl;
+
   annuli(steps-1)=3.1415926535897*(pow(rdisk.at(steps-1)+1,2)-pow(rdisk.at(steps-1),2));
-  cerr << 8 << endl;
+
   mat stick_spec_12CO = zeros<mat>(freq_size+1,steps);
   mat stick_spec_13CO = stick_spec_12CO;
   mat stick_spec_C18O = stick_spec_12CO;
   mat stick_spec_tot  = stick_spec_12CO;
-  cerr << 8 << endl;
+  
   double A0;
   double A1;
   double A2;
@@ -554,18 +550,20 @@ double btotcomp=b_tot.at(i)/cexp;
 	  A0=N_12CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
 	  A2=btotcomp*A1;
 	  stick_spec_12CO.col(i)+=(A0/(rpi*A2)) * exp (-pow(((A1-freq)/A2),2));
-cerr << "N12CO_vj.at(j,k,i):  " << N_12CO_vj.at(j,k,i) << endl;;
+
+/*cerr << "N12CO_vj.at(j,k,i):  " << N_12CO_vj.at(j,k,i) << endl;;
 cerr << "A1:  "<< A1 << endl;
 cerr << "A0:  "<< A0 << endl;
 cerr << "A2:  " << A2 << endl;
 cerr <<"calc coeff:  " << (A0/(rpi*A2)) << endl;
 cin.get();
 cerr << "exponent:  " << exp(-pow(((A1-freq)/A2),2)) << endl;;
-cin.get();
-//cin.get();;
+cin.get();*/
 	}
       }
     }
+cout << stick_spec_12CO.col(i) << endl;
+cout << "stick_spec_12CO.col(i)" << i << endl;
     //==============================
     //  X13CO
     //==============================
@@ -585,11 +583,20 @@ cin.get();
           {
 	    A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
 	    A2=btotcomp*A1;
-	    stick_spec_13CO.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
+	    stick_spec_13CO.col(i)+=(A0/(rpi*A2)) * exp(-pow(((A1-freq)/A2),2));
+/*cout << "A0: " << A0 << endl;
+cout << "A1:  " << A1 << endl;
+cout << "A2:  " << A2 <<  endl;
+cout << "exp:  " << exp(-pow(((A1-freq)/A2),2)) << endl;
+cout << "inexp: " << -pow(((A1-freq)/A2),2) << endl;
+cout << "coeff:  "  << A0/(rpi*A2) << endl; */
           }
-      }    
 
+//cout << "N_13CO_vj.at( " << j << "," << k << "," << i << "):  " << N_13CO_vj.at(j,k,i) << endl;
+      }    
     }
+//cout << stick_spec_13CO.col(i) << endl;
+//cout << "stick_spec_13CO.col(i)" << i << endl;
     //=============================
     //  XC180
     //=============================
@@ -607,15 +614,17 @@ cin.get();
           {
 	    A0=N_13CO_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
 	    A2=btotcomp*A1;
-	    stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp (pow(-((A1-freq)/A2),2));
+	    stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp(-pow(((A1-freq)/A2),2));
           }
       }
     stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C18O.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
+
   }
-cerr << stick_spec_tot << endl;
-cerr << "^ stick_spec_tot" << endl;
+//cerr << stick_spec_tot << endl;
+//cerr << "^ stick_spec_tot" << endl;
 //cin.get();
-  cerr << "Left loop!"  << endl;
+//  cerr << "Left loop!"  << endl;
+cout << "stick_spec_tot:" << stick_spec_tot << endl;
   annuli.at(0)=1e28;
   mat iten_tot=stick_spec_tot;
   iten_tot.row(0)=iten_tot.row(0)*2.5;
@@ -677,8 +686,8 @@ cerr << "vmax" << endl;
 
 //  freq_index=where(freq, [] (double datum) {return (freq >= f_i) && (freq <= f_f);});     //these have already been done before.. redundant?
 
-  auto total_spec=iten_tot;
-  auto vel_spec=total_spec.col(0);
+  mat total_spec=iten_tot;
+  vec vel_spec=total_spec.col(0);
 cerr << "END" << endl;
 
 //=======================
@@ -921,40 +930,44 @@ cout << "grid:  " << grid << endl;
   double omega=55*3.1415926535897/180;
   double Lc=5.13-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16); // continuum luminosity
   ivec index1;
-
-  int maxloop=2*max(grid.row(1));
-
+  
+  rowvec gridrow=grid.row(1);
+  double maxloop=2*gridrow.max();
+cerr << "maxloop:  " << maxloop << endl;
+cin.get();
+cerr << grid.row(1) << endl;
+cin.get();
   for (int j=0; j<maxloop; j++)
   {
-    int index1n=index1.n_elem;
     cerr << "j=" << j << endl;
     field <ivec> indexn(22,1);
     index1=whererow(grid.row(1), [&] (double datum) {return ((datum <= (max(grid.row(1)-j))) && ( datum > ( max(grid.row(1))-(j+1)) ) );});
+   int index1n=index1.n_elem;
    if (index1.at(0)!=-1)
    {
 
      for (int k=0; k<22; k++)
      {
-       vec temp2=zeros<vec>(index1.n_elem);
+       vec temp2=zeros<vec>(index1n);
        for (int i=0; i<index1n; i++)  {temp2.at(i)=grid(1,index1.at(i));}
        double mean=arma::mean(temp2);
        indexn(k,0)=whererow(v_line.row(k), [&] (double datum) {return (datum <= (mean+0.5));});
      } 
 
-    
-     vec phi2=zeros<vec>(index1.n_elem);
-     for (int i=0; i<index1.n_elem; i++)
+   cerr << "test" << endl; 
+     vec phi2=zeros<vec>(index1n);
+     for (int i=0; i<index1n; i++)
       {
 	phi2.at(i)=grid(2,index1.at(i));
       }
-
-      vec rp=zeros<vec>(index1.n_elem);
-      for (int i=0; i<index1.n_elem; i++)
+cerr << "test2" << endl;
+      vec rp=zeros<vec>(index1n);
+      for (int i=0; i<index1n; i++)
       {
 	rp.at(i)=grid(0,index1.at(i))*sqrt(pow(cos(phi2.at(i)),2)+pow(sin(phi2.at(i)),2)*pow(cos(inc),2));
       }
-
-      vec theta=zeros<vec>(index1.n_elem);
+cerr << "test3" << endl;
+      vec theta=zeros<vec>(index1n);
       for (int i=0; i<phi2.n_elem; i++)
       {
 	if (phi2.at(i) < 3.1415926535897) 
@@ -967,22 +980,29 @@ cout << "grid:  " << grid << endl;
 	}
       }
       vec deltay=rp%cos(theta+omega);
-      
-      for (int i=4;i<26;i++)
+      cerr << "test4" << endl;
+      for (int i=4;i<22;i++)
       {
+//cerr << "i=" << i << endl;
         int siz=indexn.at(i).n_elem;
         for (int k=0;k<siz;k++)
         {
+// cerr << "k=" << k << endl;
           vec tempv=zeros<vec>(index1n);
           for (int q=0;q<index1n;q++)
           {
+//cerr << "q=" << q << endl;
             tempv.at(q)=grid(i,index1.at(q))*grid(3,index1.at(q));
           }
-          centroid.at(indexn(i,0).at(k))=(arma::sum(tempv*deltay))/(arma::sum(tempv+Lc));
+          centroid.at(indexn(i,0).at(k))=(arma::sum(tempv%deltay))/(arma::sum(tempv+Lc));
         }
       }
     }
   }
+cerr << "ended j loop" << endl;
+cout << "final_spec premult:  " << endl;
+vec final1_spec=arma::sum(total_spec,1);
+cout << final1_spec << endl; 
   for (int j=0; j<n_rings; j++)
   {
     total_spec.col(j)=total_spec.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(total_spec.col(j));
@@ -991,6 +1011,7 @@ cout << "grid:  " << grid << endl;
   vec inst_prof=final_spec;
   inst_prof.fill(0);
   inst_prof=exp(-pow(vfreq,2)/pow(inst_res/1.665,2));
+  inst_prof=shift(inst_prof,round(vfreq.n_elem)/2);
 //shift inst_prof?
   inst_prof=inst_prof/arma::sum(inst_prof);
 cout << "inst_prof:  "  << inst_prof;

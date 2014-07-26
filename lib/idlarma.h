@@ -297,6 +297,23 @@ skip1:
     return r;
   }
 
+  vec shift(vec input, int offset)
+  {
+    int siz = input.n_elem;
+    vec output = zeros<vec>(siz);
+
+    int index;
+
+    for (int i=0; i<siz; i++)
+    {
+      index=i+offset;
+      if (index > siz) index-=siz;
+      output.at(index)=input.at(i);
+    }
+    
+    return output;
+  }
+
 }
 
 /*EXAMPLE PROGRAM--WHERE
