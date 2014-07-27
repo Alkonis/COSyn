@@ -617,7 +617,8 @@ cout << "coeff:  "  << A0/(rpi*A2) << endl; */
 	    stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp(-pow(((A1-freq)/A2),2));
           }
       }
-    stick_spec_tot.row(i)=stick_spec_12CO.row(i)+stick_spec_13CO.row(i)+stick_spec_C18O.row(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
+
+    stick_spec_tot.col(i)=stick_spec_12CO.col(i)+stick_spec_13CO.col(i)+stick_spec_C18O.col(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
 
   }
 //cerr << stick_spec_tot << endl;
@@ -726,7 +727,7 @@ cerr << "Loopdone." << endl;
   }
 
 //determine grid size here!
-  mat grid = zeros<mat>(15000,26);
+  mat grid = zeros<mat>(0,26);
 
   field <ivec> v_line_indices(22,1);
   field<vec> iten_lines(22,1);
@@ -825,8 +826,9 @@ for (int i=0; i<22; i++)
   {
 cerr << j << endl;
     double n_seg=4*round(vmax.at(j))/dv;
-cerr << "n_seg" << n_seg << endl;
 
+cerr << "n_seg" << n_seg << endl;
+grid.resize(grid.n_rows+n_seg,26);
 //cin.get();
     vec vseg=zeros<vec>(n_seg);
 { 
@@ -906,7 +908,7 @@ cerr << "OUT OF GRID LOOP" << endl;
   double phase_planet=53*3.1415926535897/180;
   double planet_intens=((2*6.62-27*pow(2.9979,2)*pow(2030,3)/(exp(6.626e-27*2.9979e10*2030/(1.38e-16*1e3))-1)));
   double planet_size=0;
-
+grid.resize(grid.n_rows+11,26);
   for (int i=0; i<11;  i++)
   {
 cerr << i << endl;
