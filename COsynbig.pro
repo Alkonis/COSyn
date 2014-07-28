@@ -1030,7 +1030,9 @@ centroid(*)=0.0
 
 omega=55.*!pi/180.
 Lc=5.13D-23*2.9979247e10*4.*!pi*(103.*3.08d18)^2*(.05/1.16) ;this is the luminosity of the continuum.
-
+print,"grid(1,*):"
+print,grid(1,*)
+read,x,prompt="grid(1,*)^"
 FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
    index1=WHERE(grid(1,*) LE MAX(grid(1,*))-j AND grid(1,*) GT MAX(grid(1,*))-(j+1),vel_count)
    IF vel_count EQ 0 THEN GOTO, no_vel_elements

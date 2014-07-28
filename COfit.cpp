@@ -599,7 +599,6 @@ cout << "coeff:  "  << A0/(rpi*A2) << endl; */
 //cout << "stick_spec_13CO.col(i)" << i << endl;
     //=============================
     //  XC180
-    //=============================
     
      
       Jup = XC18O(span(0),span(3),span::all);
@@ -630,6 +629,7 @@ cout << "stick_spec_tot:" << stick_spec_tot << endl;
   mat iten_tot=stick_spec_tot;
   iten_tot.row(0)=iten_tot.row(0)*2.5;
   mat Lum_tot = iten_tot;
+cout << "iten_tot:" << iten_tot << endl;
 
   for (int i=0; i<steps; i++)
   {
@@ -688,7 +688,9 @@ cerr << "vmax" << endl;
 //  freq_index=where(freq, [] (double datum) {return (freq >= f_i) && (freq <= f_f);});     //these have already been done before.. redundant?
 
   mat total_spec=iten_tot;
+cout << "total_spec1:" << total_spec << endl;
   vec vel_spec=total_spec.col(0);
+cout << "vel_spec:" << vel_spec << endl;
 cerr << "END" << endl;
 
 //=======================
@@ -831,23 +833,26 @@ cerr << "n_seg" << n_seg << endl;
 grid.resize(grid.n_rows+n_seg,26);
 //cin.get();
     vec vseg=zeros<vec>(n_seg);
-{ 
     int z=-1;
-
+cout << "-vmax.at(j):  " << -vmax.at(j) << endl;
     while (1)
     {
       z++;
       vseg.at(z)=vmax.at(j)-z;
-      if (vseg.at(z) > -vmax.at(j)) break;
-    }
+cout <<"z:" <<  z << endl;
 
+cout << "vseg.at(z):  " << vseg.at(z) << endl;
+      if (vseg.at(z) <= -vmax.at(j)) break;
+    }
+cout << "BREAK z=" << z << endl;
     while (1)
     {
       z++;
+cout << "z:" << z << endl;
       vseg.at(z)=vseg.at(z-1)+1;
-      if (vseg.at(z) > -vmax.at(j)) break;
+cout << "vseg.at(z):  " << vseg.at(z) << endl;
+      if (vseg.at(z) == vmax.at(j)-1) break;
     }
-}
 
     vec phase = zeros<vec>(n_seg);
     phase(0)=0;
@@ -856,6 +861,8 @@ grid.resize(grid.n_rows+n_seg,26);
     {
       phase.at(ii)=acos(vseg.at(ii)/vseg.at(0));
     }
+cout << "vseg: " << vseg << endl;
+cout << "phase: " << phase << endl;
     for (int ii=n_seg/2+1; ii <n_seg; ii++)
     {
       phase.at(ii)=2*3.1415926535897-acos(vseg(ii)/vseg(0));
@@ -875,6 +882,10 @@ grid.resize(grid.n_rows+n_seg,26);
       for (int i=0; i< n_seg; i++)
       {
 	area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
+cout << "dr.at(i):  " << dr.at(i) << " dphase.at(i):  " << dphase.at(i) << " rdisk.at(j):  " << rdisk.at(j) << endl;
+//        cout <<"interpol:" << interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq) << endl;
+//cout << "interpolvel_spec:" << vel_spec << endl;
+//cout << "area.at(i): " << area.at(i) << " vseg.at(i)*sin(inc):  " << vseg.at(i)*sin(inc) << endl; 
         vel_spec=vel_spec+interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
         grid.at(grid_ptr,0)=rdisk.at(j);
         grid.at(grid_ptr,1)=vseg.at(i);
@@ -899,7 +910,10 @@ grid.resize(grid.n_rows+n_seg,26);
 
       } 
     }
+//cout << "total_spec.col(j) before set:"  << total_spec.col(j) << endl;; 
     total_spec.col(j)=vel_spec;
+//cout << "total_spec.col(j) after set:"  << total_spec.col(j) << endl;
+//cin.get();
 
   }
 cerr << "OUT OF GRID LOOP" << endl;
@@ -936,9 +950,6 @@ cout << "grid:  " << grid << endl;
   rowvec gridrow=grid.row(1);
   double maxloop=2*gridrow.max();
 cerr << "maxloop:  " << maxloop << endl;
-cin.get();
-cerr << grid.row(1) << endl;
-cin.get();
   for (int j=0; j<maxloop; j++)
   {
     cerr << "j=" << j << endl;
@@ -982,7 +993,7 @@ cerr << "test3" << endl;
 	}
       }
       vec deltay=rp%cos(theta+omega);
-      cerr << "test4" << endl;
+cout << "deltay:" << deltay << endl;
       for (int i=4;i<22;i++)
       {
 //cerr << "i=" << i << endl;
@@ -991,11 +1002,14 @@ cerr << "test3" << endl;
         {
 // cerr << "k=" << k << endl;
           vec tempv=zeros<vec>(index1n);
+cout << "index1n: " << index1n << endl;
+cout << "tempvb:  " << tempv << endl;
           for (int q=0;q<index1n;q++)
           {
 //cerr << "q=" << q << endl;
             tempv.at(q)=grid(i,index1.at(q))*grid(3,index1.at(q));
           }
+cout << "tempv: " << tempv << endl;
           centroid.at(indexn(i,0).at(k))=(arma::sum(tempv%deltay))/(arma::sum(tempv+Lc));
         }
       }
@@ -1004,6 +1018,7 @@ cerr << "test3" << endl;
 cerr << "ended j loop" << endl;
 cout << "final_spec premult:  " << endl;
 vec final1_spec=arma::sum(total_spec,1);
+cout << "total_spec_end:" << total_spec << endl;
 cout << final1_spec << endl; 
   for (int j=0; j<n_rings; j++)
   {
@@ -1019,8 +1034,10 @@ cout << final1_spec << endl;
 cout << "inst_prof:  "  << inst_prof;
 cout << "final_spec: "<< final_spec << endl;
 cerr << "FFT..." << endl;
+cout << "centroid:  " << centroid << endl;
   cx_vec conv_spec=ifft(fft(final_spec)%fft(inst_prof))/2;
   cx_vec cent_conv=ifft(fft(centroid)%fft(inst_prof));
+cerr << "Done!" << endl;
 cout << "conv_spec:  " << conv_spec << endl;
 cout << "cent_conv:  " <<  cent_conv << endl;
   delete(d);
