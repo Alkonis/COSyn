@@ -392,7 +392,7 @@ cout << "b_tot: " << b_tot << endl;
       }
     }
 
-cout << "Nv: " << d->Nv << endl;
+//cout << "Nv: " << d->Nv << endl;
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
@@ -562,8 +562,8 @@ cin.get();*/
 	}
       }
     }
-cout << stick_spec_12CO.col(i) << endl;
-cout << "stick_spec_12CO.col(i)" << i << endl;
+//cout << stick_spec_12CO.col(i) << endl;
+//cout << "stick_spec_12CO.col(i)" << i << endl;
     //==============================
     //  X13CO
     //==============================
@@ -624,12 +624,12 @@ cout << "coeff:  "  << A0/(rpi*A2) << endl; */
 //cerr << "^ stick_spec_tot" << endl;
 //cin.get();
 //  cerr << "Left loop!"  << endl;
-cout << "stick_spec_tot:" << stick_spec_tot << endl;
+//cout << "stick_spec_tot:" << stick_spec_tot << endl;
   annuli.at(0)=1e28;
   mat iten_tot=stick_spec_tot;
   iten_tot.row(0)=iten_tot.row(0)*2.5;
   mat Lum_tot = iten_tot;
-cout << "iten_tot:" << iten_tot << endl;
+//cout << "iten_tot:" << iten_tot << endl;
 
   for (int i=0; i<steps; i++)
   {
@@ -729,7 +729,7 @@ cerr << "Loopdone." << endl;
   }
 
 //determine grid size here!
-  mat grid = zeros<mat>(0,26);
+  mat grid = zeros<mat>(1,26);
 
   field <ivec> v_line_indices(22,1);
   field<vec> iten_lines(22,1);
@@ -810,47 +810,42 @@ cerr << "temp.row(" << j << "):  "  << temp.row(j) << endl;;
   }
   gs.col(1)=exp(-pow(gs.col(0),2)/pow((12/1.665),2))/6.1967;
 
-  int grid_ptr=0;
+  int grid_ptr=1;
 //==========================================
 //  RINGS LOOP                     
 //==========================================
-cerr << "n_rings:  " << n_rings << endl;
-cerr << "steps:  " << steps  << endl;
+//cerr << "n_rings:  " << n_rings << endl;
+//cerr << "steps:  " << steps  << endl;
 
 
-cerr << "iten_lines(0,0).n_elem:  " << iten_lines(0,0).n_elem <<  endl;
+//cerr << "iten_lines(0,0).n_elem:  " << iten_lines(0,0).n_elem <<  endl;
 for (int i=0; i<22; i++)
 {
-  cerr << "iten_lines(" << i << "):  " << iten_lines(i,0) << endl;
+  //cerr << "iten_lines(" << i << "):  " << iten_lines(i,0) << endl;
 }
-//cin.get();
   for (int j=0; j<n_rings; j++)
   {
 cerr << j << endl;
     double n_seg=4*round(vmax.at(j))/dv;
 
-cerr << "n_seg" << n_seg << endl;
-grid.resize(grid.n_rows+n_seg,26);
-//cin.get();
+    //cerr << "n_seg" << n_seg << endl;
+    
+    grid.resize(grid.n_rows+n_seg,26);
+
     vec vseg=zeros<vec>(n_seg);
+
     int z=-1;
-cout << "-vmax.at(j):  " << -vmax.at(j) << endl;
+
     while (1)
     {
       z++;
       vseg.at(z)=vmax.at(j)-z;
-cout <<"z:" <<  z << endl;
-
-cout << "vseg.at(z):  " << vseg.at(z) << endl;
       if (vseg.at(z) <= -vmax.at(j)) break;
     }
-cout << "BREAK z=" << z << endl;
     while (1)
     {
       z++;
-cout << "z:" << z << endl;
       vseg.at(z)=vseg.at(z-1)+1;
-cout << "vseg.at(z):  " << vseg.at(z) << endl;
       if (vseg.at(z) == vmax.at(j)-1) break;
     }
 
@@ -861,8 +856,8 @@ cout << "vseg.at(z):  " << vseg.at(z) << endl;
     {
       phase.at(ii)=acos(vseg.at(ii)/vseg.at(0));
     }
-cout << "vseg: " << vseg << endl;
-cout << "phase: " << phase << endl;
+//    cout << "vseg: " << vseg << endl;
+//    cout << "phase: " << phase << endl;
     for (int ii=n_seg/2+1; ii <n_seg; ii++)
     {
       phase.at(ii)=2*3.1415926535897-acos(vseg(ii)/vseg(0));
@@ -882,7 +877,7 @@ cout << "phase: " << phase << endl;
       for (int i=0; i< n_seg; i++)
       {
 	area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
-cout << "dr.at(i):  " << dr.at(i) << " dphase.at(i):  " << dphase.at(i) << " rdisk.at(j):  " << rdisk.at(j) << endl;
+//        cout << "dr.at(i):  " << dr.at(i) << " dphase.at(i):  " << dphase.at(i) << " rdisk.at(j):  " << rdisk.at(j) << endl;
 //        cout <<"interpol:" << interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq) << endl;
 //cout << "interpolvel_spec:" << vel_spec << endl;
 //cout << "area.at(i): " << area.at(i) << " vseg.at(i)*sin(inc):  " << vseg.at(i)*sin(inc) << endl; 
@@ -891,7 +886,7 @@ cout << "dr.at(i):  " << dr.at(i) << " dphase.at(i):  " << dphase.at(i) << " rdi
         grid.at(grid_ptr,1)=vseg.at(i);
         grid.at(grid_ptr,2)=phase.at(i);
         grid.at(grid_ptr,3)=area.at(i)*2.25;
-        for (int ii=4; ii<22; ii++) grid.at(grid_ptr,ii)=iten_lines(ii,0)(j);
+        for (int ii=4; ii<26; ii++) { cerr << "ii: " << ii << endl; grid.at(grid_ptr,ii)=iten_lines(ii-4,0)(j);}
         grid_ptr++;
       } 
     }
@@ -944,56 +939,63 @@ cout << "grid:  " << grid << endl;
   centroid.fill(0);
   
   double omega=55*3.1415926535897/180;
-  double Lc=5.13-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16); // continuum luminosity
+  double Lc=   8.3837025e28;   //pow(5.13,-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16)); // continuum luminosity
   ivec index1;
   
-  rowvec gridrow=grid.row(1);
+  vec gridrow=grid.col(1);
   double maxloop=2*gridrow.max();
 cerr << "maxloop:  " << maxloop << endl;
   for (int j=0; j<maxloop; j++)
   {
     cerr << "j=" << j << endl;
     field <ivec> indexn(22,1);
-    index1=whererow(grid.row(1), [&] (double datum) {return ((datum <= (max(grid.row(1)-j))) && ( datum > ( max(grid.row(1))-(j+1)) ) );});
+    index1=where(grid.col(1), [&] (double datum) {return ((datum <= (max(grid.col(1)-j))) && ( datum > ( max(grid.col(1))-(j+1)) ) );});
    int index1n=index1.n_elem;
    if (index1.at(0)!=-1)
    {
-
      for (int k=0; k<22; k++)
      {
+       cerr << "loop k=" << k << endl;
        vec temp2=zeros<vec>(index1n);
-       for (int i=0; i<index1n; i++)  {temp2.at(i)=grid(1,index1.at(i));}
+       cerr << "index1n: " << index1n << endl;
+       cerr << "index1: " << index1 << endl;
+
+       for (int i=0; i<index1n; i++)  {cerr << "i: "<<i << endl; temp2.at(i)=grid(index1.at(i),1);}
+
        double mean=arma::mean(temp2);
-       indexn(k,0)=whererow(v_line.row(k), [&] (double datum) {return (datum <= (mean+0.5));});
+
+       indexn(k,0)=whererow(v_line.row(k), [&] (double datum) {return (datum > (mean-0.5) && datum <= (mean+0.5));});
+//cout << "indexn(" << k << ",0): " << indexn(k,0) << endl;
      } 
 
-   cerr << "test" << endl; 
      vec phi2=zeros<vec>(index1n);
+
      for (int i=0; i<index1n; i++)
-      {
-	phi2.at(i)=grid(2,index1.at(i));
-      }
-cerr << "test2" << endl;
+     {
+       phi2.at(i)=grid(index1.at(i),2);
+     }
+
       vec rp=zeros<vec>(index1n);
+
       for (int i=0; i<index1n; i++)
       {
-	rp.at(i)=grid(0,index1.at(i))*sqrt(pow(cos(phi2.at(i)),2)+pow(sin(phi2.at(i)),2)*pow(cos(inc),2));
+	rp.at(i)=grid(index1.at(i),0)*sqrt(pow(cos(phi2.at(i)),2)+pow(sin(phi2.at(i)),2)*pow(cos(inc),2));
       }
-cerr << "test3" << endl;
+
       vec theta=zeros<vec>(index1n);
       for (int i=0; i<phi2.n_elem; i++)
       {
 	if (phi2.at(i) < 3.1415926535897) 
 	{
-	  theta.at(i)=acos( cos(phi2.at(i)) / sqrt(cos(pow(phi2.at(i),2)))) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2);
+	  theta.at(i)=acos( cos(phi2.at(i)) / sqrt(pow(cos(phi2.at(i)),2) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2)));
 	}
 	else  
 	{
-	  theta.at(i)=2*3.1415926535897 - acos( cos(phi2.at(i)) / sqrt(cos(pow(phi2.at(i),2)) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2)));
+	  theta.at(i)=2*3.1415926535897 - acos( cos(phi2.at(i)) / sqrt(pow(cos(phi2.at(i)),2) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2)));
 	}
       }
       vec deltay=rp%cos(theta+omega);
-cout << "deltay:" << deltay << endl;
+      cout << "deltay:" << deltay << endl;
       for (int i=4;i<22;i++)
       {
 //cerr << "i=" << i << endl;
@@ -1002,24 +1004,33 @@ cout << "deltay:" << deltay << endl;
         {
 // cerr << "k=" << k << endl;
           vec tempv=zeros<vec>(index1n);
-cout << "index1n: " << index1n << endl;
-cout << "tempvb:  " << tempv << endl;
-          for (int q=0;q<index1n;q++)
+//cout << "index1n: " << index1n << endl;
+//cout << "tempvb:  " << tempv << endl;
+          for (int q=0;q<index1n; q++)
           {
 //cerr << "q=" << q << endl;
-            tempv.at(q)=grid(i,index1.at(q))*grid(3,index1.at(q));
+//cerr << "index1n:  " << index1n << endl;
+//cout << "Lc:  " << Lc << endl;
+//cin.get();
+            tempv.at(q)=grid(index1.at(q),i)*grid(index1.at(q),3);
           }
+//cin.get();
 cout << "tempv: " << tempv << endl;
+cout << "indexn(i,0).at(k): " << indexn(i,0).at(k) << endl;
+cout << "num:" << arma::sum(tempv%deltay) << endl;
+cout << "tempv%deltay:" << tempv%deltay << endl;
+cout << "den:" << arma::sum(tempv+Lc) << endl;
           centroid.at(indexn(i,0).at(k))=(arma::sum(tempv%deltay))/(arma::sum(tempv+Lc));
+          cout << "centroid.at(indexn(i,0).at(k): " << centroid.at(indexn(i,0).at(k)) << endl;
         }
       }
     }
   }
 cerr << "ended j loop" << endl;
-cout << "final_spec premult:  " << endl;
+//cout << "final_spec premult:  " << endl;
 vec final1_spec=arma::sum(total_spec,1);
-cout << "total_spec_end:" << total_spec << endl;
-cout << final1_spec << endl; 
+//cout << "total_spec_end:" << total_spec << endl;
+//cout << final1_spec << endl; 
   for (int j=0; j<n_rings; j++)
   {
     total_spec.col(j)=total_spec.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(total_spec.col(j));

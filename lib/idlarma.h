@@ -56,6 +56,7 @@ namespace idlarma {
       output.at(0)=-1;
     }
 
+cerr << "outputPointer:  " << outputPointer << endl;
     return output;
   }
 

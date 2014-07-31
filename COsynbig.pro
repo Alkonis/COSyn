@@ -300,8 +300,8 @@ IF rel_lum LE 1E-3 THEN BEGIN
 ENDIF
 
 b_tot=SQRT(2.*1.38e-16*6.02e23*T_rot_fl/28. + v_turb^2) ;UNITS=cm/s
-print,b_tot
-read,x,"b_tot=?"
+;print,b_tot
+;read,x,"b_tot=?"
 
 ;;;;;;;;;;;;;;;;
 ;;;; STEP 7 ;;;;
@@ -672,8 +672,8 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 	ENDFOR
 
 stick_spec_tot(*,i)=(stick_spec_12CO(*,i)+stick_spec_13CO(*,i)+stick_spec_C18O(*,i))
-print,stick_spec_tot
-read,x,prompt="stick_Spec_tot"
+;print,stick_spec_tot
+;read,x,prompt="stick_Spec_tot"
 ENDFOR
 
 
@@ -1030,11 +1030,15 @@ centroid(*)=0.0
 
 omega=55.*!pi/180.
 Lc=5.13D-23*2.9979247e10*4.*!pi*(103.*3.08d18)^2*(.05/1.16) ;this is the luminosity of the continuum.
-print,"grid(1,*):"
-print,grid(1,*)
-read,x,prompt="grid(1,*)^"
+;print,"grid(1,*):"
+;print,size(grid(1,*))
+;read,x,prompt="grid(1,*)^"
 FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
    index1=WHERE(grid(1,*) LE MAX(grid(1,*))-j AND grid(1,*) GT MAX(grid(1,*))-(j+1),vel_count)
+print,index1
+print,"-----------------"
+print,2*max(grid(1,*))
+read,x,"index1, maxloop^"
    IF vel_count EQ 0 THEN GOTO, no_vel_elements
    i0=WHERE(v_line0 GT MEAN(grid(1,index1))-0.5 $
              AND v_line0 LE MEAN(grid(1,index1))+0.5,count0)
@@ -1090,7 +1094,7 @@ print,count6
 print,count7
 print,count8
 print,count9
-read,x,prompt="counts"
+read,x,prompt="counts^"
 ;Delta(y) is the projection of the velocity element along the axis of
 ;the slit. rp is the projected distance from the star to the disk on
 ;teh plane of the sky so that rp=ra*SQRT(cos(phase)^2+sin(phase)^2*cos(inc)^2)
@@ -1157,10 +1161,12 @@ read,x,prompt="counts"
             /(TOTAL(grid(24,index1)*grid(3,index1))+Lc)
    centroid(i21)=TOTAL(grid(25,index1)*grid(3,index1)*deltay) $
             /(TOTAL(grid(25,index1)*grid(3,index1))+Lc)
-
 no_vel_elements:
 ENDFOR   
 
+read,x,prompt="enter for centroid:"
+print,centroid
+read,x,prompt="centroid above"
 FOR j=0,n_rings-1 DO total_spec(*,j)=total_spec(*,j)* $
             total(flux_tot_slit(*,j))/total(total_spec(*,j))
 
