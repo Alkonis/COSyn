@@ -391,7 +391,9 @@ skip_coll:
 
 		dWdN(*,*,j)=dfdt_0(*,*,j)*.02654*2.0*(lam_ang*1e-4)*(lam_ang*1e-8)*fXA/(SQRT(!pi)*c*1e5)
 		g(*,*,j,k)=dWdN(*,*,j)*!pi*Fuv/(hc*wavenum)
-		
+;print,g(*,*,j,k)
+;print,dfdt_0(*,*,j)
+;read,x,prompt="g"
 
 		;now add g-factors:
                 rate_eqtn(0,0,j,k)=rate_eqtn(0,0,j,k)-TOTAL(g(*,0,j,k),1) ;sum of all
@@ -405,10 +407,10 @@ skip_coll:
 
 		;Now solve the system of equations to calculate the relative 
 		;populations:
-IF COLL_LOOP EQ 1 THEN BEGIN
-print,rate_eqtn(*,*,j,k)
-read,x,prompt="rate eqtn slice"
-ENDIF
+;IF COLL_LOOP EQ 1 THEN BEGIN
+;print,rate_eqtn(*,*,j,k)
+;read,x,prompt="rate eqtn slice"
+;ENDIF
 
 		SVDC, rate_eqtn(*,*,j,k), w, u, v, /DOUBLE
 ;IF J EQ 0 OR J EQ 1 THEN print,rate_eqtn(*,*,j,k)
@@ -678,14 +680,14 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 			   stick_spec_13CO(*,i)=stick_spec_13CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)
 
 
-print,n_13co_vj(k,j,i)
-print,a0
-print,a1
-print,a2
-
-read,x,prompt="n_13co_vj(k.j,i),a0,a1,a2"
-print,-((a1-freq)/a2)^2
-read,x,prompt="inexp"
+;print,n_13co_vj(k,j,i)
+;print,a0
+;print,a1
+;print,a2
+;
+;read,x,prompt="n_13co_vj(k.j,i),a0,a1,a2"
+;print,-((a1-freq)/a2)^2
+;read,x,prompt="inexp"
 			ENDIF
 		ENDFOR
 	ENDFOR
@@ -1069,10 +1071,10 @@ Lc=5.13D-23*2.9979247e10*4.*!pi*(103.*3.08d18)^2*(.05/1.16) ;this is the luminos
 ;read,x,prompt="grid(1,*)^"
 FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
    index1=WHERE(grid(1,*) LE MAX(grid(1,*))-j AND grid(1,*) GT MAX(grid(1,*))-(j+1),vel_count)
-print,index1
-print,"-----------------"
-print,2*max(grid(1,*))
-read,x,"index1, maxloop^"
+;print,index1
+;print,"-----------------"
+;print,2*max(grid(1,*))
+;read,x,"index1, maxloop^"
    IF vel_count EQ 0 THEN GOTO, no_vel_elements
    i0=WHERE(v_line0 GT MEAN(grid(1,index1))-0.5 $
              AND v_line0 LE MEAN(grid(1,index1))+0.5,count0)

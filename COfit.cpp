@@ -198,10 +198,10 @@ cout << "b_tot: " << b_tot << endl;
 
     for (int i=0; i<2000; i++) 
     {
-      sum=0.5 * ( (1 - exp(-tau(i)*exp(-pow(a,2)))) + (1 - exp(-tau(i)*exp(-pow(b,2)))) );
-      for (int j=0; j<n; j++)  
+      sum = 0.5 * ( (1 - exp(-tau(i)*exp(-pow(a,2)))) + (1 - exp(-tau(i)*exp(-pow(b,2)))) );
+      for (int j=1; j<n; j++)  
       {
-        auto x=a+delta*j;
+        double x=a+delta*j;
         sum=sum+(1-exp(-tau(i)*exp(-pow(x,2))));
       }
       sum = sum*delta;
@@ -325,13 +325,17 @@ cin.get();*/
 	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
 //cout << "dwdn.slice(j):  " << endl;
 //cout << d->dwdn.slice(j) << endl;
-
+mat temp3 = zeros<mat>(10,12);
 	   for (int ii=0; ii<10; ii++) 
 	   {
 //	     cout << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
 //             cout << (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t() << endl;
 	     d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
-           } 
+temp3.row(ii)=d->g.at(ii,0).slice(k).col(j).t();
+           }
+//cerr << "g slice k: " << temp3.t()  << endl;
+//cerr << d->dFdt_0.slice(j) << endl;
+//cin.get();
        
 //=======================
 //  Add in G-factors
@@ -378,9 +382,10 @@ cin.get();*/
 	   vec z = zeros<vec>(21);
 	   z.at(20)=1;
 	     
-if (coll_loop==1)
-           {cout << "matrix for solving:" << endl;
-	   cout << d->rate_eqtn.at(k,0).slice(j).t();}
+//if (coll_loop==1)
+
+//           {cout << "matrix for solving:" << endl;
+//	   cout << d->rate_eqtn.at(k,0).slice(j).t();}
 
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 	   d->Nv.slice(k).col(j)= sol;  //check this to be sure the array is filling in the right dimension
@@ -964,7 +969,7 @@ cerr << i << endl;
     {
       grid.at(grid_ptr,j)=0;
     }
-    grid.at(grid_ptr,9)=planet_intens*gs(10,1);
+    grid.at(grid_ptr,9)=planet_intens*gs(i,1);
     grid_ptr++;
   }
 
