@@ -35,14 +35,14 @@ class FitData{
   static constexpr double X12CO_13CO_cl = 65.;
   static constexpr double X12CO_C18O_cl = 560.;
 
-  static constexpr double Mstar=2;
-  static constexpr double stardist=(108);
+  static constexpr double Mstar=2.4;
+  static constexpr double stardist=3.1781680e20;
   static constexpr double inst_res=6.0;
 
   static constexpr double c=2.997924562e5;
   static constexpr double cexp=29979245620;
-  static constexpr double hc=6.626196e-27*2.997924562e10;
-  static constexpr double hck=(6.62196e-27*2.997924562e10)/(1.380622e-16);
+  static constexpr double hc=  6.626196e-27*2.997924562e10;
+  static constexpr double hck=(6.626196e-27*2.997924562e10)/(1.380622e-16);
   static constexpr double cer=8.85282e-13;
   static constexpr double rpi=1.7724538509055159;
   
@@ -102,7 +102,7 @@ class FitData{
   cube dFdt_0;
   cube tau_0; 
   cube dwdn;
-  cube Nv;
+  //cube Nv;
   
   field<cube> rate_eqtn;  //copy this over to colldata on the start of each coll_loop! do this for others that need reiteration as well
   field<cube> g;

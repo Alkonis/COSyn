@@ -98,7 +98,7 @@ int FitData::runTrial() {
   CollData* d = new CollData(this->layers, this->steps);
   for (auto i=0; i<steps;i++) {
     for (auto j=0; j<layers;j++) {
-      for (auto k=0; k<10;k++) {
+      for (auto k=0; k<10; k++) {
         for (auto q=0; q<11; q++)
         {
           d->rate_eqtn(i,0)(k+11,q,j)=einA.at(k,q);//k+11, q,j,i,   k ,q  //why no zero here
@@ -207,6 +207,7 @@ cout << "b_tot: " << b_tot << endl;
       sum = sum*delta;
       F_tau(i)=sum;
     }
+
     
     vec dFdt=deriv(tau,F_tau);
 
@@ -225,6 +226,7 @@ cout << "b_tot: " << b_tot << endl;
       mat tot_col_fluor_nocoll;
 
 
+      d->Nv = zeros<cube>(21,layers,steps);
 
     cerr << "Beginning collisional computations..." << endl;
 
@@ -240,7 +242,6 @@ cout << "b_tot: " << b_tot << endl;
        
       vec sol;
       ivec Nv_index;
-
 
       double gsum;
 
@@ -271,7 +272,6 @@ cout << "b_tot: " << b_tot << endl;
        }
 
 	 //===================ULTRAVIOLET PUMPING========================
-
 	 for (int j=0; j<layers; j++)
 	 {
 
@@ -279,8 +279,14 @@ cout << "b_tot: " << b_tot << endl;
 	   {
 	     for (int i=0; i<10; i++)
 	     {
-	      d->tau_0.subcube(span(i),span::all,span(j))=7.7585e12 * 0.02654 * arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),1) % fXA.submat(span(i),span::all).t() % lam_ang.submat(span(i),span::all).t()*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
+	      d->tau_0.subcube(span(i),span::all,span(j))=7.55858e12 * 0.02654 * arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),1) % fXA.submat(span(i),span::all).t() % lam_ang.submat(span(i),span::all).t()*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
 	     }
+/*cerr << d->tau_0.slice(j).t() << endl;
+cerr << "Nv: " << d->Nv.slice(k).submat(span(0,11),span(0,j)) << endl;
+cerr << "Sum: " << arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),1) << endl;
+cerr << "premult: " << 7.55858e12 * 0.02654 * fXA.t() % lam_ang.t()*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
+cerr << "test: " << fXA.t() % lam_ang.t() * 7.55858e12 * 0.02654 * 1e-8 /(sqrt(3.14159265)*b_tot[k]) << endl;
+cin.get();*/
 	   }
            auto max_iter=d->tau_0.slice(j).row(0).n_elem;
 
@@ -289,27 +295,34 @@ cout << "b_tot: " << b_tot << endl;
 
 	     if (d->tau_0.at(0,ii,j) < 20)
 	     {
-	       ivec dFdt_0_index=where(tau, [&] (double elem) {return elem == round(d->tau_0.at(0,ii,j)*10)/10;});
+               double rnd=round(d->tau_0.at(0,ii,j)*10)/10.0;
+	       ivec dFdt_0_index=where(tau, [rnd] (double elem) {return (abs(elem - rnd) < 0.001);});
+//cerr << "round: " << rnd << endl;
+//cerr << "dFdt_0_index:" << dFdt_0_index << endl;
 	       auto count = dFdt_0_index.size();
 //	       cout << "dFdt_0_index:"  << dFdt_0_index <<  "  count:  " << count << endl; 
 	       if (dFdt_0_index.at(0) != -1)
 	       {
+// cerr << "ii=" << ii << " hit" << endl;
 	         d->dFdt_0.subcube(span::all,span(ii),span(j)).fill(dFdt.at(dFdt_0_index.at(0)));    //weird line!!!!!
+//cerr << "dFdt.at(dFdt_90_index.at(0)): " << dFdt.at(dFdt_0_index.at(0)) << endl;
 	       }
 
 	     }
 
 	     else 
 	     {
-	       d->dFdt_0.slice(j).col(ii).fill((1/(2*d->tau_0.at(0,ii,j))*sqrt(log(d->tau_0.at(0,ii,j)))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
+//cerr << "ii=" << ii << " miss" << endl;
+	       d->dFdt_0.slice(j).col(ii).fill((1/(2*d->tau_0.at(0,ii,j)*sqrt(log(d->tau_0.at(0,ii,j))))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
 	     }
 
 	   }
+           //cerr << d->dFdt_0.slice(j) << endl;
+// cin.get();
 
 //           cout << "dFdt_0.slice(j):  " << d->dFdt_0.slice(j) << endl;
 
 	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
-
 //cout << "dwdn.slice(j):  " << endl;
 //cout << d->dwdn.slice(j) << endl;
 
@@ -323,6 +336,8 @@ cout << "b_tot: " << b_tot << endl;
 //=======================
 //  Add in G-factors
 //======================
+
+
 	   gsum=0;
 
 	   for (int ii=0; ii<10; ii++)
@@ -346,11 +361,16 @@ cout << "b_tot: " << b_tot << endl;
 	   {
 	     for (int ii=0; ii<11; ii++)
 	     {
-	       d->rate_eqtn.at(k,0).at(ii,11+i,j)+=+d->g.at(i,0).at(ii,j,k); //ii 11+i j k
+	       d->rate_eqtn.at(k,0).at(ii,11+i,j)+=d->g.at(i,0).at(ii,j,k); //ii 11+i j k
+//if (d->g.at(i,0).at(ii,j,k) == 0) {cerr << "is 0!" << endl; cerr << "ii=" << ii << endl; cin.get();}
 	     }
 	   }
 	   d->rate_eqtn.at(k,0).at(1,10,j)=0;
 	   
+//cerr << d->rate_eqtn.at(k,0).slice(j).t() << endl;
+//cerr << d->dwdn.slice(j) << endl;
+//cin.get();
+
 
 //===================
 //  SOLVE
@@ -358,8 +378,10 @@ cout << "b_tot: " << b_tot << endl;
 	   vec z = zeros<vec>(21);
 	   z.at(20)=1;
 	     
-//	   cout << "matrix for solving:" << endl;
-//	   cout << d->rate_eqtn.at(k,0).slice(j).t();
+if (coll_loop==1)
+           {cout << "matrix for solving:" << endl;
+	   cout << d->rate_eqtn.at(k,0).slice(j).t();}
+
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 	   d->Nv.slice(k).col(j)= sol;  //check this to be sure the array is filling in the right dimension
 
@@ -373,10 +395,11 @@ cout << "b_tot: " << b_tot << endl;
              }
            }
 //           cout << "End of solve loop" << endl;
-
  	 }
        }
 
+cube Nvt=zeros<cube>(layers,21,steps);
+for (int i=0; i<steps; i++) Nvt.slice(i)=d->Nv.slice(i).t();
 //}
 //skip_fluorcalc:
       if (coll_loop==0) {
@@ -384,6 +407,7 @@ cout << "b_tot: " << b_tot << endl;
         tot_col_fluor = totalDim(d->Nv*7.55858e12,2).t();      //check all uses of accu/total in teh code!!!!!! dimension specification!
         tot_col_fluor_back=tot_col_fluor;
         d->rate_eqtn=d->rate_eqtn2;
+cerr << "tot_col_fluor: " << tot_col_fluor << endl;
         cerr << "Beginning pass without collisions..." << endl;
       }
       if (coll_loop==1) {
@@ -391,6 +415,8 @@ cout << "b_tot: " << b_tot << endl;
         tot_col_fluor_nocoll = totalDim(d->Nv*7.55858e12,2).t();
       }
     }
+
+cout << "tot_col_fluor_nocoll: " << tot_col_fluor_nocoll << endl;
 
 //cout << "Nv: " << d->Nv << endl;
 //=========================================================================
@@ -459,6 +485,11 @@ cin.get();*/
       N_12CO_vj.slice(i).row(j)=tot_col_fluor.at(i,j+1) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) 
 + tot_col_coll.at(i,j+1)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
 
+/*cerr << "tot_col_flupr.at(i,j+1): " << tot_col_fluor.at(i,j+1) << endl;
+cerr << "Jup:  " << Jup << endl;
+cerr << "N_12CO_vj.slice(i).row(j): " << endl;
+cerr << N_12CO_vj.slice(i).row(j) << endl;
+cin.get();*/
     }
   cerr << "13CO" << endl;
   //====================
@@ -556,8 +587,6 @@ cerr << "A1:  "<< A1 << endl;
 cerr << "A0:  "<< A0 << endl;
 cerr << "A2:  " << A2 << endl;
 cerr <<"calc coeff:  " << (A0/(rpi*A2)) << endl;
-cin.get();
-cerr << "exponent:  " << exp(-pow(((A1-freq)/A2),2)) << endl;;
 cin.get();*/
 	}
       }
@@ -584,12 +613,14 @@ cin.get();*/
 	    A0=N_13CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
 	    A2=btotcomp*A1;
 	    stick_spec_13CO.col(i)+=(A0/(rpi*A2)) * exp(-pow(((A1-freq)/A2),2));
-/*cout << "A0: " << A0 << endl;
-cout << "A1:  " << A1 << endl;
-cout << "A2:  " << A2 <<  endl;
-cout << "exp:  " << exp(-pow(((A1-freq)/A2),2)) << endl;
-cout << "inexp: " << -pow(((A1-freq)/A2),2) << endl;
-cout << "coeff:  "  << A0/(rpi*A2) << endl; */
+
+/*cerr << "A0: " << A0 << endl;
+cerr << "A1:  " << A1 << endl;
+cerr<< "A2:  " << A2 <<  endl;
+cerr << "exp:  " << exp(-pow(((A1-freq)/A2),2)) << endl;
+//cerr << "inexp: " << -pow(((A1-freq)/A2),2) << endl;
+cerr << "coeff:  "  << A0/(rpi*A2) << endl; 
+cin.get();*/
           }
 
 //cout << "N_13CO_vj.at( " << j << "," << k << "," << i << "):  " << N_13CO_vj.at(j,k,i) << endl;
@@ -614,14 +645,18 @@ cout << "coeff:  "  << A0/(rpi*A2) << endl; */
 	    A0=N_13CO_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
 	    A2=btotcomp*A1;
 	    stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp(-pow(((A1-freq)/A2),2));
+
+
           }
       }
+
+
 
     stick_spec_tot.col(i)=stick_spec_12CO.col(i)+stick_spec_13CO.col(i)+stick_spec_C18O.col(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
 
   }
-//cerr << stick_spec_tot << endl;
-//cerr << "^ stick_spec_tot" << endl;
+cout << stick_spec_tot << endl;
+cout << "^ stick_spec_tot" << endl;
 //cin.get();
 //  cerr << "Left loop!"  << endl;
 //cout << "stick_spec_tot:" << stick_spec_tot << endl;
@@ -675,7 +710,6 @@ cerr << "Slit loss.." << endl;
     dr(i)=1.0;
     }
   }
-cerr << "vmax" << endl;
 
   vec vmax = zeros<vec>(n_rings);
   vmax=round(sqrt(887.2*Mstar/rdisk));
@@ -704,7 +738,7 @@ cerr << "END" << endl;
   vec v_line3=(2032.8258-freq)*2.9979e5/2032.8258;
   vec v_line0=(2030.1586-freq)*2.9979e5/2030.1586;
 
-  vec fco_list = {2034.9211, 2034.7209, 2034.1352,2034.0473,2032.8701, 2032.8096, 2032.5616, 2032.2011, 2030.5160, 2030.3076, 2029.6559, 2029.4227, 2029.4297, 2029.3679, 2029.2362, 2029.1276};
+  vec fco_list = {2034.9211, 2034.7209, 2034.1352,2034.0473,2032.8701, 2032.8096, 2032.5616, 2032.2011, 2030.5160, 2030.3076, 2029.6559, 2029.4427, 2029.4297, 2029.3679, 2029.2362, 2029.1276};
   
   mat v_line_arr = zeros<mat>(20,freq.n_elem);
 cerr << "Loop.." << endl;
@@ -856,7 +890,8 @@ cerr << j << endl;
     {
       phase.at(ii)=acos(vseg.at(ii)/vseg.at(0));
     }
-//    cout << "vseg: " << vseg << endl;
+    cout << "vseg: " << vseg << endl;
+cout << "vmax: " << vmax << endl;
 //    cout << "phase: " << phase << endl;
     for (int ii=n_seg/2+1; ii <n_seg; ii++)
     {
@@ -885,7 +920,7 @@ cerr << j << endl;
         grid.at(grid_ptr,0)=rdisk.at(j);
         grid.at(grid_ptr,1)=vseg.at(i);
         grid.at(grid_ptr,2)=phase.at(i);
-        grid.at(grid_ptr,3)=area.at(i)*2.25;
+        grid.at(grid_ptr,3)=area.at(i)*2.25e26;
         for (int ii=4; ii<26; ii++) { cerr << "ii: " << ii << endl; grid.at(grid_ptr,ii)=iten_lines(ii-4,0)(j);}
         grid_ptr++;
       } 
@@ -899,7 +934,7 @@ cerr << j << endl;
         grid.at(grid_ptr,0)=rdisk.at(j);
         grid.at(grid_ptr,1)=vseg.at(i);
         grid.at(grid_ptr,2)=phase.at(i);
-        grid.at(grid_ptr,3)=area.at(i)*2.25;
+        grid.at(grid_ptr,3)=area.at(i)*2.25e26;
         for (int ii=4; ii<22; ii++) grid.at(grid_ptr,ii)=iten_lines(ii,0)(j);
         grid_ptr++;
 
@@ -915,7 +950,7 @@ cerr << "OUT OF GRID LOOP" << endl;
   double v_planet=5;
   double r_planet=13;
   double phase_planet=53*3.1415926535897/180;
-  double planet_intens=((2*6.62-27*pow(2.9979,2)*pow(2030,3)/(exp(6.626e-27*2.9979e10*2030/(1.38e-16*1e3))-1)));
+  double planet_intens=((2*6.62e-27*pow(2.9979e10,2)*pow(2030,3)/(exp(6.626e-27*2.9979e10*2030/(1.38e-16*1e3))-1)));
   double planet_size=0;
 grid.resize(grid.n_rows+11,26);
   for (int i=0; i<11;  i++)

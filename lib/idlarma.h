@@ -56,7 +56,7 @@ namespace idlarma {
       output.at(0)=-1;
     }
 
-cerr << "outputPointer:  " << outputPointer << endl;
+//cerr << "outputPointer:  " << outputPointer << endl;
     return output;
   }
 
@@ -79,7 +79,7 @@ cerr << "outputPointer:  " << outputPointer << endl;
     // Resize to the array of the size needed to support the indices.
     // If no matches were found, then it will return an ivec of length 1 with value -1.
     // Since -1 is an invalid index, this can be used to detect a match failure.    
-cerr << "outputPointer:  " << outputPointer << endl;
+//cerr << "outputPointer:  " << outputPointer << endl;
     if (outputPointer!=0) 
     {
       output.resize(outputPointer);

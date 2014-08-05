@@ -365,19 +365,28 @@ skip_coll:
 	FOR j=0,layers-1 DO BEGIN
 		IF j GT 0 THEN BEGIN
 			FOR i=0,9 DO BEGIN 
-                          tau_0(i,*,j)=TOTAL(Nv(0:11,0:j,k),2)*7.55858e12*0.02654*fXA(i,*)*lam_ang(i,*)*1e-8/(SQRT(!pi)*b_tot(k))*0.02654*fXA(i,*)*lam_ang(i,*)*1e-8/(SQRT(!pi)*b_tot(k))
+                          tau_0(i,*,j)=TOTAL(Nv(0:11,0:j,k),2)*7.55858e12*0.02654*fXA(i,*)*lam_ang(i,*)*1e-8/(SQRT(!pi)*b_tot(k))
                         ENDFOR
-
+;print,Nv(0:11,0:j,k)
+;print,TOTAL(NV(0:11,0:j,k),2)
+;print,"premult:"
+;print,7.55858e12*0.02654*fXA*lam_ang*1e-8/(SQRT(!pi)*b_tot(k))*1e-8/(SQRT(!pi)*b_tot(k))
+;print,7.55858e12*0.02654*1e-8*fXA*lam_ang/(SQRT(!pi)*b_tot(k))
+;read,x,prompt="tau_0"
 		ENDIF
 
 		FOR ii=0,N_ELEMENTS(tau_0(0,*,j))-1 DO BEGIN	
 			IF tau_0(0,ii,j) LT 20.0 THEN BEGIN 
 				dFdt_0_index=WHERE(tau EQ ROUND(tau_0(0,ii,j)*10.)/10.,count)
+;print,dFdt_0_index
+;print,"round:"
+;print,ROUND(tau_0(0,ii,j)*10.)/10.
 				IF count NE 0 THEN dFdt_0(*,ii,j)=dFdt(dFdt_0_index) 
 			ENDIF ELSE BEGIN
+;print,"MISS"
 				dFdt_0(*,ii,j)=1./(2.*tau_0(0,ii,j)*SQRT(alog(tau_0(0,ii,j))))
-			ENDELSE
-	
+                  
+                ENDELSE	
 		ENDFOR
 
 		dWdN(*,*,j)=dfdt_0(*,*,j)*.02654*2.0*(lam_ang*1e-4)*(lam_ang*1e-8)*fXA/(SQRT(!pi)*c*1e5)
@@ -396,15 +405,23 @@ skip_coll:
 
 		;Now solve the system of equations to calculate the relative 
 		;populations:
+IF COLL_LOOP EQ 1 THEN BEGIN
+print,rate_eqtn(*,*,j,k)
+read,x,prompt="rate eqtn slice"
+ENDIF
+
 		SVDC, rate_eqtn(*,*,j,k), w, u, v, /DOUBLE
+;IF J EQ 0 OR J EQ 1 THEN print,rate_eqtn(*,*,j,k)
 		z=fltarr(21) & z(*)=0.0 & z(20)=1.0 	;"solution" to system 
 							;of equations
 		Nv(*,j,k)=SVSOL(u, w, v, z, /DOUBLE) 	;these are the relative
 							; populations
 		Nv_index=WHERE(Nv(*,j,k) LT 0.)
 		IF (Nv_index(0) NE -1) THEN Nv(Nv_index,j,k)=double(0)
-	ENDFOR
 
+	ENDFOR
+;print,Nv(*,*,k)
+;read,x,prompt="Nv slice k"
 ENDFOR
 skip_fluorcalc:
 
@@ -426,7 +443,6 @@ IF coll_loop EQ 1 THEN BEGIN
    IF count NE 0 THEN Nv(*,*,R_ind)=1.*Nv(*,*,R_ind)
    tot_col_fluor_nocoll =total(Nv*7.55858e12,2)
 ENDIF
-
 	
 ;total column density of each vibrational level in each ring
 ;for a flaring disk, the light enters the disk at a small angle.
@@ -437,6 +453,8 @@ ENDIF
 
 ENDFOR ; END OF COLL LOOP
 
+print,tot_col_fluor_nocoll
+read,x,prompt="tot_col_fluor_nocoll"
 ;now correct for angle of incidence of light onto disk
 ;H(r)=SQRT(kTR^3/mum_H*GMstar)=5.59647E-10*SQRT(T/(Mstar/Msun))*R^3/2
 ;dH/dr=1.5*H/r (assuming T is nearly constant with respect to R). This
@@ -549,6 +567,12 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 				*exp(-hck*Bv12(j)*Jup*(Jup+1)/T_rot_cl(i)) $
 				/(T_rot_cl(i)/(hck*Bv12(j)))
 		
+;print,tot_col_fluor(j+1,i)
+;print,"---------------"
+;print,Jup
+;print,"--------"
+;print,N_12CO_vJ(*,j,i)
+;read,x,prompt="tot_col_fluor(j+1,i)----Jup"
 	ENDFOR
 
 ;Second do 13CO	
@@ -620,13 +644,13 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 		  	   A0=N_12CO_vJ(k,j,i)*hc*wvn(k)*EinA(k)
 			   A1=wvn(k)
 			   A2=b_tot(i)*wvn(k)/(c*1e5)
-;;print,N_12CO_vJ(k,j,i)
-;print,A0
-;print,A1
-;print,A2
+;print,n_12co_vj(k,j,i)
+;print,a0
+;print,a1
+;print,a2
 
-;read,x,prompt="N_12CO_vJ(k.j,i),a0,a1,a2"
-;print,-((A1-freq)/A2)^2
+;read,x,prompt="n_12co_vj(k.j,i),a0,a1,a2"
+;print,-((a1-freq)/a2)^2
 ;read,x,prompt="inexp"
 ;print,exp(-((A1-freq)/A2)^2)
 ;read,x,prompt="exp"
@@ -652,6 +676,16 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 			   A1=wvn(k)
 			   A2=b_tot(i)*wvn(k)/(c*1e5)
 			   stick_spec_13CO(*,i)=stick_spec_13CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)
+
+
+print,n_13co_vj(k,j,i)
+print,a0
+print,a1
+print,a2
+
+read,x,prompt="n_13co_vj(k.j,i),a0,a1,a2"
+print,-((a1-freq)/a2)^2
+read,x,prompt="inexp"
 			ENDIF
 		ENDFOR
 	ENDFOR
