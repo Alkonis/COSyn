@@ -28,7 +28,7 @@ class FitData{
   static constexpr double f_f = 2179.;
   static constexpr double mass = 2.4;
   static constexpr double H_den0 =2.5e10;
-  static constexpr double H_den_alpha=.15;
+  static constexpr double H_den_alpha=.10;
   static constexpr double inc = 40 * 3.14159265358979323 / 180;
   static constexpr double X12CO_13CO_fl = 65./30;
   static constexpr double X12CO_C18O_fl = 550./16.25;
@@ -42,7 +42,8 @@ class FitData{
   static constexpr double c=2.997924562e5;
   static constexpr double cexp=29979245620;
   static constexpr double hc=  6.626196e-27*2.997924562e10;
-  static constexpr double hck=(6.626196e-27*2.997924562e10)/(1.380622e-16);
+  //static constexpr double hck=(6.626196e-27*2.997924562e10)/(1.380622e-16);
+  static constexpr double hck=1.43800;
   static constexpr double cer=8.85282e-13;
   static constexpr double rpi=1.7724538509055159;
   
@@ -64,9 +65,11 @@ class FitData{
   static constexpr double B98   = 1.79140;
   static constexpr double B109  = 1.77392;
   static constexpr double B1110 = 1.76644;
+
   static constexpr double B1310 = 1.847;
   static constexpr double B1321 = 1.830;
   static constexpr double B1332 = 1.813;
+
   static constexpr double B1810 = 1.840;
 
   static constexpr double Bv12[11] = {B10,B21,B32,B43,B54,B65,B76,B87,B98,B109,B1110};

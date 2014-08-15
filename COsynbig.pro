@@ -300,8 +300,6 @@ IF rel_lum LE 1E-3 THEN BEGIN
 ENDIF
 
 b_tot=SQRT(2.*1.38e-16*6.02e23*T_rot_fl/28. + v_turb^2) ;UNITS=cm/s
-;print,b_tot
-;read,x,"b_tot=?"
 
 ;;;;;;;;;;;;;;;;
 ;;;; STEP 7 ;;;;
@@ -367,23 +365,13 @@ skip_coll:
 			FOR i=0,9 DO BEGIN 
                           tau_0(i,*,j)=TOTAL(Nv(0:11,0:j,k),2)*7.55858e12*0.02654*fXA(i,*)*lam_ang(i,*)*1e-8/(SQRT(!pi)*b_tot(k))
                         ENDFOR
-;print,Nv(0:11,0:j,k)
-;print,TOTAL(NV(0:11,0:j,k),2)
-;print,"premult:"
-;print,7.55858e12*0.02654*fXA*lam_ang*1e-8/(SQRT(!pi)*b_tot(k))*1e-8/(SQRT(!pi)*b_tot(k))
-;print,7.55858e12*0.02654*1e-8*fXA*lam_ang/(SQRT(!pi)*b_tot(k))
-;read,x,prompt="tau_0"
 		ENDIF
 
 		FOR ii=0,N_ELEMENTS(tau_0(0,*,j))-1 DO BEGIN	
 			IF tau_0(0,ii,j) LT 20.0 THEN BEGIN 
 				dFdt_0_index=WHERE(tau EQ ROUND(tau_0(0,ii,j)*10.)/10.,count)
-;print,dFdt_0_index
-;print,"round:"
-;print,ROUND(tau_0(0,ii,j)*10.)/10.
 				IF count NE 0 THEN dFdt_0(*,ii,j)=dFdt(dFdt_0_index) 
 			ENDIF ELSE BEGIN
-;print,"MISS"
 				dFdt_0(*,ii,j)=1./(2.*tau_0(0,ii,j)*SQRT(alog(tau_0(0,ii,j))))
                   
                 ENDELSE	
@@ -391,10 +379,12 @@ skip_coll:
 
 		dWdN(*,*,j)=dfdt_0(*,*,j)*.02654*2.0*(lam_ang*1e-4)*(lam_ang*1e-8)*fXA/(SQRT(!pi)*c*1e5)
 		g(*,*,j,k)=dWdN(*,*,j)*!pi*Fuv/(hc*wavenum)
-;print,g(*,*,j,k)
-;print,dfdt_0(*,*,j)
-;read,x,prompt="g"
+;print,,j,k)
 
+;if dfdt_0(0,0,j) EQ 0 then begin
+;print,j
+;read,x,prompt="?"
+;endif
 		;now add g-factors:
                 rate_eqtn(0,0,j,k)=rate_eqtn(0,0,j,k)-TOTAL(g(*,0,j,k),1) ;sum of all
                                                         ;transitions from v=0 
@@ -407,13 +397,8 @@ skip_coll:
 
 		;Now solve the system of equations to calculate the relative 
 		;populations:
-;IF COLL_LOOP EQ 1 THEN BEGIN
-;print,rate_eqtn(*,*,j,k)
-;read,x,prompt="rate eqtn slice"
-;ENDIF
 
 		SVDC, rate_eqtn(*,*,j,k), w, u, v, /DOUBLE
-;IF J EQ 0 OR J EQ 1 THEN print,rate_eqtn(*,*,j,k)
 		z=fltarr(21) & z(*)=0.0 & z(20)=1.0 	;"solution" to system 
 							;of equations
 		Nv(*,j,k)=SVSOL(u, w, v, z, /DOUBLE) 	;these are the relative
@@ -422,8 +407,6 @@ skip_coll:
 		IF (Nv_index(0) NE -1) THEN Nv(Nv_index,j,k)=double(0)
 
 	ENDFOR
-;print,Nv(*,*,k)
-;read,x,prompt="Nv slice k"
 ENDFOR
 skip_fluorcalc:
 
@@ -445,7 +428,7 @@ IF coll_loop EQ 1 THEN BEGIN
    IF count NE 0 THEN Nv(*,*,R_ind)=1.*Nv(*,*,R_ind)
    tot_col_fluor_nocoll =total(Nv*7.55858e12,2)
 ENDIF
-	
+
 ;total column density of each vibrational level in each ring
 ;for a flaring disk, the light enters the disk at a small angle.
 ;the column of excited gas is really tot_col_fluor*sin(angle)
@@ -455,8 +438,7 @@ ENDIF
 
 ENDFOR ; END OF COLL LOOP
 
-print,tot_col_fluor_nocoll
-read,x,prompt="tot_col_fluor_nocoll"
+
 ;now correct for angle of incidence of light onto disk
 ;H(r)=SQRT(kTR^3/mum_H*GMstar)=5.59647E-10*SQRT(T/(Mstar/Msun))*R^3/2
 ;dH/dr=1.5*H/r (assuming T is nearly constant with respect to R). This
@@ -574,6 +556,10 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 ;print,Jup
 ;print,"--------"
 ;print,N_12CO_vJ(*,j,i)
+;print,Jup
+;print,Jdn
+;print,wvn
+;print,EinA
 ;read,x,prompt="tot_col_fluor(j+1,i)----Jup"
 	ENDFOR
 
@@ -589,7 +575,10 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 ;                                + (tot_col_coll(j+1,i)/X12CO_13CO_cl)*(2*Jup+1.) $
 ;				*exp(-hck*Bv13(j)*Jup*(Jup+1)/T_rot_cl(i)) $
 ;				/(T_rot_cl(i)/(hck*Bv13(j)))
+;print,N_13CO_vJ(*,j,i)
+;print,tot_col_fluor_nocoll(j+1,i)
 
+;read,x,prompt="N_13COvj"
 	ENDFOR
 
 ;Third do C18O
@@ -605,6 +594,9 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 ;				*exp(-hck*Bv18(j)*Jup*(Jup+1)/T_rot_cl(i)) $
 ;				/(T_rot_cl(i)/(hck*Bv18(j)))
 
+;print,tot_col_fluor_nocoll(j+1,i)
+;print,N_C18O_vJ(*,j,i)
+;read,x,prompt="N_C18O"
 	ENDFOR
 ENDFOR
 
@@ -708,11 +700,11 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 	ENDFOR
 
 stick_spec_tot(*,i)=(stick_spec_12CO(*,i)+stick_spec_13CO(*,i)+stick_spec_C18O(*,i))
-;print,stick_spec_tot
-;read,x,prompt="stick_Spec_tot"
 ENDFOR
 
 
+print,stick_spec_tot
+read,x,prompt="stick_Spec_tot"
 ;annuli(0)=annuli(0) ; Area of inner wall of H/R=.35 disk at 13AU
 annuli(0)=1d28 ; Projected area of inner wall at 13AU
 Iten_tot=stick_spec_tot
@@ -895,7 +887,6 @@ gs=FLTARR(2,11)
 gs(0,*)=FINDGEN(11)-5.0 ; [-5,-4,-3,-2,-1,0,1,2,3,4,5]
 gs(1,*)=exp(-gs(0,*)^2/(12./1.665)^2)/TOTAL(exp(-gs(0,*)^2/(6./1.665)^2))
 ;[0.000250768, 0.00321749, 0.0234145, 0.0966443, 0.226251, 0.300420, 0.226251, 0.0966443, 0.0234145, 0.00321749, 0.000250768]
-
 FOR j=0,n_rings-1 DO BEGIN
 ;	n_seg=2.*ROUND(vmax(j))/dv +1.0
 ;        n_seg=2.*n_seg ;go all the way around!
@@ -933,8 +924,12 @@ FOR j=0,n_rings-1 DO BEGIN
 		FOR i=0,n_seg-1 DO BEGIN
 			area(i)=dphase(i)*(rdisk(j)+dr(j)/2.)*dr(j) ;units of square AU
 ;                        IF sin(phase(i))*rdisk(j) GT DISK_BEYOND_SLIT AND sin(phase(i+1))*rdisk(j) GT DISK_BEYOND_SLIT THEN area(i)=0 ;zero out segments not in slit
+
 			vel_spec=vel_spec+interpol(total_spec(*,j)*area(i), $
                                                    freq+vseg(i)*sin(inc)*freq/c,freq)	
+      
+;print,vel_spec
+;read,x,prompt="vel_spec  ^ "
                         grid=[[grid],[rdisk(j),vseg(i),phase(i),area(i)*2.25d26, $
                              iten_line0(j),iten_line1(j),iten_line2(j),iten_line3(j),iten_line4(j),iten_line5(j),iten_line6(j), $
                              iten_line7(j),iten_line8(j),iten_line9(j),iten_line10(j),iten_line11(j),iten_line12(j),iten_line13(j), $
@@ -1120,17 +1115,18 @@ FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
              AND v_line(*,20) LE MEAN(grid(1,index1))+0.5,count20)
    i21=WHERE(v_line(*,21) GT MEAN(grid(1,index1))-0.5 $
              AND v_line(*,21) LE MEAN(grid(1,index1))+0.5,count21)
-print,count0
-print,count1
-print,count2
-print,count3
-print,count4
-print,count5
-print,count6
-print,count7
-print,count8
-print,count9
-read,x,prompt="counts^"
+;print,count0
+;print,count1
+;print,count2
+;print,count3
+;print,count4
+;print,count5
+;print,count6
+;print,count7
+;print,count8
+;print,count9
+;read,x,prompt="counts^"
+
 ;Delta(y) is the projection of the velocity element along the axis of
 ;the slit. rp is the projected distance from the star to the disk on
 ;teh plane of the sky so that rp=ra*SQRT(cos(phase)^2+sin(phase)^2*cos(inc)^2)
@@ -1216,12 +1212,14 @@ conv_spec=FFT(FFT(final_spec)*FFT(inst_prof),1)/2.	;account for reflection in FF
 cent_conv=FFT(FFT(centroid)*FFT(inst_prof),1)
 cent_conv=cent_conv*total(abs(centroid))/total(abs(cent_conv))
 conv_spec=conv_spec*total(flux_tot_slit)/total(conv_spec)
+
 print,"cent_conv"
 print,cent_conv
 print,"conv_spec"
 print,conv_spec
-
-
+print,size(total_spec)
+plot,conv_spec
+plot,INTERPOL(conv_spec,freq-freq*5./2.9979e5,fbig)
 diff_array(*,bigi)=((rbig_masked-1)*1.5e-12 - INTERPOL(conv_spec,freq-freq*5./2.9979e5,fbig))
 index_diff=WHERE(FINITE(diff_array(*,bigi)) EQ 1)
 

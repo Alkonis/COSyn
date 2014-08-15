@@ -56,7 +56,6 @@ namespace idlarma {
       output.at(0)=-1;
     }
 
-//cerr << "outputPointer:  " << outputPointer << endl;
     return output;
   }
 
@@ -79,7 +78,6 @@ namespace idlarma {
     // Resize to the array of the size needed to support the indices.
     // If no matches were found, then it will return an ivec of length 1 with value -1.
     // Since -1 is an invalid index, this can be used to detect a match failure.    
-//cerr << "outputPointer:  " << outputPointer << endl;
     if (outputPointer!=0) 
     {
       output.resize(outputPointer);
@@ -126,36 +124,6 @@ namespace idlarma {
 
     return output;
   }
-
-  vec deriv(vec xin, vec yin) {
-    int inputSize=xin.size();
-    vec output = zeros<vec>(inputSize);
-    
-    double x0, x1, x2;
-    double y0, y1, y2;
-    
-    for (int i=1; i<inputSize-1; i++)
-    {
-      x0=xin.at(i-1);  x1=xin.at(i);  x2=xin.at(i+1);
-      y0=yin.at(i-1);  y1=yin.at(i);  y2=yin.at(i+1);
-      output.at(i)= y0*(x1-x2)/( (x0-x1)*(x0-x2) ) +
-                    y1*(1/(x1-x2)-1/(x0-x1)) -
-                    y2*(x0-x1)/((x0-x2)*(x1-x2)); 
-    }
-
-    output.at(0) = yin.at(0)*(xin.at(0)-xin.at(1)+xin.at(0)-xin.at(2))/((xin.at(0)-xin.at(1))*(xin.at(0)-xin.at(2))) -
-                   yin.at(1)*(xin.at(0)-xin.at(2))/((xin.at(0)-xin.at(1))*(xin.at(1)-xin.at(2))) +
-                   yin.at(2)*(xin.at(0)-xin.at(1))/((xin.at(0)-xin.at(2))*(xin.at(1)-xin.at(2)));
-
-    x0=xin.at(inputSize-3);   x1=xin.at(inputSize-2); x2=xin.at(inputSize-1);
-    y0=yin.at(inputSize-3);   y1=yin.at(inputSize-2); y2=yin.at(inputSize-1);
-    
-    output.at(inputSize-1) = - y0*(x1-x2)/((x0-x1)*(x0-x2))
-                             + y1*(x0-x2)/((x0-x1)*(x1-x2))
-                             - y2*(x0-x2+x1-x2)/((x0-x2)*(x1-x2));
-    return output;
-  }
-
 
   mat totalDim(cube input, int dim)
   {
@@ -309,10 +277,58 @@ skip1:
     {
       index=i+offset;
       if (index > siz) index-=siz;
-      output.at(index)=input.at(i);
+      if (index < 0) index+=siz;
+      output(index)=input(i);
     }
     
     return output;
+  }
+
+
+
+  vec deriv(vec xin, vec yin) {
+    int inputSize=xin.size();
+    vec output = zeros<vec>(inputSize);
+    
+    double x0, x1, x2;
+    double y0, y1, y2;
+    
+    for (int i=1; i<inputSize-1; i++)
+    {
+      x0=xin.at(i-1);  x1=xin.at(i);  x2=xin.at(i+1);
+      y0=yin.at(i-1);  y1=yin.at(i);  y2=yin.at(i+1);
+      output.at(i)= y0*(x1-x2)/( (x0-x1)*(x0-x2) ) +
+                    y1*(1/(x1-x2)-1/(x0-x1)) -
+                    y2*(x0-x1)/((x0-x2)*(x1-x2)); 
+    }
+
+    output.at(0) = yin.at(0)*(xin.at(0)-xin.at(1)+xin.at(0)-xin.at(2))/((xin.at(0)-xin.at(1))*(xin.at(0)-xin.at(2))) -
+                   yin.at(1)*(xin.at(0)-xin.at(2))/((xin.at(0)-xin.at(1))*(xin.at(1)-xin.at(2))) +
+                   yin.at(2)*(xin.at(0)-xin.at(1))/((xin.at(0)-xin.at(2))*(xin.at(1)-xin.at(2)));
+
+    x0=xin.at(inputSize-3);   x1=xin.at(inputSize-2); x2=xin.at(inputSize-1);
+    y0=yin.at(inputSize-3);   y1=yin.at(inputSize-2); y2=yin.at(inputSize-1);
+    
+    output.at(inputSize-1) = - y0*(x1-x2)/((x0-x1)*(x0-x2))
+                             + y1*(x0-x2)/((x0-x1)*(x1-x2))
+                             - y2*(x0-x2+x1-x2)/((x0-x2)*(x1-x2));
+    return output;
+  }
+ 
+  vec deriv2(vec x, vec y)
+  {
+
+    int n = x.n_elem;
+
+    vec d = (shift(y,-1) - shift(y,1))/(shift(x,-1) - shift(x,1));
+
+
+    d.at(0) = (-3*y.at(0) + 4.0*y.at(1) - y.at(2))/(x.at(2)-x.at(0));
+
+
+    d.at(n-1) = (3*y.at(n-1) - 4*y.at(n-2) + y.at(n-3))/(x.at(n-1)-x.at(n-3)); 
+
+    return d;
   }
 
 }

@@ -17,9 +17,7 @@
 //        fix grid
 
 using namespace std;
-using namespace idlarma;
-
-FitData* data;
+using namespace idlarma;FitData* data;
 
 constexpr double FitData::vib_einA[];
 constexpr double FitData::Bv12[];
@@ -31,15 +29,11 @@ int FitData::numGuesses;
 //used to generate the matrix of guess data
 double* FitData::FillArray(int modulus, int offset)
 {
-cout << "numguesses:  " << numGuesses << endl;
-  cout << "Filling array..." << endl;
   double* array;
   array  = new double[numGuesses];
-cout << "Made array..." << endl;
   for(int i=0; i<numGuesses;i++) {
     array[i]=rand() % modulus + offset;
   }
-  cout << "Returning array..." << endl;
   return array;
 }
 
@@ -137,15 +131,11 @@ int FitData::runTrial() {
 
   d->rate_eqtn2=d->rate_eqtn;   //Clone colldata for the second pass without collisions
    
-  cerr << "CollData generated." << endl;
 
   T_rot_fl = T_rot0_fl *pow((1.5E13/rdisk),T_rot_alpha_fl);
   
   ivec T_rot_index=where(T_rot_fl, [] (double datum) {return datum >= 3500;});
 
-//cout << "T_rot_cnt:  " << T_rot_cnt << endl;
-cout << "T_rot_fl:  " << T_rot_fl << endl;
-cout << "T_rot_index:  " << T_rot_index << endl;
   if (T_rot_index.at(0) != -1) {
     for (auto elem : T_rot_index )
     {
@@ -157,8 +147,6 @@ cout << "T_rot_index:  " << T_rot_index << endl;
   T_rot_cl=T_rot0_cl * pow((1.496E13/rdisk), T_rot_alpha_cl);
   H_den=H_den0 * pow((1.496E13/rdisk),H_den_alpha);
   T_rot_index = where(T_rot_cl, [] (double datum) {return datum > 3500;});
-//  T_rot_cnt=T_rot_index.size();
-cout << "T_rot_index:  " << T_rot_index << endl;
   if (T_rot_index.at(0) != -1) {
     for (auto elem : T_rot_index)
     {
@@ -166,42 +154,28 @@ cout << "T_rot_index:  " << T_rot_index << endl;
     }
   }
 
-  cout << "T_rot_cl:" << endl << T_rot_cl << endl;
-  cout << "T_rot_fl:" << endl << T_rot_fl << endl;
-  cout << "H_den:"  << endl << H_den << endl;
-
-  
- //   CollData d = new CollData(this->layers, this->steps);
-//  if (rel_lum <= 1e-3) goto skip_fluorcalc;
-//{
-//
     vec b_tot = sqrt(2*1.38e-16*6.02e23*T_rot_fl/28 + pow(v_turb,2));
-cout << "b_tot: " << b_tot << endl;
 
+if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 
     vec tau = linspace<vec>(0,19.99,2000); 
     vec F_tau=zeros<vec>(2000);
-    //==============CALCULATE DFDT BY INTEGRAATION USING TRAPEZOID RULE================
-    cout << "b_tot" << endl;
-    cout << b_tot;
-    
-    cout << "tau:";
-    cout << tau;
- 
-    cerr << "Integrating...";
-    double sum;
-    double n = 1000;
-    double a = 0;
-    double b = 5;
 
-    double delta=(b-a)/n;
+    //==============CALCULATE DFDT BY INTEGRAATION USING TRAPEZOID RULE================
+   
+    float sum;
+    float n = 1000;
+    float a = 0;
+    float b = 5;
+
+    float delta=(b-a)/n;
 
     for (int i=0; i<2000; i++) 
     {
       sum = 0.5 * ( (1 - exp(-tau(i)*exp(-pow(a,2)))) + (1 - exp(-tau(i)*exp(-pow(b,2)))) );
       for (int j=1; j<n; j++)  
       {
-        double x=a+delta*j;
+        float x=a+delta*j;
         sum=sum+(1-exp(-tau(i)*exp(-pow(x,2))));
       }
       sum = sum*delta;
@@ -209,14 +183,7 @@ cout << "b_tot: " << b_tot << endl;
     }
 
     
-    vec dFdt=deriv(tau,F_tau);
-
-//    cout << "F_tau:  " << endl;    
-//   cout << F_tau << endl;
-//    cout << "dFdt  :" << endl;
-//    cout << dFdt << endl;
-
-
+    vec dFdt=deriv2(tau,F_tau);
 
       cube Nv_coll;
       mat tot_col_fluor;
@@ -242,6 +209,10 @@ cout << "b_tot: " << b_tot << endl;
        
       vec sol;
       ivec Nv_index;
+d->Nv.fill(0);
+d->dwdn.fill(0);
+d->tau_0.fill(0);
+for (int zz=0; zz<10; zz++) {d->g.at(zz,0).fill(0);}
 
       double gsum;
 
@@ -254,7 +225,7 @@ cout << "b_tot: " << b_tot << endl;
        
        //=============COLLISIONS=============
 
-       if (coll_loop != 1)
+       if (coll_loop == 0)
        {
 	 auto k_HCO_dn = (7.57e-15*T_rot_cl[k]/(1-exp(-3084/T_rot_cl[k])))*H_den[k];
 	 auto k_HCO_up=k_HCO_dn*exp(-3084/T_rot_cl[k]);
@@ -268,7 +239,6 @@ cout << "b_tot: " << b_tot << endl;
 	   d->rate_eqtn.at(k,0).subcube(span(i  ),span(i),span::all) = d->rate_eqtn.at(k  ,0).subcube(span(i),span(i),span::all)-k_HCO_dn-k_HCO_up;
 	   d->rate_eqtn.at(k,0).subcube(span(i+1),span(i),span::all)+=k_HCO_dn;
 	 }
-
        }
 
 	 //===================ULTRAVIOLET PUMPING========================
@@ -280,15 +250,12 @@ cout << "b_tot: " << b_tot << endl;
 	     for (int i=0; i<10; i++)
 	     {
 	      d->tau_0.subcube(span(i),span::all,span(j))=7.55858e12 * 0.02654 * arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),1) % fXA.submat(span(i),span::all).t() % lam_ang.submat(span(i),span::all).t()*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
+
 	     }
-/*cerr << d->tau_0.slice(j).t() << endl;
-cerr << "Nv: " << d->Nv.slice(k).submat(span(0,11),span(0,j)) << endl;
-cerr << "Sum: " << arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),1) << endl;
-cerr << "premult: " << 7.55858e12 * 0.02654 * fXA.t() % lam_ang.t()*1e-8/(sqrt(3.1415926535897)*b_tot[k]);
-cerr << "test: " << fXA.t() % lam_ang.t() * 7.55858e12 * 0.02654 * 1e-8 /(sqrt(3.14159265)*b_tot[k]) << endl;
-cin.get();*/
 	   }
+
            auto max_iter=d->tau_0.slice(j).row(0).n_elem;
+           
 
 	   for (auto ii=0; ii<max_iter; ii++)
 	   {
@@ -297,50 +264,33 @@ cin.get();*/
 	     {
                double rnd=round(d->tau_0.at(0,ii,j)*10)/10.0;
 	       ivec dFdt_0_index=where(tau, [rnd] (double elem) {return (abs(elem - rnd) < 0.001);});
-//cerr << "round: " << rnd << endl;
-//cerr << "dFdt_0_index:" << dFdt_0_index << endl;
 	       auto count = dFdt_0_index.size();
-//	       cout << "dFdt_0_index:"  << dFdt_0_index <<  "  count:  " << count << endl; 
 	       if (dFdt_0_index.at(0) != -1)
 	       {
-// cerr << "ii=" << ii << " hit" << endl;
 	         d->dFdt_0.subcube(span::all,span(ii),span(j)).fill(dFdt.at(dFdt_0_index.at(0)));    //weird line!!!!!
-//cerr << "dFdt.at(dFdt_90_index.at(0)): " << dFdt.at(dFdt_0_index.at(0)) << endl;
 	       }
-
+             
 	     }
 
 	     else 
 	     {
-//cerr << "ii=" << ii << " miss" << endl;
 	       d->dFdt_0.slice(j).col(ii).fill((1/(2*d->tau_0.at(0,ii,j)*sqrt(log(d->tau_0.at(0,ii,j))))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
+
 	     }
 
 	   }
-           //cerr << d->dFdt_0.slice(j) << endl;
-// cin.get();
-
-//           cout << "dFdt_0.slice(j):  " << d->dFdt_0.slice(j) << endl;
 
 	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(3.1415926535897)*c*1e5);
-//cout << "dwdn.slice(j):  " << endl;
-//cout << d->dwdn.slice(j) << endl;
 mat temp3 = zeros<mat>(10,12);
 	   for (int ii=0; ii<10; ii++) 
 	   {
-//	     cout << "ii,j,k (" << ii << "," << j << "," << k << ")" << endl;
-//             cout << (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t() << endl;
 	     d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * 3.1415926535897 % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
 temp3.row(ii)=d->g.at(ii,0).slice(k).col(j).t();
            }
-//cerr << "g slice k: " << temp3.t()  << endl;
-//cerr << d->dFdt_0.slice(j) << endl;
-//cin.get();
-       
+
 //=======================
 //  Add in G-factors
 //======================
-
 
 	   gsum=0;
 
@@ -348,6 +298,7 @@ temp3.row(ii)=d->g.at(ii,0).slice(k).col(j).t();
 	   { 
 	     gsum+=d->g.at(ii).at(0,j,k);
 	   }
+
 	   d->rate_eqtn.at(k,0).at(0,0,j)-=gsum;
 
 	   for (int i=1; i<11; i++)
@@ -359,34 +310,25 @@ temp3.row(ii)=d->g.at(ii,0).slice(k).col(j).t();
 	     }
 	     d->rate_eqtn.at(k,0).subcube(span(i),span(i),span(j))-=gsum;
 	   }
-
            
            for (int i=0; i<9; i++)
 	   {
 	     for (int ii=0; ii<11; ii++)
 	     {
 	       d->rate_eqtn.at(k,0).at(ii,11+i,j)+=d->g.at(i,0).at(ii,j,k); //ii 11+i j k
-//if (d->g.at(i,0).at(ii,j,k) == 0) {cerr << "is 0!" << endl; cerr << "ii=" << ii << endl; cin.get();}
 	     }
 	   }
 	   d->rate_eqtn.at(k,0).at(1,10,j)=0;
 	   
-//cerr << d->rate_eqtn.at(k,0).slice(j).t() << endl;
-//cerr << d->dwdn.slice(j) << endl;
-//cin.get();
-
-
 //===================
 //  SOLVE
 //==================  
 	   vec z = zeros<vec>(21);
 	   z.at(20)=1;
 	     
-//if (coll_loop==1)
 
 //           {cout << "matrix for solving:" << endl;
 //	   cout << d->rate_eqtn.at(k,0).slice(j).t();}
-
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 	   d->Nv.slice(k).col(j)= sol;  //check this to be sure the array is filling in the right dimension
 
@@ -399,21 +341,16 @@ temp3.row(ii)=d->g.at(ii,0).slice(k).col(j).t();
                d->Nv.at(Nv_index[jj],j,k)=0;
              }
            }
-//           cout << "End of solve loop" << endl;
  	 }
        }
 
-cube Nvt=zeros<cube>(layers,21,steps);
-for (int i=0; i<steps; i++) Nvt.slice(i)=d->Nv.slice(i).t();
-//}
-//skip_fluorcalc:
+skip_fluorcalc:
+
       if (coll_loop==0) {
         Nv_coll=d->Nv;
         tot_col_fluor = totalDim(d->Nv*7.55858e12,2).t();      //check all uses of accu/total in teh code!!!!!! dimension specification!
         tot_col_fluor_back=tot_col_fluor;
         d->rate_eqtn=d->rate_eqtn2;
-cerr << "tot_col_fluor: " << tot_col_fluor << endl;
-        cerr << "Beginning pass without collisions..." << endl;
       }
       if (coll_loop==1) {
         Nv_nocoll=d->Nv;
@@ -421,9 +358,6 @@ cerr << "tot_col_fluor: " << tot_col_fluor << endl;
       }
     }
 
-cout << "tot_col_fluor_nocoll: " << tot_col_fluor_nocoll << endl;
-
-//cout << "Nv: " << d->Nv << endl;
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
@@ -437,16 +371,18 @@ cout << "tot_col_fluor_nocoll: " << tot_col_fluor_nocoll << endl;
   auto xi = tot_col_fluor.n_cols-1;
   auto yi = tot_col_fluor.n_rows-1;
 
-  for (int j=0; j<yi; j++)                    //looks like I need to transpose indices on everything involving tot_col_fluor 
+  for (int j=1; j<yi+1; j++)                    //looks like I need to transpose indices on everything involving tot_col_fluor 
   {
     tot_col_fluor.row(j)=sin(phi.at(j))*tot_col_fluor.row(j);
     tot_col_fluor_nocoll.row(j)=sin(phi.at(j))*tot_col_fluor_nocoll.row(j);
   }
+
   mat tot_col=tot_col_fluor(span::all,span(0,9));
   mat tot_col_coll=tot_col;
 
   double r = dist/1.496e13;
   rdisk=rdisk/1.496e13;            //convert to AU
+
 
 
 
@@ -466,7 +402,7 @@ cout << "tot_col_fluor_nocoll: " << tot_col_fluor_nocoll << endl;
   rowvec Jdn;
   rowvec wvn;
   rowvec EinA;
-cerr << "First..." << endl;
+
   for (int i=0; i<steps; i++)
   {
 
@@ -476,7 +412,6 @@ cerr << "First..." << endl;
     //   12CO
     //======================
 
-    cerr << "12CO" << endl;
 
     for (int j=0; j< tot_col.n_cols-1; j++)
     {
@@ -484,19 +419,20 @@ cerr << "First..." << endl;
       Jdn = X12CO(span(j),span(1),span::all);
       wvn = X12CO(span(j),span(6),span::all);
       EinA= X12CO(span(j),span(4),span::all);
-/*cerr << "tot_col_flupr.at(i,j+1):  " << tot_col_fluor.at(i,j+1) << endl;
-cerr << "tot_col_fluor.at(j+1,i):  " << tot_col_fluor.at(j+1,i)<< endl;
-cin.get();*/
+
       N_12CO_vj.slice(i).row(j)=tot_col_fluor.at(i,j+1) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) 
 + tot_col_coll.at(i,j+1)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
 
 /*cerr << "tot_col_flupr.at(i,j+1): " << tot_col_fluor.at(i,j+1) << endl;
 cerr << "Jup:  " << Jup << endl;
-cerr << "N_12CO_vj.slice(i).row(j): " << endl;
-cerr << N_12CO_vj.slice(i).row(j) << endl;
-cin.get();*/
+cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
+//cerr << N_12CO_vj.slice(i).row(j) << endl;
+//cerr << Jup << endl;
+//cerr << Jdn << endl;
+//cerr << wvn << endl;
+//cerr << EinA << endl;
+//cin.get();
     }
-  cerr << "13CO" << endl;
   //====================
   //  13CO
   //====================
@@ -509,7 +445,12 @@ cin.get();*/
 
     N_13CO_vj.slice(i).row(j)=(tot_col_fluor_nocoll.at(i,j+1)/X12CO_13CO_fl)*(2*Jup+1) % exp(-hck*Bv13[j] * Jup % (Jup+1) / T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv13[j]));
 
-  }
+
+//cerr << "tot_col_fluor_nocoll.at(i,j+1)" << tot_col_fluor_nocoll.at(i,j+1) << endl;
+//cerr << N_13CO_vj.slice(i).row(j) << endl;
+// cin.get(); 
+ }
+
   //====================
   //  C18O
   //===================
@@ -521,11 +462,13 @@ cin.get();*/
 
   N_C18O_vj.slice(i).row(0)=(tot_col_fluor_nocoll.at(i,1)/X12CO_C18O_fl)*(2*Jup+1) % exp(-hck*Bv18[0]*Jup%(Jup+1)/T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv18[0]));
 
-  }
+//cerr << tot_col_fluor_nocoll.at(i,1) << endl;
+//cerr << N_C18O_vj.slice(i).row(0);
+//cin.get();  
+}
 
-  cerr << "Ended steps loops.";
-  double freq_size=log10(f_f/f_i)/log10(1+v/(3*c));
-  vec freq = zeros<vec>(freq_size+1);
+  int freq_size=floor(log10(f_f/f_i)/log10(1+v/(3*c)));
+  vec freq = zeros<vec>(freq_size);
   freq.at(0)=f_i;
   vec vfreq = freq;
   vfreq.fill(0);
@@ -548,11 +491,12 @@ cin.get();*/
 
   annuli(steps-1)=3.1415926535897*(pow(rdisk.at(steps-1)+1,2)-pow(rdisk.at(steps-1),2));
 
-  mat stick_spec_12CO = zeros<mat>(freq_size+1,steps);
+  mat stick_spec_12CO = zeros<mat>(freq_size,steps);
   mat stick_spec_13CO = stick_spec_12CO;
   mat stick_spec_C18O = stick_spec_12CO;
   mat stick_spec_tot  = stick_spec_12CO;
-  
+// cerr << stick_spec_tot.n_rows << endl;
+//cin.get();
   double A0;
   double A1;
   double A2;
@@ -564,7 +508,8 @@ cin.get();*/
 
   for (int i=0; i<steps; i++)  //Loop over annuli
   {
-double btotcomp=b_tot.at(i)/cexp;
+
+    double btotcomp=b_tot.at(i)/cexp;
     cerr << "annulus i=" << i << endl;
     //==============================
     //  X12CO
@@ -660,14 +605,10 @@ cin.get();*/
     stick_spec_tot.col(i)=stick_spec_12CO.col(i)+stick_spec_13CO.col(i)+stick_spec_C18O.col(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
 
   }
-cout << stick_spec_tot << endl;
-cout << "^ stick_spec_tot" << endl;
-//cin.get();
-//  cerr << "Left loop!"  << endl;
-//cout << "stick_spec_tot:" << stick_spec_tot << endl;
+  
   annuli.at(0)=1e28;
   mat iten_tot=stick_spec_tot;
-  iten_tot.row(0)=iten_tot.row(0)*2.5;
+  iten_tot.col(0)=iten_tot.col(0)*2.5;
   mat Lum_tot = iten_tot;
 //cout << "iten_tot:" << iten_tot << endl;
 
@@ -711,9 +652,13 @@ cerr << "Slit loss.." << endl;
   {
     if (rdisk(i) < 0.1)    {
       dr(i)=0.01;
-    } else {
-    dr(i)=1.0;
-    }
+    } else 
+      {  if (rdisk(i) <0.1) {
+        dr(i)=1.0;
+      } else
+        { dr(i) = 1.0;
+        }
+      }
   }
 
   vec vmax = zeros<vec>(n_rings);
@@ -727,10 +672,7 @@ cerr << "Slit loss.." << endl;
 //  freq_index=where(freq, [] (double datum) {return (freq >= f_i) && (freq <= f_f);});     //these have already been done before.. redundant?
 
   mat total_spec=iten_tot;
-cout << "total_spec1:" << total_spec << endl;
   vec vel_spec=total_spec.col(0);
-cout << "vel_spec:" << vel_spec << endl;
-cerr << "END" << endl;
 
 //=======================
 
@@ -746,12 +688,11 @@ cerr << "END" << endl;
   vec fco_list = {2034.9211, 2034.7209, 2034.1352,2034.0473,2032.8701, 2032.8096, 2032.5616, 2032.2011, 2030.5160, 2030.3076, 2029.6559, 2029.4427, 2029.4297, 2029.3679, 2029.2362, 2029.1276};
   
   mat v_line_arr = zeros<mat>(20,freq.n_elem);
-cerr << "Loop.." << endl;
+
   for (int k=0; k<16; k++)
   {
     v_line_arr.row(k)=((fco_list.at(k)-freq)*2.9979e5/fco_list.at(k)).t();
   }
-cerr << "Loopdone." << endl;
 //lowj lines--skipped!
 
   mat v_line = zeros<mat>(num_lines,v_line0.n_elem);
@@ -772,7 +713,7 @@ cerr << "Loopdone." << endl;
 
   field <ivec> v_line_indices(22,1);
   field<vec> iten_lines(22,1);
-cerr << v_line.row(0) << endl;
+//cerr << v_line.row(0) << endl;
   v_line_indices(0 ,0) = whererow(v_line.row(0),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
   v_line_indices(1 ,0) = whererow(v_line.row(1),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
   v_line_indices(2 ,0) = whererow(v_line.row(2),  [] (double datum) {return ((datum > -15) && (datum < 15));}); 
@@ -799,7 +740,7 @@ cerr << v_line.row(0) << endl;
 
   for (int i=0; i<22; i++)
   {
-    cerr << "v_line_indices(" <<i<< ",0).n_elem:  " << v_line_indices(i,0).n_elem << endl;
+//    cerr << "v_line_indices(" <<i<< ",0).n_elem:  " << v_line_indices(i,0).n_elem << endl;
   }
 
   for (int i=0; i<22; i++)
@@ -810,7 +751,7 @@ cerr << v_line.row(0) << endl;
     for (int j=0; j<v_line_num; j++)
     {
       temp.row(j)=iten_tot.row(v_line_indices(i,0).at(j));
-cerr << "temp.row(" << j << "):  "  << temp.row(j) << endl;;
+//cerr << "temp.row(" << j << "):  "  << temp.row(j) << endl;;
     }
 //cin.get();
     iten_lines(i,0)=arma::sum(temp,0).t()*5.65e-3;
@@ -864,10 +805,8 @@ for (int i=0; i<22; i++)
 }
   for (int j=0; j<n_rings; j++)
   {
-cerr << j << endl;
     double n_seg=4*round(vmax.at(j))/dv;
 
-    //cerr << "n_seg" << n_seg << endl;
     
     grid.resize(grid.n_rows+n_seg,26);
 
@@ -895,13 +834,14 @@ cerr << j << endl;
     {
       phase.at(ii)=acos(vseg.at(ii)/vseg.at(0));
     }
-    cout << "vseg: " << vseg << endl;
-cout << "vmax: " << vmax << endl;
+//    cout << "vseg: " << vseg << endl;
+//cout << "vmax: " << vmax << endl;
 //    cout << "phase: " << phase << endl;
-    for (int ii=n_seg/2+1; ii <n_seg; ii++)
+    for (int ii=n_seg/2; ii <n_seg; ii++)
     {
       phase.at(ii)=2*3.1415926535897-acos(vseg(ii)/vseg(0));
     }
+
     vec dphase=zeros<vec>(n_seg);
     
     for (int i=1; i<n_seg-1; i++)
@@ -917,16 +857,21 @@ cout << "vmax: " << vmax << endl;
       for (int i=0; i< n_seg; i++)
       {
 	area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
+//cerr << area.at(i) << endl;
 //        cout << "dr.at(i):  " << dr.at(i) << " dphase.at(i):  " << dphase.at(i) << " rdisk.at(j):  " << rdisk.at(j) << endl;
 //        cout <<"interpol:" << interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq) << endl;
 //cout << "interpolvel_spec:" << vel_spec << endl;
 //cout << "area.at(i): " << area.at(i) << " vseg.at(i)*sin(inc):  " << vseg.at(i)*sin(inc) << endl; 
+
         vel_spec=vel_spec+interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
+//cerr << total_spec.col(j)*area.at(i) << endl;
+//cerr << "vel_Spec: "<< vel_spec << endl;
+//cin.get();
         grid.at(grid_ptr,0)=rdisk.at(j);
         grid.at(grid_ptr,1)=vseg.at(i);
         grid.at(grid_ptr,2)=phase.at(i);
         grid.at(grid_ptr,3)=area.at(i)*2.25e26;
-        for (int ii=4; ii<26; ii++) { cerr << "ii: " << ii << endl; grid.at(grid_ptr,ii)=iten_lines(ii-4,0)(j);}
+        for (int ii=4; ii<26; ii++) { grid.at(grid_ptr,ii)=iten_lines(ii-4,0)(j);}
         grid_ptr++;
       } 
     }
@@ -942,13 +887,9 @@ cout << "vmax: " << vmax << endl;
         grid.at(grid_ptr,3)=area.at(i)*2.25e26;
         for (int ii=4; ii<22; ii++) grid.at(grid_ptr,ii)=iten_lines(ii,0)(j);
         grid_ptr++;
-
       } 
     }
-//cout << "total_spec.col(j) before set:"  << total_spec.col(j) << endl;; 
     total_spec.col(j)=vel_spec;
-//cout << "total_spec.col(j) after set:"  << total_spec.col(j) << endl;
-//cin.get();
 
   }
 cerr << "OUT OF GRID LOOP" << endl;
@@ -960,7 +901,6 @@ cerr << "OUT OF GRID LOOP" << endl;
 grid.resize(grid.n_rows+11,26);
   for (int i=0; i<11;  i++)
   {
-cerr << i << endl;
     grid.at(grid_ptr,0)=r_planet;
     grid.at(grid_ptr,1)=v_planet+gs(i,0);
     grid.at(grid_ptr,2)=phase_planet;
@@ -973,9 +913,8 @@ cerr << i << endl;
     grid_ptr++;
   }
 
-  cerr << "grid_ptr:  " << grid_ptr << endl; 
+//  cerr << "grid_ptr:  " << grid_ptr << endl; 
   vec centroid = freq;
-cout << "grid:  " << grid << endl;
   centroid.fill(0);
   
   double omega=55*3.1415926535897/180;
@@ -984,10 +923,10 @@ cout << "grid:  " << grid << endl;
   
   vec gridrow=grid.col(1);
   double maxloop=2*gridrow.max();
-cerr << "maxloop:  " << maxloop << endl;
+//cerr << "maxloop:  " << maxloop << endl;
   for (int j=0; j<maxloop; j++)
   {
-    cerr << "j=" << j << endl;
+//    cerr << "j=" << j << endl;
     field <ivec> indexn(22,1);
     index1=where(grid.col(1), [&] (double datum) {return ((datum <= (max(grid.col(1)-j))) && ( datum > ( max(grid.col(1))-(j+1)) ) );});
    int index1n=index1.n_elem;
@@ -995,10 +934,10 @@ cerr << "maxloop:  " << maxloop << endl;
    {
      for (int k=0; k<22; k++)
      {
-       cerr << "loop k=" << k << endl;
+//       cerr << "loop k=" << k << endl;
        vec temp2=zeros<vec>(index1n);
-       cerr << "index1n: " << index1n << endl;
-       cerr << "index1: " << index1 << endl;
+//       cerr << "index1n: " << index1n << endl;
+//       cerr << "index1: " << index1 << endl;
 
        for (int i=0; i<index1n; i++)  {cerr << "i: "<<i << endl; temp2.at(i)=grid(index1.at(i),1);}
 
@@ -1035,7 +974,7 @@ cerr << "maxloop:  " << maxloop << endl;
 	}
       }
       vec deltay=rp%cos(theta+omega);
-      cout << "deltay:" << deltay << endl;
+  
       for (int i=4;i<22;i++)
       {
 //cerr << "i=" << i << endl;
@@ -1055,13 +994,13 @@ cerr << "maxloop:  " << maxloop << endl;
             tempv.at(q)=grid(index1.at(q),i)*grid(index1.at(q),3);
           }
 //cin.get();
-cout << "tempv: " << tempv << endl;
-cout << "indexn(i,0).at(k): " << indexn(i,0).at(k) << endl;
-cout << "num:" << arma::sum(tempv%deltay) << endl;
-cout << "tempv%deltay:" << tempv%deltay << endl;
-cout << "den:" << arma::sum(tempv+Lc) << endl;
+//cout << "tempv: " << tempv << endl;
+//cout << "indexn(i,0).at(k): " << indexn(i,0).at(k) << endl;
+//cout << "num:" << arma::sum(tempv%deltay) << endl;
+//cout << "tempv%deltay:" << tempv%deltay << endl;
+//cout << "den:" << arma::sum(tempv+Lc) << endl;
           centroid.at(indexn(i,0).at(k))=(arma::sum(tempv%deltay))/(arma::sum(tempv+Lc));
-          cout << "centroid.at(indexn(i,0).at(k): " << centroid.at(indexn(i,0).at(k)) << endl;
+//          cout << "centroid.at(indexn(i,0).at(k): " << centroid.at(indexn(i,0).at(k)) << endl;
         }
       }
     }
@@ -1071,10 +1010,13 @@ cerr << "ended j loop" << endl;
 vec final1_spec=arma::sum(total_spec,1);
 //cout << "total_spec_end:" << total_spec << endl;
 //cout << final1_spec << endl; 
+
   for (int j=0; j<n_rings; j++)
   {
     total_spec.col(j)=total_spec.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(total_spec.col(j));
   }
+//cerr << "total spec ncols nrows: " << total_spec.n_cols << " " << total_spec.n_rows << endl;
+
   vec final_spec=arma::sum(total_spec,1);
   vec inst_prof=final_spec;
   inst_prof.fill(0);
@@ -1086,7 +1028,13 @@ cout << "inst_prof:  "  << inst_prof;
 cout << "final_spec: "<< final_spec << endl;
 cerr << "FFT..." << endl;
 cout << "centroid:  " << centroid << endl;
+cerr << final_spec.n_elem << endl;
+cerr << inst_prof.n_elem << endl;
+cerr << centroid.n_elem << endl;
+cx_vec yomama = fft(final_spec)%fft(inst_prof);
+cerr << "dota" << endl;
   cx_vec conv_spec=ifft(fft(final_spec)%fft(inst_prof))/2;
+cerr << "hi" << endl;
   cx_vec cent_conv=ifft(fft(centroid)%fft(inst_prof));
 cerr << "Done!" << endl;
 cout << "conv_spec:  " << conv_spec << endl;
@@ -1160,7 +1108,6 @@ FitData::FitData(int numGuesses)
   }
   fin.close(); 
 
-  cout << "EinA:  " << einA << endl;
 
   fin.open("inc/lambda.txt");
   for ( auto& entry : lam_ang) {
@@ -1175,7 +1122,6 @@ FitData::FitData(int numGuesses)
   }
   fin.close();
  
-  cout << "wavenum:  " << wavenum << endl;
 
   fin.open("inc/HD100546_luminosity.txt");
   for (auto& entry : HD100546_luminosity) {
@@ -1183,8 +1129,7 @@ FitData::FitData(int numGuesses)
   }
   fin.close();
 
-  cout << "HD100546_luminosity:  " << endl;
-  cout << HD100546_luminosity << endl;
+
 //============================
 //     MOLECULAR DATA
 //===========================
@@ -1228,8 +1173,6 @@ FitData::FitData(int numGuesses)
 
   fin.close();
 
-//cerr << X12CO << endl;
-//cin.get();
 
   fin.open("CO_molecdat/X13CO");
   temp = zeros<mat>(7,3);
@@ -1289,18 +1232,15 @@ FitData::FitData(int numGuesses)
   this->randData[4]=FillArray(3500,1000);
   this->randData[5]=FillArray(50,20);
   this->randData[6]=FillArray(99, 1);
-cerr << "Ended randdata" << endl;
   for (int i=0; i < numGuesses; i++) {
     this->randData[5][i]=this->randData[5][i]/100;
   };
-cerr << "Printing randdata..." << endl;
 
  //print arrays for debugging purposes
   for (int c=0; c<7; c++)
   {
-    cout << "randData[" << c << "]:  ";
     for (int i=0; i<numGuesses; i++) {
-      cout << this->randData[c][i] << ' ' << endl ;
+//      cout << this->randData[c][i] << ' ' << endl ;
     }
   };
  
