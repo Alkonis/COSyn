@@ -61,6 +61,40 @@ namespace idlarma {
 
   template<typename cond>
 
+  ivec where(fvec data, cond lambda) {
+
+    int count=0;
+    int outputPointer=0;
+    ivec output = zeros<ivec>(data.size());
+
+    for (auto elem : data) 
+    {
+      if (lambda(elem)) {
+        output.at(outputPointer)=count;
+        outputPointer++; 
+      }
+      count++;
+    }
+
+
+    // Resize to the array of the size needed to support the indices.
+    // If no matches were found, then it will return an ivec of length 1 with value -1.
+    // Since -1 is an invalid index, this can be used to detect a match failure.    
+    if (outputPointer!=0) 
+    {
+      output.resize(outputPointer);
+    }
+    else
+    {
+      output.resize(1);
+      output.at(0)=-1;
+    }
+
+    return output;
+  }
+
+  template<typename cond>
+
   ivec whererow(rowvec data, cond lambda) {
     int count=0;
     int outputPointer=0;
@@ -149,6 +183,49 @@ namespace idlarma {
     }
 
     output=zeros<mat>(i_max,j_max);
+   
+    for (int i=0; i<i_max; i++)
+    {
+      for (int j=0; j<j_max; j++)
+      {
+        if (dim==1) {
+          output(i,j)=accu(input(span::all,span(i),span(j)));
+        } else if (dim==2) {
+	  output(i,j)=accu(input(span(i),span::all,span(j)));
+        } else if (dim==3) {
+          output(i,j)=accu(input(span(i),span(j),span::all));
+        }
+      }
+    }
+    return output;
+  }
+
+
+  
+  fmat totalDimf(fcube input, int dim)
+  {
+
+    fmat output;
+    
+    int i_max;
+    int j_max;
+
+    if (dim==1) {
+      i_max=input.n_cols;
+      j_max=input.n_slices;
+    } else if (dim==2) {
+      i_max=input.n_rows;
+      j_max=input.n_slices;
+    } else if (dim==3) {
+      i_max=input.n_rows;
+      j_max=input.n_cols;
+    } else {
+      output << 0 << 0 << endr
+             << 0 << 0 << endr;
+      return output;
+    }
+
+    output=zeros<fmat>(i_max,j_max);
    
     for (int i=0; i<i_max; i++)
     {
@@ -268,16 +345,18 @@ skip1:
 
   vec shift(vec input, int offset)
   {
+
     int siz = input.n_elem;
+
     vec output = zeros<vec>(siz);
 
-    int index;
+    int index=0;
 
     for (int i=0; i<siz; i++)
     {
       index=i+offset;
-      if (index > siz) index-=siz;
-      if (index < 0) index+=siz;
+      if (index >= siz) index-=siz;
+      if (index < 0  ) index+=siz;
       output(index)=input(i);
     }
     

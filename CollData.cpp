@@ -6,29 +6,29 @@ public:
  int layers;
  int steps;
 
- cube dFdt_0;
- cube tau_0;
- cube dwdn;
- cube Nv;
+ fcube dFdt_0;
+ fcube tau_0;
+ fcube dwdn;
+ fcube Nv;
  
  field<cube> rate_eqtn;
  field<cube> rate_eqtn2;
- field<cube> g;
+ field<fcube> g;
 
   CollData(int layers, int steps)  {
 
-  dFdt_0 = zeros<cube>(10,12,layers);
-  tau_0  = zeros<cube>(10,12,layers);
-  dwdn   = zeros<cube>(10,12,layers);
-  Nv     = zeros<cube>(21,layers,steps);
+  dFdt_0 = zeros<fcube>(10,12,layers);
+  tau_0  = zeros<fcube>(10,12,layers);
+  dwdn   = zeros<fcube>(10,12,layers);
+  Nv     = zeros<fcube>(21,layers,steps);
 
   rate_eqtn = field<cube>(steps,1);       
   rate_eqtn2 = field<cube>(steps,1);
-  g=field<cube>(10,1);                                                                                                                 
+  g=field<fcube>(10,1);                                                                                                                 
                                                                                                                                        
   for (int i=0; i<10; i++)                                                                                                             
   {                                                                                                                                    
-    g.at(i,0)=zeros<cube>(12,layers,steps);                                                                                            
+    g.at(i,0)=zeros<fcube>(12,layers,steps);                                                                                            
   }                                                                                                                                    
   for (int i=0; i<steps; i++)                                                                           
   {                                                                                                                                    

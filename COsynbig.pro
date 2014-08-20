@@ -379,12 +379,7 @@ skip_coll:
 
 		dWdN(*,*,j)=dfdt_0(*,*,j)*.02654*2.0*(lam_ang*1e-4)*(lam_ang*1e-8)*fXA/(SQRT(!pi)*c*1e5)
 		g(*,*,j,k)=dWdN(*,*,j)*!pi*Fuv/(hc*wavenum)
-;print,,j,k)
-
-;if dfdt_0(0,0,j) EQ 0 then begin
-;print,j
-;read,x,prompt="?"
-;endif
+    
 		;now add g-factors:
                 rate_eqtn(0,0,j,k)=rate_eqtn(0,0,j,k)-TOTAL(g(*,0,j,k),1) ;sum of all
                                                         ;transitions from v=0 
@@ -402,7 +397,11 @@ skip_coll:
 		z=fltarr(21) & z(*)=0.0 & z(20)=1.0 	;"solution" to system 
 							;of equations
 		Nv(*,j,k)=SVSOL(u, w, v, z, /DOUBLE) 	;these are the relative
-							; populations
+if k gt 0 then begin 
+print,g(*,*,j,k)
+;print,Nv(*,j,k)
+read,x,prompt="g"					; populations
+endif
 		Nv_index=WHERE(Nv(*,j,k) LT 0.)
 		IF (Nv_index(0) NE -1) THEN Nv(Nv_index,j,k)=double(0)
 
@@ -437,7 +436,16 @@ ENDIF
 ;we assume the flux there is nearly normal
 
 ENDFOR ; END OF COLL LOOP
+print,mean(Nv_coll)
+print,total(Nv_coll)
+print,mean(Nv_nocoll)
+print,total(Nv_nocoll)
 
+print, "       "
+print,mean(tot_col_fluor)
+print,mean(tot_col_fluor_nocoll)
+
+read,x,prompt="?" 
 
 ;now correct for angle of incidence of light onto disk
 ;H(r)=SQRT(kTR^3/mum_H*GMstar)=5.59647E-10*SQRT(T/(Mstar/Msun))*R^3/2
@@ -542,8 +550,6 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 	Jdn =X12CO(j,1,*)
 	wvn =X12CO(j,6,*)
 	EinA=X12CO(j,4,*)	
-;      print,tot_col_fluor(j+1,i)
-;read,x,prompt='tot_col_fluor(j+1,i)'
 		N_12CO_vJ(*,j,i)=tot_col_fluor(j+1,i)*(2*Jup+1.) $
 				*exp(-hck*Bv12(j)*Jup*(Jup+1)/T_rot_fl(i)) $
 				/(T_rot_fl(i)/(hck*Bv12(j))) $
@@ -551,16 +557,6 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 				*exp(-hck*Bv12(j)*Jup*(Jup+1)/T_rot_cl(i)) $
 				/(T_rot_cl(i)/(hck*Bv12(j)))
 		
-;print,tot_col_fluor(j+1,i)
-;print,"---------------"
-;print,Jup
-;print,"--------"
-;print,N_12CO_vJ(*,j,i)
-;print,Jup
-;print,Jdn
-;print,wvn
-;print,EinA
-;read,x,prompt="tot_col_fluor(j+1,i)----Jup"
 	ENDFOR
 
 ;Second do 13CO	
@@ -575,10 +571,10 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 ;                                + (tot_col_coll(j+1,i)/X12CO_13CO_cl)*(2*Jup+1.) $
 ;				*exp(-hck*Bv13(j)*Jup*(Jup+1)/T_rot_cl(i)) $
 ;				/(T_rot_cl(i)/(hck*Bv13(j)))
+
 ;print,N_13CO_vJ(*,j,i)
 ;print,tot_col_fluor_nocoll(j+1,i)
-
-;read,x,prompt="N_13COvj"
+;read,x,prompt="???"
 	ENDFOR
 
 ;Third do C18O
@@ -594,9 +590,6 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 ;				*exp(-hck*Bv18(j)*Jup*(Jup+1)/T_rot_cl(i)) $
 ;				/(T_rot_cl(i)/(hck*Bv18(j)))
 
-;print,tot_col_fluor_nocoll(j+1,i)
-;print,N_C18O_vJ(*,j,i)
-;read,x,prompt="N_C18O"
 	ENDFOR
 ENDFOR
 
@@ -638,21 +631,7 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 		  	   A0=N_12CO_vJ(k,j,i)*hc*wvn(k)*EinA(k)
 			   A1=wvn(k)
 			   A2=b_tot(i)*wvn(k)/(c*1e5)
-;print,n_12co_vj(k,j,i)
-;print,a0
-;print,a1
-;print,a2
-
-;read,x,prompt="n_12co_vj(k.j,i),a0,a1,a2"
-;print,-((a1-freq)/a2)^2
-;read,x,prompt="inexp"
-;print,exp(-((A1-freq)/A2)^2)
-;read,x,prompt="exp"
 			   stick_spec_12CO(*,i)=stick_spec_12CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)	
-;print,exp(-((A1-freq)/A2)^2)
-;read,x,prompt="exp factor:"
-;print,stick_Spec_12CO(*,i)
-;read,x,prompt="stick_Spec_12co(*,i)"
 			ENDIF
 
 		ENDFOR
@@ -672,14 +651,6 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 			   stick_spec_13CO(*,i)=stick_spec_13CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)
 
 
-;print,n_13co_vj(k,j,i)
-;print,a0
-;print,a1
-;print,a2
-;
-;read,x,prompt="n_13co_vj(k.j,i),a0,a1,a2"
-;print,-((a1-freq)/a2)^2
-;read,x,prompt="inexp"
 			ENDIF
 		ENDFOR
 	ENDFOR
@@ -703,8 +674,6 @@ stick_spec_tot(*,i)=(stick_spec_12CO(*,i)+stick_spec_13CO(*,i)+stick_spec_C18O(*
 ENDFOR
 
 
-print,stick_spec_tot
-read,x,prompt="stick_Spec_tot"
 ;annuli(0)=annuli(0) ; Area of inner wall of H/R=.35 disk at 13AU
 annuli(0)=1d28 ; Projected area of inner wall at 13AU
 Iten_tot=stick_spec_tot
@@ -879,10 +848,6 @@ iten_line19=TOTAL(Iten_tot(v_line_index19,*),1)*5.65e-3
 iten_line20=TOTAL(Iten_tot(v_line_index20,*),1)*5.65e-3
 iten_line21=TOTAL(Iten_tot(v_line_index21,*),1)*5.65e-3
 
-;print,size(iten_line0)
-;help,freq
-;print,size(freq)
-;read,x,prompt="?"
 gs=FLTARR(2,11)
 gs(0,*)=FINDGEN(11)-5.0 ; [-5,-4,-3,-2,-1,0,1,2,3,4,5]
 gs(1,*)=exp(-gs(0,*)^2/(12./1.665)^2)/TOTAL(exp(-gs(0,*)^2/(6./1.665)^2))
@@ -928,8 +893,6 @@ FOR j=0,n_rings-1 DO BEGIN
 			vel_spec=vel_spec+interpol(total_spec(*,j)*area(i), $
                                                    freq+vseg(i)*sin(inc)*freq/c,freq)	
       
-;print,vel_spec
-;read,x,prompt="vel_spec  ^ "
                         grid=[[grid],[rdisk(j),vseg(i),phase(i),area(i)*2.25d26, $
                              iten_line0(j),iten_line1(j),iten_line2(j),iten_line3(j),iten_line4(j),iten_line5(j),iten_line6(j), $
                              iten_line7(j),iten_line8(j),iten_line9(j),iten_line10(j),iten_line11(j),iten_line12(j),iten_line13(j), $
@@ -999,15 +962,28 @@ GOTO, skip_line_prof2
                                       gs(1,10)*iten_line1(j),gs(1,10)*iten_line2(j),gs(1,10)*iten_line3(j),gs(1,10)*iten_line4(j),gs(1,10)*iten_line5(j)]]
 skip_line_prof2:
 		ENDFOR
+
 	ENDELSE
 
+;print,"dphase:"
+;print,dphase
+;print,"area:"
+;print,area
+;read,x,prompt="dphase,area"
 total_spec(*,j)=vel_spec
 
 ENDFOR ;end of ring
+
+;print,"ADFFFFFFFFEEAFAEFEAFEAF"
+;read,x,prompt="PRESS ENTER MOFUCKA"
+;print,"Total_spec after rings:"
+;print,total_spec
+;read,x,prompt="total_spec post ring"
 index_grid=WHERE(grid(0,*) LE rdisk(0) AND grid(0,*) GT 0. AND grid(2,*) GT !pi) ;Elements of inner ring Not part of the wall... Will make all of these areas = 0.
 ;index_grid=WHERE(grid(0,*) EQ rdisk(0)) ;try without inner wall
 grid(3,index_grid)=0.0;,WHERE(grid(0,*) LT 14. AND grid(0,*) GT 0. AND grid(2,*) GT !pi))
-
+;print,index_grid
+;read,x,prompt="index_grid"
 ;Now plop a planet into the inner rim
 ;Let's assume the gas is gaussian and FWHM=3km/s and sigma=1.9km/s
 ;v0=6km/s = 30%
@@ -1067,10 +1043,13 @@ Lc=5.13D-23*2.9979247e10*4.*!pi*(103.*3.08d18)^2*(.05/1.16) ;this is the luminos
 FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
    index1=WHERE(grid(1,*) LE MAX(grid(1,*))-j AND grid(1,*) GT MAX(grid(1,*))-(j+1),vel_count)
 ;print,index1
+;read,x,prompt="index1"
 ;print,"-----------------"
 ;print,2*max(grid(1,*))
 ;read,x,"index1, maxloop^"
    IF vel_count EQ 0 THEN GOTO, no_vel_elements
+print,"MEAN:"
+print,mean(grid(1,index1))
    i0=WHERE(v_line0 GT MEAN(grid(1,index1))-0.5 $
              AND v_line0 LE MEAN(grid(1,index1))+0.5,count0)
    i1=WHERE(v_line1 GT MEAN(grid(1,index1))-0.5 $
@@ -1115,18 +1094,22 @@ FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
              AND v_line(*,20) LE MEAN(grid(1,index1))+0.5,count20)
    i21=WHERE(v_line(*,21) GT MEAN(grid(1,index1))-0.5 $
              AND v_line(*,21) LE MEAN(grid(1,index1))+0.5,count21)
-;print,count0
-;print,count1
-;print,count2
-;print,count3
-;print,count4
-;print,count5
-;print,count6
-;print,count7
-;print,count8
-;print,count9
-;read,x,prompt="counts^"
+;print,"i0"
+;print,i0
+;print,"i1:"
+;print,i1
+;print,"i2"
+;print,i2
+;print,"i3:"
+;print,i3
 
+;print,"index1"
+;print,index1
+;read,x,prompt="indices"
+;print,v_line0
+;print,v_line1
+;print,v_line2
+;read,x,prompt="v_lines"
 ;Delta(y) is the projection of the velocity element along the axis of
 ;the slit. rp is the projected distance from the star to the disk on
 ;teh plane of the sky so that rp=ra*SQRT(cos(phase)^2+sin(phase)^2*cos(inc)^2)
@@ -1151,6 +1134,109 @@ FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
 
    centroid(i0)=TOTAL(grid(4,index1)*grid(3,index1)*deltay) $
                 /(TOTAL(grid(4,index1)*grid(3,index1))+Lc)
+
+;print,"grid(4,index1): "
+;print,grid(4,index1)
+;print,"grid(3,index1): " 
+;print,grid(3,index1)
+;print,"centroid:"
+;  print,TOTAL(grid(4,index1)*grid(3,index1)*deltay) $
+;               /(TOTAL(grid(4,index1)*grid(3,index1))+Lc)
+
+;print,"deltay:"
+;print,deltay
+;print,"grid4"
+;print,grid(4,index1)
+;print,"grid3"
+;print,grid(3,index1)
+;print,"tempv"
+;print,grid(4,index1)*grid(3,index1)
+;read,x,prompt="centroid"
+;
+;print,i1
+;read,x,prompt="i1"
+;
+;print,i2
+;read,x,prompt="i2"
+;
+;
+;print,i3
+;read,x,prompt="i2"
+;
+;print,i3
+;read,x,prompt="i3"
+;
+;
+;print,i4
+;read,x,prompt="i4"
+;
+;
+;print,i5
+;read,x,prompt="i5"
+;
+;
+;print,i6
+;read,x,prompt="i6"
+;
+;print,i7
+;read,x,prompt="i7"
+;
+;print,i8
+;read,x,prompt="i8"
+;
+;print,i9
+;read,x,prompt="i9"
+;
+;print,i10
+;read,x,prompt="i10"
+;
+;print,i10
+;read,x,prompt="i10"
+;
+;
+;print,i11
+;read,x,prompt="i11"
+;
+;
+;print,i12
+;read,x,prompt="i12"
+;
+;
+;print,i13
+;read,x,prompt="i13"
+;
+;
+;print,i14
+;read,x,prompt="i14"
+;
+;
+;print,i15
+;read,x,prompt="i15"
+;
+;
+;print,i16
+;read,x,prompt="i16"
+;
+;
+;print,i17
+;read,x,prompt="i17"
+;
+;
+;print,i18
+;read,x,prompt="i18"
+;
+;
+;print,i19
+;read,x,prompt="i19"
+;
+;
+;print,i20
+;read,x,prompt="i20"
+;
+;
+;print,i21
+;read,x,prompt="i21"
+
    centroid(i1)=TOTAL(grid(5,index1)*grid(3,index1)*deltay) $
                 /(TOTAL(grid(5,index1)*grid(3,index1))+Lc)
    centroid(i2)=TOTAL(grid(6,index1)*grid(3,index1)*deltay) $
@@ -1195,23 +1281,28 @@ FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
             /(TOTAL(grid(25,index1)*grid(3,index1))+Lc)
 no_vel_elements:
 ENDFOR   
-
-read,x,prompt="enter for centroid:"
-print,centroid
-read,x,prompt="centroid above"
-FOR j=0,n_rings-1 DO total_spec(*,j)=total_spec(*,j)* $
-            total(flux_tot_slit(*,j))/total(total_spec(*,j))
+FOR j=0,n_rings-1 DO begin total_spec(*,j)=total_spec(*,j)* total(flux_tot_slit(*,j))/total(total_spec(*,j))
+endfor
 
 final_spec=total(total_spec,2)
+;print,final_spec
+;read,x,prompt="final_spec"
 inst_prof=final_spec
 inst_prof(*)=0.
 inst_prof=exp(-(vfreq)^2/(inst_res/1.665)^2)
 inst_prof=SHIFT(inst_prof,FIX(N_ELEMENTS(vfreq)/2.))
+print,"inst_prof before/after:"
+print,total(inst_prof)
 inst_prof=inst_prof/total(inst_prof) 			;normalize profile
+print,total(inst_prof)
+read,x,prompt="?";
 conv_spec=FFT(FFT(final_spec)*FFT(inst_prof),1)/2.	;account for reflection in FFT
 cent_conv=FFT(FFT(centroid)*FFT(inst_prof),1)
 cent_conv=cent_conv*total(abs(centroid))/total(abs(cent_conv))
 conv_spec=conv_spec*total(flux_tot_slit)/total(conv_spec)
+openw,2,"grididl.txt"
+printf,2,grid
+close,2
 
 print,"cent_conv"
 print,cent_conv
