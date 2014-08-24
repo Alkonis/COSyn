@@ -29,7 +29,7 @@ class FitData{
   static constexpr double mass = 2.4;
   static constexpr double H_den0 =2.5e10;
   static constexpr double H_den_alpha=.10;
-  static constexpr double inc = 40 * 3.14159265358979323 / 180;
+  static constexpr double inc = 40 * datum::pi / 180;
   static constexpr double X12CO_13CO_fl = 65./30;
   static constexpr double X12CO_C18O_fl = 550./16.25;
   static constexpr double X12CO_13CO_cl = 65.;

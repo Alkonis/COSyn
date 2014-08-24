@@ -271,9 +271,6 @@ endfor
 
 
 
-
-
-
 ;;;;;;;;;;;;;;;;
 ;;;; STEP 6 ;;;;
 ;;;;;;;;;;;;;;;;
@@ -397,11 +394,6 @@ skip_coll:
 		z=fltarr(21) & z(*)=0.0 & z(20)=1.0 	;"solution" to system 
 							;of equations
 		Nv(*,j,k)=SVSOL(u, w, v, z, /DOUBLE) 	;these are the relative
-if k gt 0 then begin 
-print,g(*,*,j,k)
-;print,Nv(*,j,k)
-read,x,prompt="g"					; populations
-endif
 		Nv_index=WHERE(Nv(*,j,k) LT 0.)
 		IF (Nv_index(0) NE -1) THEN Nv(Nv_index,j,k)=double(0)
 
@@ -441,11 +433,9 @@ print,total(Nv_coll)
 print,mean(Nv_nocoll)
 print,total(Nv_nocoll)
 
-print, "       "
 print,mean(tot_col_fluor)
 print,mean(tot_col_fluor_nocoll)
 
-read,x,prompt="?" 
 
 ;now correct for angle of incidence of light onto disk
 ;H(r)=SQRT(kTR^3/mum_H*GMstar)=5.59647E-10*SQRT(T/(Mstar/Msun))*R^3/2
@@ -574,6 +564,8 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 
 ;print,N_13CO_vJ(*,j,i)
 ;print,tot_col_fluor_nocoll(j+1,i)
+;print,tot_col_fluor(j+1,i)
+;print,tot_col_coll(j+1,i)
 ;read,x,prompt="???"
 	ENDFOR
 
@@ -631,10 +623,12 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 		  	   A0=N_12CO_vJ(k,j,i)*hc*wvn(k)*EinA(k)
 			   A1=wvn(k)
 			   A2=b_tot(i)*wvn(k)/(c*1e5)
-			   stick_spec_12CO(*,i)=stick_spec_12CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)	
+			   stick_spec_12CO(*,i)=stick_spec_12CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)
+                           if i EQ 0 then print,stick_spec_12CO(6207,0)	
 			ENDIF
 
 		ENDFOR
+;              read,x,prompt="?"
 
 	ENDFOR
 
@@ -670,6 +664,10 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 		ENDFOR
 	ENDFOR
 
+;print,stick_spec_C18O(6207,i)
+;print,stick_spec_13CO(6207,i)
+;print,stick_spec_12CO(6207,i)
+;read,x,prompt="?"
 stick_spec_tot(*,i)=(stick_spec_12CO(*,i)+stick_spec_13CO(*,i)+stick_spec_C18O(*,i))
 ENDFOR
 
@@ -1048,8 +1046,8 @@ FOR j=0,2.*MAX(grid(1,*)) DO BEGIN;vmax(0) DO BEGIN
 ;print,2*max(grid(1,*))
 ;read,x,"index1, maxloop^"
    IF vel_count EQ 0 THEN GOTO, no_vel_elements
-print,"MEAN:"
-print,mean(grid(1,index1))
+;print,mean(grid(1,index1))
+;read,x,prompt="MEAN"
    i0=WHERE(v_line0 GT MEAN(grid(1,index1))-0.5 $
              AND v_line0 LE MEAN(grid(1,index1))+0.5,count0)
    i1=WHERE(v_line1 GT MEAN(grid(1,index1))-0.5 $
@@ -1109,7 +1107,7 @@ print,mean(grid(1,index1))
 ;print,v_line0
 ;print,v_line1
 ;print,v_line2
-;read,x,prompt="v_lines"
+;read,x,prompt="index1"
 ;Delta(y) is the projection of the velocity element along the axis of
 ;the slit. rp is the projected distance from the star to the disk on
 ;teh plane of the sky so that rp=ra*SQRT(cos(phase)^2+sin(phase)^2*cos(inc)^2)
@@ -1140,8 +1138,15 @@ print,mean(grid(1,index1))
 ;print,"grid(3,index1): " 
 ;print,grid(3,index1)
 ;print,"centroid:"
+
 ;  print,TOTAL(grid(4,index1)*grid(3,index1)*deltay) $
 ;               /(TOTAL(grid(4,index1)*grid(3,index1))+Lc)
+;print, " ----------------- " 
+;  print,TOTAL(grid(4,index1)*grid(3,index1)*deltay) $
+;               /(TOTAL(grid(4,index1)*grid(3,index1))+Lc)
+
+;read,x,prompt="centroid"
+
 
 ;print,"deltay:"
 ;print,deltay
@@ -1151,8 +1156,10 @@ print,mean(grid(1,index1))
 ;print,grid(3,index1)
 ;print,"tempv"
 ;print,grid(4,index1)*grid(3,index1)
-;read,x,prompt="centroid"
 ;
+;print,i0
+;read,x,prompt="i0"
+
 ;print,i1
 ;read,x,prompt="i1"
 ;
@@ -1233,7 +1240,7 @@ print,mean(grid(1,index1))
 ;print,i20
 ;read,x,prompt="i20"
 ;
-;
+;;
 ;print,i21
 ;read,x,prompt="i21"
 
@@ -1283,7 +1290,8 @@ no_vel_elements:
 ENDFOR   
 FOR j=0,n_rings-1 DO begin total_spec(*,j)=total_spec(*,j)* total(flux_tot_slit(*,j))/total(total_spec(*,j))
 endfor
-
+notzero=where(centroid NE 0)
+print,size(notzero)
 final_spec=total(total_spec,2)
 ;print,final_spec
 ;read,x,prompt="final_spec"

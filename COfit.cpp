@@ -11,10 +11,12 @@
 
 //To do:  Fix transposition (later)
 //        benchmark rate_eqtn solving
-//        Properly skip fluorcalc, etc
+
 //        add input file
 //        fix g-factors (?)
 //        fix grid
+
+
 
 using namespace std;
 using namespace idlarma;FitData* data;
@@ -103,14 +105,6 @@ int FitData::runTrial() {
 
   for (auto j=0; j<steps; j++) 
   {
-    d->rate_eqtn.at(j,0)(span(1),span(0),span::all).fill(vib_einA[0]);   
-    d->rate_eqtn.at(j,0)(span(10),span(10),span::all).fill(-vib_einA[9]); 
-
-    for (auto i=0; i<9; i++)
-    {
-      d->rate_eqtn.at(j,0)(span(i+11),span(i+11),span::all).fill(-sum(einA.row(i)));
-    }
-   
 
     for (int z=0; z<9; z++)
     {
@@ -121,12 +115,25 @@ int FitData::runTrial() {
       }
     }
    
-    for (int q=0; q<layers; q++)
+    d->rate_eqtn.at(j,0)(span(1),span(0),span::all).fill(vib_einA[0]);   
+    d->rate_eqtn.at(j,0)(span(10),span(10),span::all).fill(-vib_einA[9]); 
+
+    for (auto i=0; i<9; i++)
     {
-      d->rate_eqtn.at(j,0).subcube(span(1),span(0),span::all).fill(vib_einA[0]);  //1,0,all,k
-      d->rate_eqtn.at(j,0).subcube(span(9),span(9),span::all).fill(-vib_einA[8]);  //9,9,all,k
+      d->rate_eqtn.at(j,0)(span(i+11),span(i+11),span::all).fill(-sum(einA.row(i)));
     }
-   
+  }
+
+  for (auto j=0; j<steps; j++)
+  {
+    for (int i=0; i<8; i++)
+    {
+      d->rate_eqtn.at(j,0).subcube(span(i+1),span(i+1),span::all).fill(-vib_einA[i]);
+      d->rate_eqtn.at(j,0).subcube(span(i+2),span(i+1),span::all).fill(vib_einA[i+1]);
+    } 
+
+    d->rate_eqtn.at(j,0).subcube(span(1),span(0),span::all).fill(vib_einA[0]);
+    d->rate_eqtn.at(j,0).subcube(span(9),span(9),span::all).fill(-vib_einA[8]);
   }
 
   d->rate_eqtn2=d->rate_eqtn;   //Clone colldata for the second pass without collisions
@@ -146,18 +153,18 @@ int FitData::runTrial() {
 
   T_rot_cl=T_rot0_cl * pow((1.496E13/rdisk), T_rot_alpha_cl);
   H_den=H_den0 * pow((1.496E13/rdisk),H_den_alpha);
-  T_rot_index = where(T_rot_cl, [] (double datum) {return datum > 3500;});
+  T_rot_index = where(T_rot_cl, [] (double datum) {return datum >= 3500;});
   if (T_rot_index.at(0) != -1) {
     for (auto elem : T_rot_index)
     {
       T_rot_cl[elem]=3500;
     }
   }
-cout << "T_rot_cl: " << T_rot_cl << endl;
-cout << "T_rot_fl: " << T_rot_fl << endl;
+//cout << "T_rot_cl: " << T_rot_cl << endl;
+//cout << "T_rot_fl: " << T_rot_fl << endl;
     vec b_tot = sqrt(2*1.38e-16*6.02e23*T_rot_fl/28 + pow(v_turb,2));
    fvec b_tot2 = sqrt(2*1.38e-16*6.02e23*conv_to<fvec>::from(T_rot_fl)/28 + pow(v_turb,2));
-cout << "b_tot diff:  "<< b_tot-b_tot2 << endl;
+//cout << "b_tot diff:  "<< b_tot-b_tot2 << endl;
 
 if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 
@@ -170,7 +177,6 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
     float n = 1000;
     float a = 0;
     float b = 5;
-
     float delta=(b-a)/n;
 
     for (int i=0; i<2000; i++) 
@@ -251,7 +257,7 @@ for (int zz=0; zz<10; zz++) {d->g.at(zz,0).fill(0);}
 	   {
 	     for (int i=0; i<10; i++)
 	     {
-	      d->tau_0.subcube(span(i),span::all,span(j))=7.55858e12 * 0.02654 * conv_to<fvec>::from(arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),1));// % conv_to<fvec>::from(fXA.submat(span(i),span::all).t()) % conv_to<fvec>::from(lam_ang.submat(span(i),span::all).t())*1e-8/(sqrt(datum::pi)*b_tot2[k]);
+	      d->tau_0.subcube(span(i),span::all,span(j))=7.55858e12 * 0.02654 * conv_to<fvec>::from(arma::sum(d->Nv.slice(k).submat(span(0,11),span(0,j)),1)) % conv_to<fvec>::from(fXA.submat(span(i),span::all).t()) % conv_to<fvec>::from(lam_ang.submat(span(i),span::all).t())*1e-8/(sqrt(datum::pi)*b_tot2[k]);
 
 	     }
 	   }
@@ -282,19 +288,17 @@ for (int zz=0; zz<10; zz++) {d->g.at(zz,0).fill(0);}
 
 	   }
 
-	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (lam_ang*1e-4) % (lam_ang*1e-8) % fXA/(sqrt(datum::pi)*c*1e5);
-mat temp3 = zeros<mat>(10,12);
+	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (conv_to<fmat>::from(lam_ang)*1e-4) % (conv_to<fmat>::from(lam_ang)*1e-8) % conv_to<fmat>::from(fXA)/(sqrt(datum::pi)*c*1e5);
 	   for (int ii=0; ii<10; ii++) 
 	   {
-	     d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * datum::pi  % Fuv.row(ii) / (hc * wavenum.row(ii))).t();  //check this to be sure the constants are filling in right...
-temp3.row(ii)=d->g.at(ii,0).slice(k).col(j).t();
+	     d->g.at(ii,0).slice(k).col(j) = (d->dwdn.slice(j).row(ii) * datum::pi  % conv_to<frowvec>::from(Fuv.row(ii)) / (hc * conv_to<frowvec>::from(wavenum.row(ii)))).t();  //check this to be sure the constants are filling in right...
            }
 
 //=======================
 //  Add in G-factors
 //======================
 
-	   gsum=0;
+	   float gsum=0;
 
 	   for (int ii=0; ii<10; ii++)
 	   { 
@@ -333,7 +337,7 @@ temp3.row(ii)=d->g.at(ii,0).slice(k).col(j).t();
 //	   cout << d->rate_eqtn.at(k,0).slice(j).t();}
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 if (k>0){
-mat temp = zeros<mat>(10,12);
+fmat temp = zeros<fmat>(10,12);
 for (int zz=0; zz<10; zz++)
 {temp.row(zz)=d->g.at(zz,0).slice(k).col(j).t();}
 cout << "  " << endl;
@@ -372,7 +376,7 @@ cerr << "tot_col_fluor mean: " << arma::mean(arma::mean(tot_col_fluor));
 cerr << "tot_col_fluor_nocoll mean: " << arma::mean(arma::mean(tot_col_fluor_nocoll));
 //cout << "tot_col_fluor: " << tot_col_fluor << endl;
 //cout << "tot_col_fluor_nocoll: " << tot_col_fluor_nocoll << endl;
-cin.get();
+//cin.get();
 
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
@@ -463,7 +467,9 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
 
 
 //cerr << N_13CO_vj.slice(i).row(j) << endl;
-//cerr << "tot_col_fluor_nocoll.at(i,j+1)" << tot_col_fluor_nocoll.at(i,j+1) << endl;
+//cerr << "tot_col_fluor_nocoll.at(i,j+1):  " << tot_col_fluor_nocoll.at(i,j+1) << endl;
+//cerr << "tot_col_fluor: " << tot_col_fluor.at(i,j+1) << endl;
+//cerr << "tot_col_coll: " << tot_col_coll.at(i,j+1) << endl;
 //cin.get(); 
  }
 
@@ -522,7 +528,6 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
   //======================
   //  X12CO
   //=====================
-
   for (int i=0; i<steps; i++)  //Loop over annuli
   {
 
@@ -544,22 +549,12 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
 	if ( (A1 >= f_i) && (A1 <= f_f) )
 	{
 
-//cerr << "i,j,k:  " << i << " " << j << " " << k << endl;
 	  A0=N_12CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
 	  A2=btotcomp*A1;
 	  stick_spec_12CO.col(i)+=(A0/(rpi*A2)) * exp (-pow(((A1-freq)/A2),2));
-
-/*cerr << "N12CO_vj.at(j,k,i):  " << N_12CO_vj.at(j,k,i) << endl;;
-cerr << "A1:  "<< A1 << endl;
-cerr << "A0:  "<< A0 << endl;
-cerr << "A2:  " << A2 << endl;
-cerr <<"calc coeff:  " << (A0/(rpi*A2)) << endl;
-cin.get();*/
 	}
       }
     }
-//cout << stick_spec_12CO.col(i) << endl;
-//cout << "stick_spec_12CO.col(i)" << i << endl;
     //==============================
     //  X13CO
     //==============================
@@ -581,23 +576,12 @@ cin.get();*/
 	    A2=btotcomp*A1;
 	    stick_spec_13CO.col(i)+=(A0/(rpi*A2)) * exp(-pow(((A1-freq)/A2),2));
 
-/*cerr << "A0: " << A0 << endl;
-cerr << "A1:  " << A1 << endl;
-cerr<< "A2:  " << A2 <<  endl;
-cerr << "exp:  " << exp(-pow(((A1-freq)/A2),2)) << endl;
-//cerr << "inexp: " << -pow(((A1-freq)/A2),2) << endl;
-cerr << "coeff:  "  << A0/(rpi*A2) << endl; 
-cin.get();*/
           }
-
-//cout << "N_13CO_vj.at( " << j << "," << k << "," << i << "):  " << N_13CO_vj.at(j,k,i) << endl;
       }    
     }
-//cout << stick_spec_13CO.col(i) << endl;
-//cout << "stick_spec_13CO.col(i)" << i << endl;
     //=============================
     //  XC180
-    
+    //============================ 
      
       Jup = XC18O(span(0),span(3),span::all);
       Jdn = XC18O(span(0),span(1),span::all);
@@ -609,15 +593,17 @@ cin.get();*/
           A1=wvn.at(k);
           if ((A1 >= f_i) && (A1 <= f_f))
           {
-	    A0=N_13CO_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
+	    A0=N_C18O_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
 	    A2=btotcomp*A1;
 	    stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp(-pow(((A1-freq)/A2),2));
-
-
           }
       }
 
-
+/*if (i==0)
+{ cerr << stick_spec_C18O.at(6207,0) << endl;
+cerr << stick_spec_13CO.at(6207,0) << endl;
+cerr << stick_spec_12CO.at(6207,0) << endl;
+cin.get();}*/
 
     stick_spec_tot.col(i)=stick_spec_12CO.col(i)+stick_spec_13CO.col(i)+stick_spec_C18O.col(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
 
@@ -756,8 +742,9 @@ cerr << "Slit loss.." << endl;
   v_line_indices(20,0) = whererow(v_line.row(20), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
   v_line_indices(21,0) = whererow(v_line.row(21), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
 
-  cout << "v_line_indices(21,0):  " << v_line_indices(21,0) << endl;
 
+cerr << "v_line_indices(16,0): " << v_line_indices(16,0) << endl;
+cin.get();
 // ITEN LINES
 
   for (int i=0; i<22; i++)
@@ -769,12 +756,13 @@ cerr << "Slit loss.." << endl;
     {
       temp.row(j)=iten_tot.row(v_line_indices(i,0).at(j));
     }
-
+if (i==16) cout <<"temp:  " <<  temp.t() << endl;
     iten_lines(i,0)=arma::sum(temp,0).t()*5.65e-3;
-
+cout << "iten_lines(" << i << ",0): " << endl;
+iten_lines(i,0).raw_print()
+;
   }
 // gs
- cout << "iten_lines(21,0): " << iten_lines(21,0) << endl;
 
   mat gs = zeros<mat>(11,2);
 
@@ -783,8 +771,6 @@ cerr << "Slit loss.." << endl;
     gs.at(i,0)=i-5; //<<-5 << -4 << -3 << -2<<-1<<0<<1<<2<<3<<4<<5<<endr;
   }
   gs.col(1)=exp(-pow(gs.col(0),2)/pow((12/1.665),2))/6.1967;
-  cerr << "gs: " << gs << endl;
-cin.get();
   int grid_ptr=1;
 //==========================================
 //  RINGS LOOP                     
@@ -793,7 +779,6 @@ cin.get();
   for (int j=0; j<n_rings; j++)
   {
     double n_seg=4*round(vmax.at(j))/dv;
-
     
     grid.resize(grid.n_rows+n_seg,26);
 
@@ -928,11 +913,22 @@ cerr << "OUT OF GRID LOOP" << endl;
   ivec index1;
   
   vec gridrow=grid.col(1);
-  double maxloop=2*gridrow.max();
+  double maxloop=2*gridrow.max()+1;
+cerr << "maxloop: " << maxloop << endl;
+cerr << "n_rings" << n_rings << endl;
+cerr << "grid:" << endl;
+//cerr << grid.n_rows << "       " << grid.n_cols << endl;
+//grid.raw_print();
+//cin.get();
+//======================================
+//   CENTROID LOOP
+//=====================================
   for (int j=0; j<maxloop; j++)
   {
     field <ivec> indexn(22,1);
     index1=where(grid.col(1), [&] (double datum) {return ((datum <= (max(grid.col(1)))-j) && ( datum > ( max(grid.col(1))-(j+1)) ) );});
+//cerr << "index1: " << index1 << endl;
+//cin.get();
    int index1n=index1.n_elem;
    if (index1.at(0)!=-1)
    {
@@ -940,33 +936,29 @@ cerr << "OUT OF GRID LOOP" << endl;
 //=================
 //   i0-i21!
 //=================
-     for (int k=0; k<22; k++)
-     {
+
        vec temp2=zeros<vec>(index1n);
 
        for (int i=0; i<index1n; i++)  {temp2.at(i)=grid(index1.at(i),1);}
 
-       double mean=arma::mean(temp2);
-   if (k==0) cerr << "Mean:  " << mean << endl;
+     double mean=arma::mean(temp2);
+
+     for (int k=0; k<22; k++)
+     {
+//     if (k==0) cerr << "Mean:  " << mean << endl;
        indexn(k,0)=whererow(v_line.row(k), [&] (double datum) {return (datum > (mean-0.5) && datum <= (mean+0.5));});
+//cerr << "k=" << k << endl;
+// cerr << indexn(k,0) << endl;
+//cerr << " " << endl;
      } 
 
      vec phi2=zeros<vec>(index1n);
-/*cerr << "i1:" << indexn(0,0) << endl;
-cerr << "i2:" << indexn(1,0) << endl;
-cerr << "i3:" << indexn(2,0) << endl;
-cerr << "index1: " << index1 << endl;
-cin.get();*/
-//===================
-//  dy!
-//==================
      for (int i=0; i<index1n; i++)
      {
        phi2.at(i)=grid(index1.at(i),2);
      }
 
       vec rp=zeros<vec>(index1n);
-
       for (int i=0; i<index1n; i++)
       {
 	rp.at(i)=grid(index1.at(i),0)*sqrt(pow(cos(phi2.at(i)),2)+pow(sin(phi2.at(i)),2)*pow(cos(inc),2));
@@ -985,28 +977,25 @@ cin.get();*/
 	}
       }
       vec deltay=rp%cos(theta+omega);
-  
-      for (int i=4;i<22;i++)
-      {
-cerr << "i=" << i << endl;
-        int siz=indexn.at(i).n_elem;
-        vec tempv=zeros<vec>(index1n);
+      //first loop--look over each grid index 
+        //second loop-loop over each indexn
         for (int z=0; z<22; z++) 
         {
           int siz=indexn.at(z).n_elem;
-          cerr << z << endl;
-          for (int q=0;q<index1n; q++)
+          vec tempv=zeros<vec>(index1n);
+          for (int q=0; q<index1n; q++)
 	  {
-	      tempv.at(q)=grid(index1.at(q),i)*grid(index1.at(q),3);
-  //cerr << "grid(index1.at(" << q << ")," << i << "): " << grid(index1.at(q),i) << endl;
-  //cerr << "grid(index1.at(" << q << "),3): " << grid(index1.at(q),3) << endl;
+	      tempv.at(q)=grid(index1.at(q),z+4)*grid(index1.at(q),3);
+//if (z==21) { cerr << "grid(index1.at(" << q << ")," << z+4 << "): " << grid(index1.at(q),z+4) << endl;
+//  cerr << "grid(index1.at(" << q << "),3): " << grid(index1.at(q),3) << endl;}
 	  }
-	  cerr << "centroid: " << endl;
+//	  if (z==0) {cerr << "centroid: " << endl;}
 	  for (int k=0;k<siz;k++)
 	  {
 	    centroid.at(indexn(z,0).at(k))=(arma::sum(tempv%deltay))/(arma::sum(tempv)+Lc);
-	    cerr <<  (arma::sum(tempv%deltay))/(arma::sum(tempv)+Lc) << endl;;
+//if (z==21){	    cerr <<  (arma::sum(tempv%deltay))/(arma::sum(tempv)+Lc) << endl;}
 	  }
+//if (z==21) {cerr << "indexn(0,0)" << indexn(0,0) << endl; cerr << "siz:" << siz << endl;cin.get();}
         }
 //cerr << "indexn: i=" << i << endl;
 //cerr << indexn(i,0) << endl;
@@ -1023,10 +1012,14 @@ cin.get();}*/
 //if (i==4) {cerr << (arma::sum(tempv%deltay)) << endl;
 //cerr << index1 << endl;
 //cin.get();}
-      }
     }
   }
-
+cerr << arma::sum(centroid) << endl;
+cerr << arma::norm(centroid) << endl;
+cerr << arma::mean(centroid) << endl;
+ivec notzero=where(centroid, [] (double datum) {return (datum != 0);});
+cerr << notzero.n_elem << endl;
+cin.get();
 cerr << "ended j loop" << endl;
 //cout << "final_spec premult:  " << endl;
 vec final1_spec=arma::sum(total_spec,1);
@@ -1051,9 +1044,6 @@ cin.get();
 
 cerr << "WRITING GRID..." << endl;
 ofstream out2;
-out2.open("gridcpp.txt");
-out2 << grid << endl;
-out2.close();
 cout << "inst_prof:  "  << inst_prof;
 cout << "final_spec: "<< final_spec << endl;
 cerr << "FFT..." << endl;
@@ -1084,6 +1074,12 @@ cerr << "flux_tot_slit:  " << arma::accu(flux_tot_slit) << endl;
 conv_spec=conv_spec*as_scalar(arma::accu(flux_tot_slit))/as_scalar(arma::sum(conv_spec));
 cout << "conv_spec:  " << conv_spec << endl;
 cout << "cent_conv:  " <<  cent_conv << endl;
+out.open("cent_conv");
+out << real(cent_conv) << endl;
+out.close();
+out.open("conv_spec");
+out << real(conv_spec) << endl;
+out.close();
   delete(d);
 cin.get();
   return 0;
