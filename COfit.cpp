@@ -25,6 +25,8 @@ constexpr double FitData::vib_einA[];
 constexpr double FitData::Bv12[];
 constexpr double FitData::Bv13[];
 
+constexpr int
+
 int FitData::numGuesses;
 
 //returns an array of size numGuesses filled with random numbers on the interval (offset, modulus+offset)
@@ -160,11 +162,8 @@ int FitData::runTrial() {
       T_rot_cl[elem]=3500;
     }
   }
-//cout << "T_rot_cl: " << T_rot_cl << endl;
-//cout << "T_rot_fl: " << T_rot_fl << endl;
     vec b_tot = sqrt(2*1.38e-16*6.02e23*T_rot_fl/28 + pow(v_turb,2));
    fvec b_tot2 = sqrt(2*1.38e-16*6.02e23*conv_to<fvec>::from(T_rot_fl)/28 + pow(v_turb,2));
-//cout << "b_tot diff:  "<< b_tot-b_tot2 << endl;
 
 if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 
@@ -203,14 +202,12 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 
       d->Nv = zeros<fcube>(21,layers,steps);
 
-    cerr << "Beginning collisional computations..." << endl;
 
 //==========================================================
 //   BIG COLLISION LOOP
 //=========================================================
     for (int coll_loop=0; coll_loop<2; coll_loop++) 
     {
-       cerr << "in Coll_Loop :  " << coll_loop << endl;
       mat U;
       mat s;
       mat v;
@@ -229,7 +226,6 @@ for (int zz=0; zz<10; zz++) {d->g.at(zz,0).fill(0);}
 
         mat Fuv = HD100546_luminosity / ( 4*datum::pi*pow(rdisk[k],2) );
 
-	cerr <<"Steps loop, k=" << k << endl;
        
        //=============COLLISIONS=============
 
@@ -333,19 +329,14 @@ for (int zz=0; zz<10; zz++) {d->g.at(zz,0).fill(0);}
 	   z.at(20)=1;
 	     
 
-//           {cout << "matrix for solving:" << endl;
-//	   cout << d->rate_eqtn.at(k,0).slice(j).t();}
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 if (k>0){
 fmat temp = zeros<fmat>(10,12);
 for (int zz=0; zz<10; zz++)
 {temp.row(zz)=d->g.at(zz,0).slice(k).col(j).t();}
-cout << "  " << endl;
-temp.t().raw_print();}
 
 	   d->Nv.slice(k).col(j)= conv_to<fvec>::from(sol);  //check this to be sure the array is filling in the right dimension
 
-//           cout << "d->Nv.slice(k).col(j):  " << d->Nv.slice(k).col(j) << endl;
            Nv_index=where(d->Nv.slice(k).col(j), [] (double datum) {return datum < 0;});
 	   if (Nv_index.at(0) != -1) 
            {
@@ -370,18 +361,10 @@ skip_fluorcalc:
         tot_col_fluor_nocoll = totalDimf(d->Nv*7.55858e12,2).t();
       }
     }
-cerr << "Nv_coll:  " << " " << arma::accu(Nv_coll) << endl;
-cerr << "Nv_nocoll: " << " " << arma::accu(Nv_nocoll) << endl;
-cerr << "tot_col_fluor mean: " << arma::mean(arma::mean(tot_col_fluor));
-cerr << "tot_col_fluor_nocoll mean: " << arma::mean(arma::mean(tot_col_fluor_nocoll));
-//cout << "tot_col_fluor: " << tot_col_fluor << endl;
-//cout << "tot_col_fluor_nocoll: " << tot_col_fluor_nocoll << endl;
-//cin.get();
 
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
-  cerr << "Correcting for angle of incidence..." << endl;
   vec m_disk=1.5*(5.59647e-10)*sqrt(T_rot_fl / Mstar)%pow(rdisk,0.5);
   vec m_uv = (5.59647e-10)*sqrt(T_rot_fl/Mstar)%sqrt(rdisk);
 
@@ -410,14 +393,12 @@ cerr << "tot_col_fluor_nocoll mean: " << arma::mean(arma::mean(tot_col_fluor_noc
 //  MOLECULAR DATA
 //==================================================================================================
   
-  cerr << "Beginning the processing of molecular data..." << endl;
 
   cube N_12CO_vj = zeros<cube>(tot_col.n_cols-1,120,tot_col.n_rows);                 //flipping these indices...
   cube N_13CO_vj = zeros<cube>(3,120,tot_col.n_rows);
   cube N_C18O_vj = zeros<cube>(1,120,tot_col.n_rows);
 
 
-  //cerr << "tot_col rows,cols:  " << tot_col.n_rows << " " << tot_col.n_cols << endl;
   rowvec Jup;
   rowvec Jdn;
   rowvec wvn;
@@ -426,7 +407,6 @@ cerr << "tot_col_fluor_nocoll mean: " << arma::mean(arma::mean(tot_col_fluor_noc
   for (int i=0; i<steps; i++)
   {
 
-    cerr << "molecular steps loop i=" << i << endl;
 
     //=======================
     //   12CO
@@ -443,15 +423,6 @@ cerr << "tot_col_fluor_nocoll mean: " << arma::mean(arma::mean(tot_col_fluor_noc
       N_12CO_vj.slice(i).row(j)=tot_col_fluor.at(i,j+1) * (2*Jup+1) % exp(-hck*Bv12[j]*Jup % (Jup+1)/T_rot_fl[i])/(T_rot_fl[i]/(hck*Bv12[j])) 
 + tot_col_coll.at(i,j+1)*(2*Jup+1) % exp(-hck*Bv12[j] * Jup % (Jup+1)/T_rot_cl[i])/(T_rot_cl[i]/(hck*Bv12[j]));
 
-/*cerr << "tot_col_flupr.at(i,j+1): " << tot_col_fluor.at(i,j+1) << endl;
-cerr << "Jup:  " << Jup << endl;
-cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
-//cerr << N_12CO_vj.slice(i).row(j) << endl;
-//cerr << Jup << endl;
-//cerr << Jdn << endl;
-//cerr << wvn << endl;
-//cerr << EinA << endl;
-//cin.get();
     }
   //====================
   //  13CO
@@ -466,11 +437,6 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
     N_13CO_vj.slice(i).row(j)=(tot_col_fluor_nocoll.at(i,j+1)/X12CO_13CO_fl)*(2*Jup+1) % exp(-hck*Bv13[j] * Jup % (Jup+1) / T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv13[j]));
 
 
-//cerr << N_13CO_vj.slice(i).row(j) << endl;
-//cerr << "tot_col_fluor_nocoll.at(i,j+1):  " << tot_col_fluor_nocoll.at(i,j+1) << endl;
-//cerr << "tot_col_fluor: " << tot_col_fluor.at(i,j+1) << endl;
-//cerr << "tot_col_coll: " << tot_col_coll.at(i,j+1) << endl;
-//cin.get(); 
  }
 
   //====================
@@ -484,9 +450,6 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
 
   N_C18O_vj.slice(i).row(0)=(tot_col_fluor_nocoll.at(i,1)/X12CO_C18O_fl)*(2*Jup+1) % exp(-hck*Bv18[0]*Jup%(Jup+1)/T_rot_fl[i]) / (T_rot_fl[i]/(hck*Bv18[0]));
 
-//cerr << tot_col_fluor_nocoll.at(i,1) << endl;
-//cerr << N_C18O_vj.slice(i).row(0);
-//cin.get();  
 }
 
   int freq_size=floor(log10(f_f/f_i)/log10(1+v/(3*c)));
@@ -505,7 +468,6 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
   //define annuli
 
   vec annuli = zeros<vec>(rdisk.n_elem);
-  cerr << 6 << endl;
   for (int i=0; i<steps-1; i++)
   {
     annuli.at(i)=datum::pi*(pow(rdisk.at(i+1),2)-pow(rdisk.at(i),2));
@@ -518,13 +480,11 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
   mat stick_spec_13CO = stick_spec_12CO;
   mat stick_spec_C18O = stick_spec_12CO;
   mat stick_spec_tot  = stick_spec_12CO;
-// cerr << stick_spec_tot.n_rows << endl;
-//cin.get();
+
   double A0;
   double A1;
   double A2;
 
-  cerr << "Beginning molecular processing over annuli:" << endl;
   //======================
   //  X12CO
   //=====================
@@ -532,7 +492,6 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
   {
 
     double btotcomp=b_tot.at(i)/cexp;
-    cerr << "annulus i=" << i << endl;
     //==============================
     //  X12CO
     //=============================
@@ -552,6 +511,7 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
 	  A0=N_12CO_vj.at(j,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
 	  A2=btotcomp*A1;
 	  stick_spec_12CO.col(i)+=(A0/(rpi*A2)) * exp (-pow(((A1-freq)/A2),2));
+
 	}
       }
     }
@@ -593,17 +553,13 @@ cerr << "N_12CO_vj.slice(i).row(j): " << endl;*/
           A1=wvn.at(k);
           if ((A1 >= f_i) && (A1 <= f_f))
           {
-	    A0=N_C18O_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
+	    A0=N_1C18O_vj.at(0,k,i)*hc*A1*EinA.at(k);                         //should the first two indices be reversed here?
 	    A2=btotcomp*A1;
 	    stick_spec_C18O.col(i)+=(A0/(rpi*A2)) * exp(-pow(((A1-freq)/A2),2));
           }
       }
 
-/*if (i==0)
-{ cerr << stick_spec_C18O.at(6207,0) << endl;
-cerr << stick_spec_13CO.at(6207,0) << endl;
-cerr << stick_spec_12CO.at(6207,0) << endl;
-cin.get();}*/
+
 
     stick_spec_tot.col(i)=stick_spec_12CO.col(i)+stick_spec_13CO.col(i)+stick_spec_C18O.col(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
 
@@ -613,11 +569,6 @@ cin.get();}*/
   mat iten_tot=stick_spec_tot;
   iten_tot.col(0)=iten_tot.col(0)*2.5;
   mat Lum_tot = iten_tot;
-//cout << "iten_tot:" << iten_tot << endl;
-cerr << arma::mean(arma::mean(stick_spec_tot)) << endl;
-cerr << arma::mean(arma::mean(tot_col_fluor)) << endl;
-cerr << arma::mean(arma::mean(tot_col_coll)) << endl;
-cin.get();;
   for (int i=0; i<steps; i++)
   {
     Lum_tot.col(i)=iten_tot.col(i)*annuli.at(i);
@@ -629,7 +580,6 @@ cin.get();;
 //===================================
 //  SCRIPT 4 of 4
 //====================================
- cerr << "Script 4!" << endl;
   double r_in=rdisk.at(0);
   double r_out=rdisk.at(rdisk.n_elem-1);
 
@@ -638,7 +588,6 @@ cin.get();;
   mat flux_tot_slit=Flux_tot;
 
 //account for slit loss
-cerr << "Slit loss.." << endl;
   vec slit_loss=100.17*pow(rdisk,-1.260);
   double disk_Beyond_slit = 63;
 
@@ -718,7 +667,6 @@ cerr << "Slit loss.." << endl;
 
   field <ivec> v_line_indices(22,1);
   field<vec> iten_lines(22,1);
-//cerr << v_line.row(0) << endl;
   v_line_indices(0 ,0) = whererow(v_line.row(0 ), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
   v_line_indices(1 ,0) = whererow(v_line.row(1 ), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
   v_line_indices(2 ,0) = whererow(v_line.row(2 ), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
@@ -743,8 +691,6 @@ cerr << "Slit loss.." << endl;
   v_line_indices(21,0) = whererow(v_line.row(21), [] (double datum) {return ((datum > -15) && (datum < 15));}); 
 
 
-cerr << "v_line_indices(16,0): " << v_line_indices(16,0) << endl;
-cin.get();
 // ITEN LINES
 
   for (int i=0; i<22; i++)
@@ -756,10 +702,7 @@ cin.get();
     {
       temp.row(j)=iten_tot.row(v_line_indices(i,0).at(j));
     }
-if (i==16) cout <<"temp:  " <<  temp.t() << endl;
     iten_lines(i,0)=arma::sum(temp,0).t()*5.65e-3;
-cout << "iten_lines(" << i << ",0): " << endl;
-iten_lines(i,0).raw_print()
 ;
   }
 // gs
@@ -828,16 +771,8 @@ iten_lines(i,0).raw_print()
       for (int i=0; i< n_seg; i++)
       {
 	area.at(i)=dphase.at(i)*(rdisk.at(j)+dr.at(j)/2)*dr.at(j);
-//cerr << area.at(i) << endl;
-//        cout << "dr.at(i):  " << dr.at(i) << " dphase.at(i):  " << dphase.at(i) << " rdisk.at(j):  " << rdisk.at(j) << endl;
-//        cout <<"interpol:" << interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq) << endl;
-//cout << "interpolvel_spec:" << vel_spec << endl;
-//cout << "area.at(i): " << area.at(i) << " vseg.at(i)*sin(inc):  " << vseg.at(i)*sin(inc) << endl; 
 
         vel_spec=vel_spec+interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
-//cerr << total_spec.col(j)*area.at(i) << endl;
-//cerr << "vel_Spec: "<< vel_spec << endl;
-//cin.gt();
         grid.at(grid_ptr,0)=rdisk.at(j);
         grid.at(grid_ptr,1)=vseg.at(i);
         grid.at(grid_ptr,2)=phase.at(i);
@@ -861,17 +796,10 @@ iten_lines(i,0).raw_print()
       } 
     }
 
-//cerr << "dphase: " << dphase << endl;
-//cerr << "area: " << area << endl;
-//cin.get();
     total_spec.col(j)=vel_spec;
 
   }
-//cerr << total_spec.t() << endl;
-//cin.get();
   ivec index_grid=where(grid.col(0), [&] (double datum) {return ((datum <= rdisk.at(0)) && (datum > 0));});
-cerr << grid.col(0) << endl;
-cin.get();
 
   vec  grid_tmp=zeros<vec>(index_grid.n_elem);
   for (int i=0; i<index_grid.n_elem; i++)
@@ -882,9 +810,7 @@ cin.get();
  for (int i=0; i<index_grid2.n_elem; i++)
  {
    grid.at(index_grid.at(index_grid2.at(i)),3)=0;
-    cerr << index_grid.at(index_grid2.at(i)) << endl;
  }
-cerr << "OUT OF GRID LOOP" << endl;
   double v_planet=5;
   double r_planet=13;
   double phase_planet=53*datum::pi/180;
@@ -914,12 +840,7 @@ cerr << "OUT OF GRID LOOP" << endl;
   
   vec gridrow=grid.col(1);
   double maxloop=2*gridrow.max()+1;
-cerr << "maxloop: " << maxloop << endl;
-cerr << "n_rings" << n_rings << endl;
-cerr << "grid:" << endl;
-//cerr << grid.n_rows << "       " << grid.n_cols << endl;
-//grid.raw_print();
-//cin.get();
+
 //======================================
 //   CENTROID LOOP
 //=====================================
@@ -927,8 +848,6 @@ cerr << "grid:" << endl;
   {
     field <ivec> indexn(22,1);
     index1=where(grid.col(1), [&] (double datum) {return ((datum <= (max(grid.col(1)))-j) && ( datum > ( max(grid.col(1))-(j+1)) ) );});
-//cerr << "index1: " << index1 << endl;
-//cin.get();
    int index1n=index1.n_elem;
    if (index1.at(0)!=-1)
    {
@@ -945,11 +864,7 @@ cerr << "grid:" << endl;
 
      for (int k=0; k<22; k++)
      {
-//     if (k==0) cerr << "Mean:  " << mean << endl;
        indexn(k,0)=whererow(v_line.row(k), [&] (double datum) {return (datum > (mean-0.5) && datum <= (mean+0.5));});
-//cerr << "k=" << k << endl;
-// cerr << indexn(k,0) << endl;
-//cerr << " " << endl;
      } 
 
      vec phi2=zeros<vec>(index1n);
@@ -986,100 +901,31 @@ cerr << "grid:" << endl;
           for (int q=0; q<index1n; q++)
 	  {
 	      tempv.at(q)=grid(index1.at(q),z+4)*grid(index1.at(q),3);
-//if (z==21) { cerr << "grid(index1.at(" << q << ")," << z+4 << "): " << grid(index1.at(q),z+4) << endl;
-//  cerr << "grid(index1.at(" << q << "),3): " << grid(index1.at(q),3) << endl;}
 	  }
-//	  if (z==0) {cerr << "centroid: " << endl;}
 	  for (int k=0;k<siz;k++)
 	  {
 	    centroid.at(indexn(z,0).at(k))=(arma::sum(tempv%deltay))/(arma::sum(tempv)+Lc);
-//if (z==21){	    cerr <<  (arma::sum(tempv%deltay))/(arma::sum(tempv)+Lc) << endl;}
 	  }
-//if (z==21) {cerr << "indexn(0,0)" << indexn(0,0) << endl; cerr << "siz:" << siz << endl;cin.get();}
         }
-//cerr << "indexn: i=" << i << endl;
-//cerr << indexn(i,0) << endl;
-//cerr << "Lc: " << Lc << endl;
-//cerr << "deltay: " << deltay << endl;
-/*if (i==4) {
-cerr << (arma::sum(tempv%deltay))/(arma::sum(tempv)+Lc) << endl;
-
-cerr << "deltay: " << deltay << endl;
-cerr << "tempv: " << tempv << endl;
-cerr << "grid3: " << grid(index1,3) << endl;
-cerr << "grid4 " << grid(index1,4) << endl;
-cin.get();}*/
-//if (i==4) {cerr << (arma::sum(tempv%deltay)) << endl;
-//cerr << index1 << endl;
-//cin.get();}
     }
   }
-cerr << arma::sum(centroid) << endl;
-cerr << arma::norm(centroid) << endl;
-cerr << arma::mean(centroid) << endl;
 ivec notzero=where(centroid, [] (double datum) {return (datum != 0);});
-cerr << notzero.n_elem << endl;
-cin.get();
-cerr << "ended j loop" << endl;
-//cout << "final_spec premult:  " << endl;
 vec final1_spec=arma::sum(total_spec,1);
-//cout << "total_spec_end:" << total_spec << endl;
-//cout << final1_spec << endl; 
-cout << "total_spec before: " << final1_spec << endl;
   for (int j=0; j<n_rings; j++)
   {
     total_spec.col(j)=total_spec.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(total_spec.col(j));
   }
-//cerr << "total spec ncols nrows: " << total_spec.n_cols << " " << total_spec.n_rows << endl;
   vec final_spec=arma::sum(total_spec,1);
   vec inst_prof=final_spec;
   inst_prof.fill(0);
-cout << "vfreq: " << vfreq << endl;
   inst_prof=exp(-pow(vfreq,2)/pow(inst_res/1.665,2));
   inst_prof=shift(inst_prof,round(vfreq.n_elem)/2);
-cerr << "inst_prof before: " << arma::sum(inst_prof) << endl;
 inst_prof=inst_prof/arma::sum(inst_prof);
-cerr << "inst_prof after: " << arma::sum(inst_prof) << endl;
-cin.get();
 
-cerr << "WRITING GRID..." << endl;
-ofstream out2;
-cout << "inst_prof:  "  << inst_prof;
-cout << "final_spec: "<< final_spec << endl;
-cerr << "FFT..." << endl;
-cout << "centroid:  " << centroid << endl;
-ofstream out;
-out.open("centroid.txt");
-out << centroid << endl;
-out.close();
-out.open("instprof.txt");
-out << inst_prof << endl;
-out.close();
-out.open("final_spec.txt");
-out << final_spec << endl;
-out.close();
-
-
-cerr << final_spec.n_elem << endl;
-cerr << inst_prof.n_elem << endl;
-cerr << centroid.n_elem << endl;
-cx_vec yomama = fft(final_spec)%fft(inst_prof);
-cerr << "dota" << endl;
   cx_vec conv_spec=ifft(fft(final_spec)%fft(inst_prof))/2;
-cerr << "hi" << endl;
   cx_vec cent_conv=ifft(fft(centroid)%fft(inst_prof));
-cerr << "Done!" << endl;
 cent_conv=cent_conv*as_scalar(arma::sum(abs(centroid)))/as_scalar(arma::sum(abs(cent_conv)));
-cerr << "flux_tot_slit:  " << arma::accu(flux_tot_slit) << endl;
 conv_spec=conv_spec*as_scalar(arma::accu(flux_tot_slit))/as_scalar(arma::sum(conv_spec));
-cout << "conv_spec:  " << conv_spec << endl;
-cout << "cent_conv:  " <<  cent_conv << endl;
-out.open("cent_conv");
-out << real(cent_conv) << endl;
-out.close();
-out.open("conv_spec");
-out << real(conv_spec) << endl;
-out.close();
   delete(d);
 cin.get();
   return 0;
@@ -1093,7 +939,6 @@ cin.get();
 
 
 int FitData::runTrials() {
-  cerr << "Running trials...";
   //start with best chi-by-eye fit and run one trial
   //then each time, reset parameters to a value from the matrix and rerun.
 
@@ -1114,7 +959,7 @@ int FitData::runTrials() {
 
   for(int i=0; i<this->numGuesses;i++) {
     //set parameters here
-  cerr << "Aux trial number " << i << " begin now" << endl;
+  cerr << "Aux trial number " << i+1 << " begin now" << endl;
     layers=randData[0][i];
     disk_in=randData[1][i];
     dist=1.496e13*disk_in;
@@ -1175,27 +1020,6 @@ FitData::FitData(int numGuesses)
 //     MOLECULAR DATA
 //===========================
 
-/*  fin.open("CO_molecdat/X12CO");
-  for (int i=0; i<119; i++) {
-    for (int j=0; j<7; j++) {
-      for (int k=0; k<10; k++) {
-        fin >> X12CO(k,j,i);
-      }
-    }
-  }
-  fin.close();
-
-  cout << "X12CO:  " << X12CO << endl;
-
-  fin.open("CO_molecdat/X13CO");
-  for (int i=0; i<119; i++) {
-    for (int j=0; j<7; j++) {
-      for (int k=0; k<3; k++) {
-         fin >> X13CO(k,j,i);
-      }
-    }
-  }
-  fin.close();*/
 
   mat temp = zeros<mat>(7,10);
   fin.open("CO_molecdat/X12CO");
@@ -1247,20 +1071,6 @@ FitData::FitData(int numGuesses)
 
 
 
-/*//transpose these to get the write dimensinos--eventually transpose instead in host files
-  HD100546_luminosity=HD100546_luminosity.t();
-  wavenum=wavenum.t();
-  einA=einA.t();
-  lam_ang=lam_ang.t();
-
-  cout << "HD100546_luminosity:  " << HD100546_luminosity << endl;
-  cout << "wavenum:  " << wavenum << endl;
-  cout << "EinA:  " << einA << endl;
-  cout << "lam_ang:  " << lam_ang << endl;
- 
-//figure out how to deal with these... might just have to access them in a different order, or reverse the cube slicing?
-  cout << "X12CO:  " << X12CO << endl;
-  cout << "X13CO:  " << X13CO << endl;*/
 
 
 
@@ -1281,7 +1091,6 @@ FitData::FitData(int numGuesses)
   for (int c=0; c<7; c++)
   {
     for (int i=0; i<numGuesses; i++) {
-//      cout << this->randData[c][i] << ' ' << endl ;
     }
   };
  
@@ -1320,10 +1129,8 @@ int readInput(string inpFile)
 
 int main(int argc, char* argv[]) 
 {
-  cout << "Begin!" << endl;
   data = new FitData(atoi(argv[1]));
   data->runTrials();
-  cerr << "Trials ran!" << endl;
   delete data;
   return 1;
 }
