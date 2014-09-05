@@ -1,3 +1,3 @@
 make
 rm output
-./COfit 9 > output
+./COfit 10 > output

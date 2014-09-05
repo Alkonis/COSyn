@@ -11,7 +11,7 @@ best_diff=1d1
 
 num_guesses=1501
 matrix=FLTARR(7,num_guesses)
-;diff_array=FLTARR(N_ELEMENTS(rbig),num_guesses)
+diff_array=FLTARR(N_ELEMENTS(rbig),num_guesses)
 
 
 qw=8L
@@ -531,7 +531,7 @@ N_12CO_vJ=fltarr(120,n_elements(tot_col(*,0))-1,n_elements(tot_col(0,*))) ;we on
 N_13CO_vJ=fltarr(120,3,n_elements(tot_col(0,*)))
 N_C18O_vj=fltarr(120,1,n_elements(tot_col(0,*)))
 
-
+print,tot_col_fluor
 FOR i=0,steps-1 DO BEGIN ;loop over rings
 ;first do 12CO
 
@@ -564,8 +564,6 @@ FOR i=0,steps-1 DO BEGIN ;loop over rings
 
 ;print,N_13CO_vJ(*,j,i)
 ;print,tot_col_fluor_nocoll(j+1,i)
-;print,tot_col_fluor(j+1,i)
-;print,tot_col_coll(j+1,i)
 ;read,x,prompt="???"
 	ENDFOR
 
@@ -623,12 +621,17 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 		  	   A0=N_12CO_vJ(k,j,i)*hc*wvn(k)*EinA(k)
 			   A1=wvn(k)
 			   A2=b_tot(i)*wvn(k)/(c*1e5)
-			   stick_spec_12CO(*,i)=stick_spec_12CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)
-                           if i EQ 0 then print,stick_spec_12CO(6207,0)	
+			   stick_spec_12CO(*,i)=stick_spec_12CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)	
+
+print,"A"
+print,N_12CO_vJ(k,j,i)
+print,A0
+print,A1
+print,A2
+read,x,prompt="A"
 			ENDIF
 
 		ENDFOR
-;              read,x,prompt="?"
 
 	ENDFOR
 
@@ -664,11 +667,9 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 		ENDFOR
 	ENDFOR
 
-;print,stick_spec_C18O(6207,i)
-;print,stick_spec_13CO(6207,i)
-;print,stick_spec_12CO(6207,i)
-;read,x,prompt="?"
 stick_spec_tot(*,i)=(stick_spec_12CO(*,i)+stick_spec_13CO(*,i)+stick_spec_C18O(*,i))
+print,stick_spec_tot(*,i)
+read,x,prompt="stickspec"
 ENDFOR
 
 
@@ -1322,6 +1323,7 @@ plot,INTERPOL(conv_spec,freq-freq*5./2.9979e5,fbig)
 diff_array(*,bigi)=((rbig_masked-1)*1.5e-12 - INTERPOL(conv_spec,freq-freq*5./2.9979e5,fbig))
 index_diff=WHERE(FINITE(diff_array(*,bigi)) EQ 1)
 
+print,total(abs(diff_array(index_diff,bigi)))
 IF TOTAL(ABS(diff_array(index_diff,bigi))) LT best_diff THEN BEGIN
    best_diff=TOTAL(ABS(diff_array(index_diff,bigi)))
    best_i=bigi

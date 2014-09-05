@@ -1,15 +1,23 @@
 #define _USE_MATH_DEFINES
 
+#ifndef IDLARMA
+#define IDLARMA
+
+#include "lib/idlarma.h"
+using namespace idlarma;
+
+#endif
+
+#ifndef COFIT_H
+#define COFIT_H
+
 #include <vector>
 #include <iostream>
 #include <math.h>
 #include <fstream>
 #include <armadillo>
-#include "lib/idlarma.h"
-#include "CollData.cpp"
 
 //namespace stdmath = math;
-
 using namespace std;
 using namespace arma;
 
@@ -47,8 +55,6 @@ class FitData{
   static constexpr double cer=8.85282e-13;
   static constexpr double rpi=1.7724538509055159;
   
-  static constexpr double vib_einA[10]={34.60,67.68,98.40,126.99,153.59,178.31,201.35,223.10,244.15,265.21};
-
   static constexpr double v = 2.5;
   static constexpr double kb = 1.380622E-16;
   static constexpr double B = 1.9225;       
@@ -79,76 +85,75 @@ class FitData{
 //script 2 parameters
   static constexpr double disk_beyond_slit=63;
 
-  //These are the three arrays read in from the data files
-  //float* einA[12];          //change these to doubles?
-  //float* lam_ang[12];
-  //float* wavenum[12];
-  vec T_rot_fl;
-  vec T_rot_cl;
-  vec H_den;
- 
-  mat wavenum             = zeros<mat>(10,12);
-  mat einA                = zeros<mat>(10,12);
-  mat lam_ang             = zeros<mat>(10,12);
-  mat HD100546_luminosity = zeros<mat>(10,12);
+  vec vfreq;
 
+private:
 //Molecular data
   cube X12CO = zeros<cube>(10,7,120);
   cube X13CO = zeros<cube>(3,7,120);
-  cube XC18O = zeros<cube>(1,7,120);                         //get this done!
-
- //Collision data
+  cube XC18O = zeros<cube>(1,7,120);                         
 
   mat fAX;
   mat fXA; 
 
-  cube dFdt_0;
-  cube tau_0; 
-  cube dwdn;
-  //cube Nv;
   
-  field<cube> rate_eqtn;  //copy this over to colldata on the start of each coll_loop! do this for others that need reiteration as well
-  field<cube> g;
 
 
-//maybe make these fixed
 
 //variable parameters; these are changed with each iteration of the loop
-  double layers;
-  double disk_in;
+/*  double layers;
   double dist;
-  double disk_out;
+  double steps;
   double v_turb;
   double T_rot0_fl;
   double T_rot_alpha_fl;
   double T_rot0_cl;
   double T_rot_alpha_cl;
   double rel_lum;
+  double disk_out;
+  double disk_in;*/
 
-//radial anulli
-  double r_index_a=0;
-  double r_index_b=0;
-  double r_index_c=0;
-  double rdisk_index;
-  double steps;
-  double r;
-  double rb[2];
-  double maxra;
-  double maxrb;
+public: 
+  static mat wavenum            ;
+  static mat einA               ;
+  static mat lam_ang            ;
+  static mat HD100546_luminosity;
 
- public:
+  static vec freq;
+  static vec r1big;
+  static vec f1big;
+
+  static constexpr double freq_size=floor(log10(f_f/f_i)/log10(1+v/(3*c)));
+
+  static constexpr double vib_einA[10]={34.60,67.68,98.40,126.99,153.59,178.31,201.35,223.10,244.15,265.21};
 
   double** randData = new double*[7];
-  
-  std::vector<double> ranulli;
-  vec rdisk;    //rdisk may be unnecessary; see if ranulli can replace entirely
   
   FitData(int numGuesses);
   ~FitData();
 
   double* FillArrays(int modulus, int offset);
   int runCollisions(bool doCols);
-  int runTrial();
+ 
+  int runTrial(double ilayers, double idisk_in, double idisk_out, double iv_turb, double iT_rot0_fl, double iT_rot_alpha_fl, double irel_lum); 
   int runTrials();
 
 };
+
+mat FitData::wavenum;
+mat FitData::einA;
+mat FitData::lam_ang;
+mat FitData::HD100546_luminosity;
+
+int FitData::numGuesses;
+constexpr double FitData::vib_einA[];
+constexpr double FitData::Bv12[];
+constexpr double FitData::Bv13[];
+
+vec FitData::freq;
+vec FitData::r1big;
+vec FitData::f1big;
+
+FitData* data;
+#endif
+
