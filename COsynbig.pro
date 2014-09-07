@@ -373,7 +373,6 @@ skip_coll:
                   
                 ENDELSE	
 		ENDFOR
-
 		dWdN(*,*,j)=dfdt_0(*,*,j)*.02654*2.0*(lam_ang*1e-4)*(lam_ang*1e-8)*fXA/(SQRT(!pi)*c*1e5)
 		g(*,*,j,k)=dWdN(*,*,j)*!pi*Fuv/(hc*wavenum)
     
@@ -428,14 +427,6 @@ ENDIF
 ;we assume the flux there is nearly normal
 
 ENDFOR ; END OF COLL LOOP
-print,mean(Nv_coll)
-print,total(Nv_coll)
-print,mean(Nv_nocoll)
-print,total(Nv_nocoll)
-
-print,mean(tot_col_fluor)
-print,mean(tot_col_fluor_nocoll)
-
 
 ;now correct for angle of incidence of light onto disk
 ;H(r)=SQRT(kTR^3/mum_H*GMstar)=5.59647E-10*SQRT(T/(Mstar/Msun))*R^3/2
@@ -623,12 +614,6 @@ FOR i=0, steps-1 DO BEGIN					;Loop over annuli
 			   A2=b_tot(i)*wvn(k)/(c*1e5)
 			   stick_spec_12CO(*,i)=stick_spec_12CO(*,i)+(A0/(SQRT(!pi)*A2))*exp(-((A1-freq)/A2)^2)	
 
-print,"A"
-print,N_12CO_vJ(k,j,i)
-print,A0
-print,A1
-print,A2
-read,x,prompt="A"
 			ENDIF
 
 		ENDFOR
@@ -668,8 +653,6 @@ read,x,prompt="A"
 	ENDFOR
 
 stick_spec_tot(*,i)=(stick_spec_12CO(*,i)+stick_spec_13CO(*,i)+stick_spec_C18O(*,i))
-print,stick_spec_tot(*,i)
-read,x,prompt="stickspec"
 ENDFOR
 
 

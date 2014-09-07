@@ -134,8 +134,12 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
         d->sum=d->sum+(1-exp(-d->tau(i)*exp(-pow(x,2))));
       }
       d->sum = d->sum*d->delta;
+      d->F_tau.at(i)=d->sum;
     }
-    
+//   cerr << d->tau << endl;
+//cin.get();
+//cerr << d->F_tau << endl;
+//cin.get(); 
       vec dFdt=deriv2(d->tau,d->F_tau);
       d->Nv = zeros<fcube>(21,layers,d->steps);
 
@@ -208,7 +212,6 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 	       }
              
 	     }
-
 	     else 
 	     {
 	       d->dFdt_0.slice(j).col(ii).fill((1/(2*d->tau_0.at(0,ii,j)*sqrt(log(d->tau_0.at(0,ii,j))))));    //(span::all,span(i),span(j))=1/(2*tau_0.at(0,ii,j))*sqrt(alog(tau_0.at(0,ii,j)));   CHECK THIS WITH SOURCE
@@ -216,7 +219,6 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 	     }
 
 	   }
-
 	   d->dwdn.slice(j)=d->dFdt_0.slice(j)*.02654*2.0 % (conv_to<fmat>::from(lam_ang)*1e-4) % (conv_to<fmat>::from(lam_ang)*1e-8) % conv_to<fmat>::from(fXA)/(sqrt(datum::pi)*c*1e5);
 	   for (int ii=0; ii<10; ii++) 
 	   {
@@ -261,7 +263,8 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 	   vec z = zeros<vec>(21);
 	   z.at(20)=1;
 	     
-
+//cerr << d->rate_eqtn.at(k,0).slice(j).t() << endl;
+//cin.get();
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 
 	   d->Nv.slice(k).col(j)= conv_to<fvec>::from(sol);  //check this to be sure the array is filling in the right dimension
@@ -290,7 +293,8 @@ skip_fluorcalc:
         d->tot_col_fluor_nocoll = totalDimf(d->Nv*7.55858e12,2).t();
       }
     }
-
+//cerr << d->tot_col_fluor << endl;
+//cin.get();
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
@@ -412,15 +416,6 @@ cerr << d->tot_col_fluor << endl;
 	  d->A0=d->N_12CO_vj.at(j,k,i)*hc*d->A1*d->EinA.at(k);                         //should the first two indices be reversed here?
 	  d->A2=btotcomp*d->A1;
 	  d->stick_spec_12CO.col(i)+=(d->A0/(rpi*d->A2)) * exp (-pow(((d->A1-freq)/d->A2),2));
-cerr << "d->N12CO_vj" << endl;
-cerr << d->N_12CO_vj.at(j,k,i) << endl;;
-cerr << "a0" << endl;
-cerr << d->A0 << endl;
-cerr << "a1" << endl;
-cerr << d->A1 << endl;
-cerr << "a2"<<endl;
-cerr << d->A2 << endl;
-cin.get();
 	}
       }
     }
