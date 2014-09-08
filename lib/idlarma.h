@@ -1,10 +1,15 @@
 #include<iostream>
 #include<stdio.h>
-#include<armadillo>
 #include<vector>
 
 
 
+#ifndef ARMA
+#define ARMA_DONT_USE_WRAPPER
+#define ARMA
+#include "../include/armadillo"
+using namespace arma;
+#endif
 
 //*  IDLARMA
 //  

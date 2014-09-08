@@ -15,11 +15,15 @@ using namespace idlarma;
 #include <iostream>
 #include <math.h>
 #include <fstream>
-#include <armadillo>
 
+#ifndef ARMA
+#define ARMA_DONT_USE_WRAPPER
+#define ARMA
+#include "include/armadillo"
+using namespace arma;
+#endif
 //namespace stdmath = math;
 using namespace std;
-using namespace arma;
 
 class FitData{
 

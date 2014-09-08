@@ -2,7 +2,13 @@
 
 #ifndef COLLDATA_H
 #define COLLDATA_H
+
+
+#ifndef ARMA
+#define ARMA_DONT_USE_WRAPPER
+#include "include/armadillo"
 using namespace arma;
+#endif
 
 class CollData {
 
