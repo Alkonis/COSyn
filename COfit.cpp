@@ -68,7 +68,7 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
   }
   double maxra = d->ranulli.back();
   
-cerr << "go" << endl;if ((maxra < 1) && (maxra >= .1))
+  if ((maxra < 1) && (maxra >= .1))
   {
     while ((d->ranulli.back() < 1.0) || (d->ranulli.back() < disk_out))
     {
@@ -136,10 +136,6 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
       d->sum = d->sum*d->delta;
       d->F_tau.at(i)=d->sum;
     }
-//   cerr << d->tau << endl;
-//cin.get();
-//cerr << d->F_tau << endl;
-//cin.get(); 
       vec dFdt=deriv2(d->tau,d->F_tau);
       d->Nv = zeros<fcube>(21,layers,d->steps);
 
@@ -263,8 +259,6 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 	   vec z = zeros<vec>(21);
 	   z.at(20)=1;
 	     
-//cerr << d->rate_eqtn.at(k,0).slice(j).t() << endl;
-//cin.get();
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 
 	   d->Nv.slice(k).col(j)= conv_to<fvec>::from(sol);  //check this to be sure the array is filling in the right dimension
@@ -293,8 +287,6 @@ skip_fluorcalc:
         d->tot_col_fluor_nocoll = totalDimf(d->Nv*7.55858e12,2).t();
       }
     }
-//cerr << d->tot_col_fluor << endl;
-//cin.get();
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
@@ -331,7 +323,6 @@ skip_fluorcalc:
   d->N_13CO_vj = zeros<cube>(3,120,tot_col.n_rows);
   d->N_C18O_vj = zeros<cube>(1,120,tot_col.n_rows);
 
-cerr << d->tot_col_fluor << endl;
   for (int i=0; i<d->steps; i++)
   {
 
@@ -743,9 +734,9 @@ cerr << d->tot_col_fluor << endl;
   inst_prof=exp(-pow(vfreq,2)/pow(inst_res/1.665,2));
   inst_prof=shift(inst_prof,round(vfreq.n_elem)/2);
   inst_prof=inst_prof/arma::sum(inst_prof);
-  cerr << arma::mean(final_spec)<<endl;
+ /* cerr << arma::mean(final_spec)<<endl;
   cerr << arma::mean(inst_prof)<<endl;
-  cerr << arma::accu(flux_tot_slit)<<endl;
+  cerr << arma::accu(flux_tot_slit)<<endl;*/
   cx_vec conv_spec=ifft(fft(final_spec)%fft(inst_prof))/2;
   cx_vec cent_conv=ifft(fft(d->centroid)%fft(inst_prof));
   cent_conv=cent_conv*as_scalar(arma::sum(abs(d->centroid)))/as_scalar(arma::sum(abs(cent_conv)));
