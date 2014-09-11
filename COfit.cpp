@@ -3,6 +3,8 @@
 #include <iostream>
 #include <cstdlib>
 
+#include <mpi.h>
+
 using namespace std;
 
 /*constexpr double FitData::vib_einA[];
@@ -19,8 +21,8 @@ constexpr double CollData::fco_list[];
 double* FitData::FillArray(int modulus, int offset)
 {
   double* array;
-  array  = new double[numGuesses-1];
-  for(int i=0; i<numGuesses-1;i++) {
+  array  = new double[numGuesses-2];
+  for(int i=0; i<numGuesses-2;i++) {
     array[i]=rand() % modulus + offset;
   }
   return array;
@@ -771,40 +773,62 @@ int FitData::runTrials() {
   //start with best chi-by-eye fit and run one trial
   //then each time, reset parameters to a value from the matrix and rerun.
   //set parameters for best-chi;
-cerr << "runTrials called" << endl;
-  double layers=300;
-  double disk_in=13.;
-//  double dist=1.496e13*disk_in;
-  double disk_out=100.0;
-  double v_turb=3e5;
-  double T_rot0_fl=2500;             //check this.... is t_rot_fl0?
-  double T_rot_alpha_fl=0.25;
-  //double T_rot0_cl=T_rot0_fl;
-//  double T_rot_alpha_cl=T_rot_alpha_fl;
-  double rel_lum=20;
-  this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
- cerr << "=============================" << endl << "END TRIAL ONE" << endl << "=========================" << endl;
+
+
+/*  int rank;
+  int numtasks;
+  int rc;
+
+  if (rc != MPI_SUCCESS) 
+  {
+    cerr << "Error initializing MPI environment." << endl;
+    MPI_Abort(MPI_COMM,WORLD, rc);
+  }*/
+  
 
   for(int i=0; i<this->numGuesses-1;i++) {
-    //set parameters here
-  cerr << "Aux trial number " << i+1 << " begin now" << endl;
-    layers=randData[0][i];
-    disk_in=randData[1][i];
-    //dist=1.496e13*disk_in;
-    disk_out=randData[2][i];
-    v_turb=randData[3][i];
-    T_rot0_fl=randData[4][i];
-    T_rot_alpha_fl=randData[5][i];
-    //T_rot0_cl=T_rot0_fl;
-    //T_rot_alpha_cl=T_rot_alpha_fl;
-    rel_lum=randData[6][i];
+    double receivedMessage[2];
+    for (int j=0; j<numtasks; j++)
+    {
+    if (i==0)
+    { 
+
+      double layers=300;
+      double disk_in=13.;
+      //  double dist=1.496e13*disk_in;
+      double disk_out=100.0;
+      double v_turb=3e5;
+      double T_rot0_fl=2500;             //check this.... is t_rot_fl0?
+      double T_rot_alpha_fl=0.25;
+      //double T_rot0_cl=T_rot0_fl;
+      //  double T_rot_alpha_cl=T_rot_alpha_fl;
+      double rel_lum=20;
+    }
+    else 
+    {
+      cerr << "Aux trial number " << i << " begin now" << endl;
+      layers=randData[0][i-1];
+      disk_in=randData[1][i-1];
+      //dist=1.496e13*disk_in;
+      disk_out=randData[2][i-1];
+      v_turb=randData[3][i-1];
+      T_rot0_fl=randData[4][i-1];
+      T_rot_alpha_fl=randData[5][i-1];
+      //T_rot0_cl=T_rot0_fl;
+      //T_rot_alpha_cl=T_rot_alpha_fl;
+      rel_lum=randData[6][i-1];
+    }
+    isSent(i)=1;
     this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
-  }
+    }
+   // RECEIVE MPI HERE
+
+//   MPI_Recv(&receivedMessage,2, MPI_DOUBLE,)
 
   return 0;
 }
 
-FitData::FitData(int numGuesses)
+FitData::FitData(int numGuesses, string folder)
 {
   //class variables
 
@@ -815,8 +839,9 @@ FitData::FitData(int numGuesses)
 
   FitData::numGuesses=numGuesses;
 
-
   //read in data from files
+
+  FitData::readInput(folder+"/input")
 
   std::ifstream fin;
 
@@ -927,6 +952,7 @@ FitData::FitData(int numGuesses)
   }
   vfreq=(freq(round(freq.n_elem/2))-freq)*c/freq(round(freq.n_elem/2));  
 
+  isSent = new double(numGuesses);
   this->randData[0]=FillArray(900, 100);
   this->randData[1]=FillArray(15, 6);
   this->randData[2]=FillArray(76, 50);
@@ -936,6 +962,7 @@ FitData::FitData(int numGuesses)
   this->randData[6]=FillArray(99, 1);
   for (int i=0; i < numGuesses-1; i++) {
     this->randData[5][i]=this->randData[5][i]/100;
+    isSent(i)=false;
   };
 
  /*=================
@@ -964,15 +991,78 @@ int createInput()
   return 1;
 } 
 
-int readInput(string inpFile)
+int extractValue(string sin, string varname, &double var)
 {
+  string split1, split2;
+  if (sin[0]=='#') return 0;
+  int len = sin.length();
+  int sep;
 
-  return 1;
+  for (int i=0; i<len; i++)
+  {
+    sep=0;
+    if (sin[i]=='=')
+    {
+      if (sep != 0)
+      {
+        cerr << "Invalid input file." << endl;
+        abort();
+      }
+      sep=i;
+    }
+    split1=sin.substr(0,sep);
+    split2=sin.substr(sep-1,len-sep);
+    for (int i=0; i<5; i++)
+    {
+      if (split1==varname) var=atod(split2);
+    }
+}
+
+int FitData::readInput(string inpFile)
+{
+  string inputStrings[6] = {numguesses,inc,mass,dist,Lc}
+  double inputVars[6]= {&numGuesses,&inc,&Mstar,&stardist,&Lc}
+
+  ifstream fin;
+  fin.open(inpFile);
+  string sin;
+
+  while (getline(fin,sin))
+  {
+    string split1, split2;
+    
+    if (sin[0]=='#') return 0;
+
+    int len = sin.length();
+    int sep;
+    string split1,split2;
+
+    for (int i=0; i<len; i++)
+    {
+      sep=0;
+      if (sin[i]=='=')
+      {
+        if (sep != 0)
+        {
+          cerr << "Invalid input file." << endl;
+          abort();
+        }
+        sep=i;
+      }
+    }
+
+    split1=sin.substr(0,sep);
+    split2=sin.substr(sep-1,len-sep);
+    for (int i=0; i<5; i++)
+    {
+      if (split1==inputvars[i]) {inputVars[i]=atod(split2);  cerr << inputStrings[i] << ": " << inputVars[i] << endl;}
+    }
+  }
 }
 
 int main(int argc, char* argv[]) 
 {
-  data = new FitData(atoi(argv[1]));
+  data = new FitData(atoi(argv[1]), "HD100546");
   delete data;
   return 1;
 }

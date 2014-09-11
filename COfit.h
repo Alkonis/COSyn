@@ -38,7 +38,6 @@ class FitData{
 
   static constexpr double f_i = 1995.;
   static constexpr double f_f = 2179.;
-  static constexpr double mass = 2.4;
   static constexpr double H_den0 =2.5e10;
   static constexpr double H_den_alpha=.10;
   static constexpr double inc = 40 * datum::pi / 180;
@@ -47,9 +46,10 @@ class FitData{
   static constexpr double X12CO_13CO_cl = 65.;
   static constexpr double X12CO_C18O_cl = 560.;
 
-  static constexpr double Mstar=2.4;
-  static constexpr double stardist=3.1781680e20;
-  static constexpr double inst_res=6.0;
+  static double Mstar=2.4;
+  static double stardist=3.1781680e20;
+  static double inst_res=6.0;
+ // static double Lc;
 
   static constexpr double c=2.997924562e5;
   static constexpr double cexp=29979245620;
@@ -132,7 +132,8 @@ public:
   static constexpr double vib_einA[10]={34.60,67.68,98.40,126.99,153.59,178.31,201.35,223.10,244.15,265.21};
 
   double** randData = new double*[7];
-  
+  double* isSent;
+
   FitData(int numGuesses);
   ~FitData();
 
@@ -141,7 +142,9 @@ public:
  
   int runTrial(double ilayers, double idisk_in, double idisk_out, double iv_turb, double iT_rot0_fl, double iT_rot_alpha_fl, double irel_lum); 
   int runTrials();
+  int readInput();
 
+  string dirname;
 };
 
 mat FitData::wavenum;
