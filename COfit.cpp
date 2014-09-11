@@ -900,7 +900,7 @@ FitData::FitData(int numGuesses)
 
   fin.close();
 
-  fin.open("r1big");
+  fin.open("HD100546/r1big");
   r1big=zeros<vec>(4096);
   for (int z=0; z<4096; z++)
   {
@@ -909,7 +909,7 @@ FitData::FitData(int numGuesses)
   fin.close();
 
 
-  fin.open("f1big");
+  fin.open("HD100546/f1big");
   f1big=zeros<vec>(4096);
   for (int z=0; z<4096; z++)
   {
