@@ -1,0 +1,44 @@
+CO Synthesis Code  (Currently set up for HD100546.)
+
+Static build compiled on Linux x64 architecture.  Execute with:
+
+./COfit numTrials
+
+This program was written with use of the Armadillo linear algebra library.
+
+===================================
+       COMPILATION INSTRUCTIONS
+==================================
+
+DEPENDENCIES (required):  LAPACK, BLAS, gfortran (static archives), HDF5
+OPTIONAL DEPENDENCIES FOR OPTIMAL PERFORMANCE:  OpenBLAS, ATLAS
+
+
+1.)  Download and install static builds of LAPACK and BLAS.  If development packages for LAPACK/BLAS are unavailable for your system, it may be necessary to download the source and recompile without the -fPIC flag.  For best performance, use OpenBLAS and ATLAS as alternatives to the stock LAPACK and BLAS  Once MPI is implemented, it will be necessary to configure these to use one thread.  It may also be necessary to install gfortran and HDF5.
+
+2.)  Modify include/armadillo_bits/config.hpp to specify which of these additional libraries you used.  Comment out the libraries you do not have intalled and uncomment the ones you will use.  It is not necessary to install armadillo, as the static library is included.
+
+3.)  Edit the makefile to specify which libraries you are linking against.
+
+LAPACK:  -llapack
+BLAS:  -lblas
+OPENBLAS: -lopenblas
+ATLAS: -latlas
+ARPACK:  -larpack
+GFORTRAN:  -lgfortran
+MATH (required):  -lm
+
+With gfortran, if your gfortran version is different from that of gcc, you will need to manually specify the location with the -L flag.
+
+4.) make
+
+
+
+
+
+
+
+
+
+
+
