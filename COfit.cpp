@@ -841,7 +841,7 @@ FitData::FitData(int numGuesses, string folder)
 
   //read in data from files
 
-  FitData::readInput(folder+"/input")
+  FitData::readInput(folder+"/input");
 
   std::ifstream fin;
 
@@ -1020,8 +1020,8 @@ int extractValue(string sin, string varname, &double var)
 
 int FitData::readInput(string inpFile)
 {
-  string inputStrings[6] = {numguesses,inc,mass,dist,Lc}
-  double inputVars[6]= {&numGuesses,&inc,&Mstar,&stardist,&Lc}
+  string inputStrings[6] = {numguesses,inc,mass,dist,Lc};
+  double inputVars[6]= {&numGuesses,&inc,&Mstar,&stardist,&Lc};
 
   ifstream fin;
   fin.open(inpFile);
@@ -1029,8 +1029,7 @@ int FitData::readInput(string inpFile)
 
   while (getline(fin,sin))
   {
-    string split1, split2;
-    
+    //exit immediately if the line is commented out
     if (sin[0]=='#') return 0;
 
     int len = sin.length();
@@ -1040,11 +1039,11 @@ int FitData::readInput(string inpFile)
     for (int i=0; i<len; i++)
     {
       sep=0;
-      if (sin[i]=='=')
+      if (sin[i]=='=');
       {
         if (sep != 0)
         {
-          cerr << "Invalid input file." << endl;
+          cerr << "Invalid input file!" << endl;
           abort();
         }
         sep=i;
