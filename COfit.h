@@ -134,7 +134,9 @@ public:
   double** randData = new double*[7];
   double* isSent;
 
-  FitData(int numGuesses);
+  string folderpath;
+
+  FitData(int numGuesses, string folder);
   ~FitData();
 
   double* FillArrays(int modulus, int offset);

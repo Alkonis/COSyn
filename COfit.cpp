@@ -736,26 +736,23 @@ skip_fluorcalc:
   inst_prof=exp(-pow(vfreq,2)/pow(inst_res/1.665,2));
   inst_prof=shift(inst_prof,round(vfreq.n_elem)/2);
   inst_prof=inst_prof/arma::sum(inst_prof);
- /* cerr << arma::mean(final_spec)<<endl;
-  cerr << arma::mean(inst_prof)<<endl;
-  cerr << arma::accu(flux_tot_slit)<<endl;*/
+
   cx_vec conv_spec=ifft(fft(final_spec)%fft(inst_prof))/2;
   cx_vec cent_conv=ifft(fft(d->centroid)%fft(inst_prof));
+
   cent_conv=cent_conv*as_scalar(arma::sum(abs(d->centroid)))/as_scalar(arma::sum(abs(cent_conv)));
   conv_spec=conv_spec*as_scalar(arma::accu(flux_tot_slit))/as_scalar(arma::sum(conv_spec));
 
   ofstream fout;
-  fout.open("cent_conv");
+  fout.open(folderpath+"/cent_conv");
   fout << real(cent_conv);
   fout.close();
-  fout.open("conv_spec");
+  fout.open(folderpath+"/conv_spec");
   fout << real(conv_spec);
   fout.close();
 cerr << "substracting..." << endl;
   ivec indexdiff=where(r1big, [] (double datum) {return (datum != -9999);});
   int indexsiz=indexdiff.n_elem;
-cerr << r1big.n_elem << endl;
-cerr << f1big.n_elem << endl;
   d->diff = ((r1big-1)*1.5e-12 - interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big));
 
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
@@ -795,13 +792,13 @@ int FitData::runTrials() {
 
       double layers=300;
       double disk_in=13.;
-      //  double dist=1.496e13*disk_in;
+      //double dist=1.496e13*disk_in;
       double disk_out=100.0;
       double v_turb=3e5;
       double T_rot0_fl=2500;             //check this.... is t_rot_fl0?
       double T_rot_alpha_fl=0.25;
       //double T_rot0_cl=T_rot0_fl;
-      //  double T_rot_alpha_cl=T_rot_alpha_fl;
+      //double T_rot_alpha_cl=T_rot_alpha_fl;
       double rel_lum=20;
     }
     else 
@@ -824,6 +821,7 @@ int FitData::runTrials() {
    // RECEIVE MPI HERE
 
 //   MPI_Recv(&receivedMessage,2, MPI_DOUBLE,)
+// receive MPI conv_spec cent_conv here if difference is best
 
   return 0;
 }
@@ -838,10 +836,10 @@ FitData::FitData(int numGuesses, string folder)
   HD100546_luminosity = zeros<mat>(10,12);
 
   FitData::numGuesses=numGuesses;
-
+  folder=path=folder;
   //read in data from files
 
-  FitData::readInput(folder+"/input");
+  FitData::readInput(folderpath+"/input");
 
   std::ifstream fin;
 
@@ -1020,7 +1018,7 @@ int extractValue(string sin, string varname, &double var)
 
 int FitData::readInput(string inpFile)
 {
-  string inputStrings[6] = {numguesses,inc,mass,dist,Lc};
+  string inputStrings[6] = {"numguesses","inc","mass","dist","Lc"};
   double inputVars[6]= {&numGuesses,&inc,&Mstar,&stardist,&Lc};
 
   ifstream fin;
