@@ -6,6 +6,8 @@ Static build compiled on Linux x64 architecture.  Execute with:
 
 This program was written with use of the Armadillo linear algebra library.
 
+For convenience, mk.sh makes COfit and calls it with a small number of trials for testing.
+
 ===================================
        COMPILATION INSTRUCTIONS
 ==================================
