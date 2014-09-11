@@ -820,28 +820,28 @@ FitData::FitData(int numGuesses)
 
   std::ifstream fin;
 
-  fin.open("inc/EinA.txt");
+  fin.open("ratedat/EinA.txt");
   for ( auto& entry : einA) {
      fin >> entry;
   }
   fin.close(); 
 
 
-  fin.open("inc/lambda.txt");
+  fin.open("ratedat/lambda.txt");
   for ( auto& entry : lam_ang) {
      fin >> entry;
   }
   fin.close();
 
 
-  fin.open("inc/wavenum.txt");
+  fin.open("ratedat/wavenum.txt");
   for ( auto& entry : wavenum) {
      fin >> entry;
   }
   fin.close();
  
 
-  fin.open("inc/HD100546_luminosity.txt");
+  fin.open("ratedat/HD100546_luminosity.txt");
   for (auto& entry : HD100546_luminosity) {
      fin >> entry;
   }
