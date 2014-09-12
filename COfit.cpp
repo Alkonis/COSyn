@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cstdlib>
 
-#include <mpi.h>
+//#include "mpi.h"
 
 using namespace std;
 
@@ -40,12 +40,12 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
 // The CollData object contains all of the variables specific to this trial!
 // CollData::CollData sets up static rate equation varibles, v_line indices, and another static varibles
 //=========================================
-
   double dist = 1.496e13*disk_in;
   double T_rot0_cl=T_rot0_fl;
   double T_rot_alpha_cl=T_rot_alpha_fl;
 
   CollData* d = new CollData(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
+cerr << doDebug << endl;
 
 
 //============================
@@ -141,7 +141,7 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
       vec dFdt=deriv2(d->tau,d->F_tau);
       d->Nv = zeros<fcube>(21,layers,d->steps);
 
-
+if (doDebug==1) cerr << "=========CALCULATE RELATIVE POPULATIONS=========" << endl;
 //==========================================================
 //   BIG COLLISION LOOP
 //=========================================================
@@ -158,6 +158,7 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 
       for (int k=0; k<d->steps; k++) 
       {
+        if (doDebug==1) cerr << "k = "<<k<<endl;
 
         mat Fuv = d->lum / ( 4*datum::pi*pow(d->rdisk[k],2) );
 
@@ -383,12 +384,10 @@ skip_fluorcalc:
 
   d->annuli=d->annuli*2.25e26;
 
-  //======================
-  //  X12CO
-  //=====================
+  if (doDebug==1) cerr << "=========SYNTHETIC SPECTRUM GENERATION=========" << endl; 
   for (int i=0; i<d->steps; i++)  //Loop over annuli
   {
-
+    if (doDebug==1) cerr << "i=" << i << endl;
     double btotcomp=b_tot.at(i)/cexp;
     //==============================
     //  X12CO
@@ -719,7 +718,7 @@ skip_fluorcalc:
 	  }
 	  for (int k=0;k<siz;k++)
 	  {
-	    d->centroid.at(d->indexn(z,0).at(k))=(arma::sum(tempv%deltay))/(arma::sum(tempv)+d->Lc);
+	    d->centroid.at(d->indexn(z,0).at(k))=(arma::sum(tempv%deltay))/(arma::sum(tempv)+Lc);
 	  }
         }
 
@@ -782,24 +781,34 @@ int FitData::runTrials() {
     MPI_Abort(MPI_COMM,WORLD, rc);
   }*/
   
+  double layers;
+  double disk_in;
+  //double dist=1.496e13*disk_in;
+  double disk_out;
+  double v_turb;
+  double T_rot0_fl;             //check this.... is t_rot_fl0?
+  double T_rot_alpha_fl;
+  //double T_rot0_cl=T_rot0_fl;
+  //double T_rot_alpha_cl=T_rot_alpha_fl;
+  double rel_lum;
 
   for(int i=0; i<this->numGuesses-1;i++) {
-    double receivedMessage[2];
-    for (int j=0; j<numtasks; j++)
-    {
+    //double receivedMessage[2];
+    //for (int j=0; j<numtasks; j++)
+    //{
     if (i==0)
     { 
 
-      double layers=300;
-      double disk_in=13.;
+      layers=300;
+      disk_in=13.;
       //double dist=1.496e13*disk_in;
-      double disk_out=100.0;
-      double v_turb=3e5;
-      double T_rot0_fl=2500;             //check this.... is t_rot_fl0?
-      double T_rot_alpha_fl=0.25;
+      disk_out=100.0;
+      v_turb=3e5;
+      T_rot0_fl=2500;             //check this.... is t_rot_fl0?
+      T_rot_alpha_fl=0.25;
       //double T_rot0_cl=T_rot0_fl;
       //double T_rot_alpha_cl=T_rot_alpha_fl;
-      double rel_lum=20;
+      rel_lum=20;
     }
     else 
     {
@@ -815,18 +824,21 @@ int FitData::runTrials() {
       //T_rot_alpha_cl=T_rot_alpha_fl;
       rel_lum=randData[6][i-1];
     }
-    isSent(i)=1;
+    isSent[i]=1;
+cerr << layers << endl;
     this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
-    }
+cerr << "*******************************" << endl;
+cerr << "***    TRIAL " << i << " COMPLETE***" << endl;
+cerr << "*******************************" << endl;
+    //}
    // RECEIVE MPI HERE
-
 //   MPI_Recv(&receivedMessage,2, MPI_DOUBLE,)
 // receive MPI conv_spec cent_conv here if difference is best
-
+  }
   return 0;
 }
 
-FitData::FitData(int numGuesses, string folder)
+FitData::FitData(string folder)
 {
   //class variables
 
@@ -835,12 +847,15 @@ FitData::FitData(int numGuesses, string folder)
   lam_ang             = zeros<mat>(10,12);
   HD100546_luminosity = zeros<mat>(10,12);
 
-  FitData::numGuesses=numGuesses;
-  folder=path=folder;
+  //FitData::numGuesses=numGuesses;
+  folderpath=folder;
   //read in data from files
 
   FitData::readInput(folderpath+"/input");
-
+cerr << inc << endl;
+cerr << numGuesses << endl;
+cerr << stardist << endl;
+cerr << Lc << endl;
   std::ifstream fin;
 
   fin.open("ratedat/EinA.txt");
@@ -950,7 +965,8 @@ FitData::FitData(int numGuesses, string folder)
   }
   vfreq=(freq(round(freq.n_elem/2))-freq)*c/freq(round(freq.n_elem/2));  
 
-  isSent = new double(numGuesses);
+  isSent = new double[numGuesses];
+
   this->randData[0]=FillArray(900, 100);
   this->randData[1]=FillArray(15, 6);
   this->randData[2]=FillArray(76, 50);
@@ -958,10 +974,11 @@ FitData::FitData(int numGuesses, string folder)
   this->randData[4]=FillArray(3500,1000);
   this->randData[5]=FillArray(50,20);
   this->randData[6]=FillArray(99, 1);
-  for (int i=0; i < numGuesses-1; i++) {
+  for (int i=0; i < numGuesses-2; i++) {
     this->randData[5][i]=this->randData[5][i]/100;
-    isSent(i)=false;
-  };
+    isSent[i]=false;
+  }
+  isSent[numGuesses-1]=false;
 
  /*=================
  *
@@ -980,17 +997,18 @@ FitData::~FitData()
     delete[] this->randData[i];
   }
   delete[] this->randData;
+  delete[] this->isSent;
 }
 
 int createInput() 
 {
   
-
   return 1;
 } 
 
-int extractValue(string sin, string varname, &double var)
+int FitData::extractValue(string sin, string varname, double& var)
 {
+/*cerr << "ExtractValue" << endl;
   string split1, split2;
   if (sin[0]=='#') return 0;
   int len = sin.length();
@@ -1010,36 +1028,37 @@ int extractValue(string sin, string varname, &double var)
     }
     split1=sin.substr(0,sep);
     split2=sin.substr(sep-1,len-sep);
-    for (int i=0; i<5; i++)
+    for (int i=0; i<6; i++)
     {
-      if (split1==varname) var=atod(split2);
+        if (split1==varname) var=stod(split2);
     }
+    if (split1=="numGuesses") {this->numGuesses=atoi(split2.c_str()); cerr << "setting numguesses=" << numGuesses << " " << split2 << endl;}
+  }*/
 }
 
 int FitData::readInput(string inpFile)
 {
-  string inputStrings[6] = {"numguesses","inc","mass","dist","Lc"};
-  double inputVars[6]= {&numGuesses,&inc,&Mstar,&stardist,&Lc};
-
+  string inputStrings[6] = {"inc","Mstar","stardist","Lc","inst_res","doDebug"};
+  double* inputVars[6]= {&inc,&Mstar,&stardist,&Lc,&inst_res,&doDebug};
   ifstream fin;
+cerr << inpFile << endl;
   fin.open(inpFile);
   string sin;
 
   while (getline(fin,sin))
   {
+cerr << sin << endl;
     //exit immediately if the line is commented out
-    if (sin[0]=='#') return 0;
+    if (sin[0]=='#') continue;
 
     int len = sin.length();
-    int sep;
+    int sep=-1;
     string split1,split2;
-
     for (int i=0; i<len; i++)
     {
-      sep=0;
-      if (sin[i]=='=');
+      if (sin[i] =='=')
       {
-        if (sep != 0)
+        if (sep != -1)
         {
           cerr << "Invalid input file!" << endl;
           abort();
@@ -1048,18 +1067,25 @@ int FitData::readInput(string inpFile)
       }
     }
 
-    split1=sin.substr(0,sep);
-    split2=sin.substr(sep-1,len-sep);
-    for (int i=0; i<5; i++)
+    if (sep==0)
     {
-      if (split1==inputvars[i]) {inputVars[i]=atod(split2);  cerr << inputStrings[i] << ": " << inputVars[i] << endl;}
+      cerr << "Invalid input file!  Please preface comments with '#'." << endl;
+      abort();
     }
+    split1=sin.substr(0,sep);
+    split2=sin.substr(sep+1,len-sep);
+//cerr << "Checking vars:  " << split1 << " " << split2 << endl;
+    for (int i=0; i<6; i++)
+    {
+      if (split1==inputStrings[i]) *inputVars[i]=stod(split2);
+    }
+    if (split1=="numGuesses") this->numGuesses=atoi(split2.c_str());
   }
 }
 
 int main(int argc, char* argv[]) 
 {
-  data = new FitData(atoi(argv[1]), "HD100546");
+  data = new FitData("HD100546");
   delete data;
   return 1;
 }

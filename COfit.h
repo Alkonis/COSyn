@@ -29,8 +29,6 @@ class FitData{
 
  private:
 
-  static int numGuesses;
-
   double* FillArray(int modulus, int offset);
 
 
@@ -40,16 +38,18 @@ class FitData{
   static constexpr double f_f = 2179.;
   static constexpr double H_den0 =2.5e10;
   static constexpr double H_den_alpha=.10;
-  static constexpr double inc = 40 * datum::pi / 180;
   static constexpr double X12CO_13CO_fl = 65./30;
   static constexpr double X12CO_C18O_fl = 550./16.25;
   static constexpr double X12CO_13CO_cl = 65.;
   static constexpr double X12CO_C18O_cl = 560.;
 
-  static double Mstar=2.4;
-  static double stardist=3.1781680e20;
-  static double inst_res=6.0;
- // static double Lc;
+  static double Mstar;
+  static double stardist;
+  static double inst_res;
+  static unsigned int numGuesses;
+  static double Lc;  //pow(5.13,-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16)); // continuum luminosity
+  static double inc;
+  static double doDebug;
 
   static constexpr double c=2.997924562e5;
   static constexpr double cexp=29979245620;
@@ -136,7 +136,7 @@ public:
 
   string folderpath;
 
-  FitData(int numGuesses, string folder);
+  FitData(string folder);
   ~FitData();
 
   double* FillArrays(int modulus, int offset);
@@ -144,7 +144,8 @@ public:
  
   int runTrial(double ilayers, double idisk_in, double idisk_out, double iv_turb, double iT_rot0_fl, double iT_rot_alpha_fl, double irel_lum); 
   int runTrials();
-  int readInput();
+  int readInput(string inpFile);
+  int extractValue(string sin, string varname, double& var);
 
   string dirname;
 };
@@ -154,7 +155,15 @@ mat FitData::einA;
 mat FitData::lam_ang;
 mat FitData::HD100546_luminosity;
 
-int FitData::numGuesses;
+
+double FitData::Mstar;
+double FitData::stardist;
+double FitData::inst_res;
+unsigned int FitData::numGuesses;
+double FitData::Lc;  //pow(5.13,-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16)); // continuum luminosity
+double FitData::inc;
+double FitData::doDebug;
+
 constexpr double FitData::vib_einA[];
 constexpr double FitData::Bv12[];
 constexpr double FitData::Bv13[];

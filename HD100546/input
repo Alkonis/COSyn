@@ -1,5 +1,8 @@
 #this is a comment
-numguesses=100
-inc=1
-dist=2.4E10
+numGuesses=100
+inc=0.6981317007977318
+stardist=3.1781680e20
 Mstar=2.4
+Lc=8.3837025e28
+doDebug=1
+inst_res=6

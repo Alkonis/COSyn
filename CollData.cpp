@@ -92,7 +92,6 @@ public:
  field <vec> iten_lines;
 
   CollData(double layers, double disk_in, double disk_out, double v_turb, double T_rot0_fl, double T_rot_alpha_fl, double rel_lum)  {
-
     double dist=1.496e13*disk_in;
 
     dFdt_0 = zeros<fcube>(10,12,layers);
