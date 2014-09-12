@@ -1,3 +1,3 @@
 make
 rm output
-./COfit 10 > output
+./COfit "HD100546" > "HD100546/output"
