@@ -32,6 +32,14 @@ class FitData{
   double* FillArray(int modulus, int offset);
 
 
+
+  //Used by rank 0 MPI
+  int local_i;
+  double local_chisq;
+  
+  vec finchivec;
+
+
   //parameters constant for all runs
 
   static constexpr double f_i = 1995.;
@@ -142,7 +150,7 @@ public:
   double* FillArrays(int modulus, int offset);
   int runCollisions(bool doCols);
  
-  int runTrial(double ilayers, double idisk_in, double idisk_out, double iv_turb, double iT_rot0_fl, double iT_rot_alpha_fl, double irel_lum); 
+  int runTrial(double ilayers, double idisk_in, double idisk_out, double iv_turb, double iT_rot0_fl, double iT_rot_alpha_fl, double irel_lum, int locali); 
   int runTrials();
   int readInput(string inpFile);
   int extractValue(string sin, string varname, double& var);

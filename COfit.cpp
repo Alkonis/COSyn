@@ -3,7 +3,7 @@
 #include <iostream>
 #include <cstdlib>
 
-//#include "mpi.h"
+#include "mpi.h"
 
 using namespace std;
 
@@ -28,7 +28,7 @@ double* FitData::FillArray(int modulus, int offset)
   return array;
 }
 
-int FitData::runTrial(double layers, double disk_in, double disk_out, double v_turb, double T_rot0_fl, double T_rot_alpha_fl, double rel_lum) {
+int FitData::runTrial(double layers, double disk_in, double disk_out, double v_turb, double T_rot0_fl, double T_rot_alpha_fl, double rel_lum, int locali) {
 
 //============================================
 // MAIN MODEL-FITTING FUNCTION
@@ -742,14 +742,17 @@ skip_fluorcalc:
   cent_conv=cent_conv*as_scalar(arma::sum(abs(d->centroid)))/as_scalar(arma::sum(abs(cent_conv)));
   conv_spec=conv_spec*as_scalar(arma::accu(flux_tot_slit))/as_scalar(arma::sum(conv_spec));
 
-  ofstream fout;
-  fout.open(folderpath+"/cent_conv");
-  fout << real(cent_conv);
-  fout.close();
-  fout.open(folderpath+"/conv_spec");
-  fout << real(conv_spec);
-  fout.close();
-cerr << "substracting..." << endl;
+  if (locali ==1)
+  {
+    ofstream fout;
+    fout.open(folderpath+"/cent_conv_0");
+    fout << real(cent_conv);
+    fout.close();
+    fout.open(folderpath+"/conv_spec_0");
+    fout << real(conv_spec);
+    fout.close();
+  }
+  cerr << "substracting..." << endl;
   ivec indexdiff=where(r1big, [] (double datum) {return (datum != -9999);});
   int indexsiz=indexdiff.n_elem;
   d->diff = ((r1big-1)*1.5e-12 - interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big));
@@ -757,9 +760,36 @@ cerr << "substracting..." << endl;
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
   
   double chisq = arma::sum(abs(d->diff));
+  //===========================
+  //===  MPI Communication  ===
+  //===========================
 
+  int rank,numtasks;
+  MPI_Comm_size(MPI_COMM_WORLD,&numtasks);
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+  double sendMessage[2];
+
+  sendMessage[0]=locali;
+  sendMessage[1]=chisq;
+
+  if (rank!=0)
+  {
+    for (int j=0; j<numtasks; j++)
+    {
+      MPI_Send(&sendMessage,2,MPI_DOUBLE,0,2,MPI_COMM_WORLD);
+    }
+  }
+ 
+  if (rank==0)
+  {
+    local_i=locali;
+    local_chisq=chisq;
+  }
+
+  //==========================  
+
+ 
   cerr << chisq << endl;
-  cin.get();  
   delete(d);
 
   return 0;
@@ -771,16 +801,24 @@ int FitData::runTrials() {
   //set parameters for best-chi;
 
 
-/*  int rank;
+  int rank;
   int numtasks;
   int rc;
+  int argc;
+  char **argv;
 
+  MPI_Init(&argc,&argv);
+  cerr << "MPI Initialized." << endl;
   if (rc != MPI_SUCCESS) 
   {
     cerr << "Error initializing MPI environment." << endl;
-    MPI_Abort(MPI_COMM,WORLD, rc);
-  }*/
-  
+    MPI_Abort(MPI_COMM_WORLD, rc);
+  }
+
+  MPI_Status Stat;
+  MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
   double layers;
   double disk_in;
   //double dist=1.496e13*disk_in;
@@ -792,11 +830,35 @@ int FitData::runTrials() {
   //double T_rot_alpha_cl=T_rot_alpha_fl;
   double rel_lum;
 
+  int locali;
+cerr << "numtasks: " << numtasks << endl;
+cerr << "RANKS:" << endl;
+  for (int i=0; i<numtasks; i++) cerr << rank << endl;
+cerr << "endranks" << endl;
+  if (rank==0) finchivec=zeros<vec>(numGuesses-1);
+
   for(int i=0; i<this->numGuesses-1;i++) {
-    //double receivedMessage[2];
-    //for (int j=0; j<numtasks; j++)
-    //{
-    if (i==0)
+  
+    double receivedMessage[2];
+
+    if (rank==0)
+    { cerr << "Sending..." << endl;
+      locali=i;
+      for (int j=1; j<numtasks; j++)
+      {
+        i++;
+        MPI_Send(&i,1,MPI_INT,j,1, MPI_COMM_WORLD);
+      }
+    }
+   
+    if (rank!=0)
+    {
+      cerr << "Receiving..." << endl;
+      MPI_Recv(&locali,1,MPI_INT,0,1, MPI_COMM_WORLD, &Stat);
+      cerr << "locali received = " << locali << endl;
+    }
+
+    if (locali==0)
     { 
 
       layers=300;
@@ -812,29 +874,41 @@ int FitData::runTrials() {
     }
     else 
     {
-      cerr << "Aux trial number " << i << " begin now" << endl;
-      layers=randData[0][i-1];
-      disk_in=randData[1][i-1];
+      cerr << "Aux trial number " << locali << " begin now" << endl;
+      layers=randData[0][locali-1];
+      disk_in=randData[1][locali-1];
       //dist=1.496e13*disk_in;
-      disk_out=randData[2][i-1];
-      v_turb=randData[3][i-1];
-      T_rot0_fl=randData[4][i-1];
-      T_rot_alpha_fl=randData[5][i-1];
+      disk_out=randData[2][locali-1];
+      v_turb=randData[3][locali-1];
+      T_rot0_fl=randData[4][locali-1];
+      T_rot_alpha_fl=randData[5][locali-1];
       //T_rot0_cl=T_rot0_fl;
       //T_rot_alpha_cl=T_rot_alpha_fl;
-      rel_lum=randData[6][i-1];
+      rel_lum=randData[6][locali-1];
     }
-    isSent[i]=1;
-cerr << layers << endl;
-    this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
-cerr << "*******************************" << endl;
-cerr << "***    TRIAL " << i << " COMPLETE***" << endl;
-cerr << "*******************************" << endl;
-    //}
-   // RECEIVE MPI HERE
-//   MPI_Recv(&receivedMessage,2, MPI_DOUBLE,)
+    this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
+    cerr << "*******************************" << endl;
+    cerr << "****    TRIAL " << i << " COMPLETE    ****" << endl;
+    cerr << "*******************************" << endl;
+
+    // RECEIVE MPI HERE
+
+    if (rank==0) 
+    {
+      finchivec.at(local_i)=local_chisq;
+      for (int j=0; j<numtasks; j++)
+      {
+        MPI_Recv(&receivedMessage,2, MPI_DOUBLE,j,2,MPI_COMM_WORLD, &Stat);
+        finchivec.at(receivedMessage[0])=receivedMessage[1];
+      }
+    }
+
 // receive MPI conv_spec cent_conv here if difference is best
+
   }
+  MPI_Finalize();
+  cerr << "Best fit:  " << finchivec.min() << endl;
+
   return 0;
 }
 
