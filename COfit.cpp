@@ -3,14 +3,14 @@
 #include <iostream>
 #include <cstdlib>
 
-#include "mpi.h"
-
 using namespace std;
 
 /*constexpr double FitData::vib_einA[];
 constexpr double FitData::Bv12[];
 constexpr double FitData::Bv13[];
 vec FitData::freq;*/
+
+#include "mpi.h"
 
 constexpr double CollData::fco_list[];
 
@@ -26,6 +26,12 @@ double* FitData::FillArray(int modulus, int offset)
     array[i]=rand() % modulus + offset;
   }
   return array;
+}
+
+int FitData::dbm(string message)
+{
+
+
 }
 
 int FitData::runTrial(double layers, double disk_in, double disk_out, double v_turb, double T_rot0_fl, double T_rot_alpha_fl, double rel_lum, int locali) {
@@ -45,7 +51,6 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
   double T_rot_alpha_cl=T_rot_alpha_fl;
 
   CollData* d = new CollData(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
-cerr << doDebug << endl;
 
 
 //============================
@@ -141,7 +146,6 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
       vec dFdt=deriv2(d->tau,d->F_tau);
       d->Nv = zeros<fcube>(21,layers,d->steps);
 
-if (doDebug==1) cerr << "=========CALCULATE RELATIVE POPULATIONS=========" << endl;
 //==========================================================
 //   BIG COLLISION LOOP
 //=========================================================
@@ -158,7 +162,6 @@ if (doDebug==1) cerr << "=========CALCULATE RELATIVE POPULATIONS=========" << en
 
       for (int k=0; k<d->steps; k++) 
       {
-        if (doDebug==1) cerr << "k = "<<k<<endl;
 
         mat Fuv = d->lum / ( 4*datum::pi*pow(d->rdisk[k],2) );
 
@@ -384,10 +387,8 @@ skip_fluorcalc:
 
   d->annuli=d->annuli*2.25e26;
 
-  if (doDebug==1) cerr << "=========SYNTHETIC SPECTRUM GENERATION=========" << endl; 
   for (int i=0; i<d->steps; i++)  //Loop over annuli
   {
-    if (doDebug==1) cerr << "i=" << i << endl;
     double btotcomp=b_tot.at(i)/cexp;
     //==============================
     //  X12CO
@@ -742,7 +743,7 @@ skip_fluorcalc:
   cent_conv=cent_conv*as_scalar(arma::sum(abs(d->centroid)))/as_scalar(arma::sum(abs(cent_conv)));
   conv_spec=conv_spec*as_scalar(arma::accu(flux_tot_slit))/as_scalar(arma::sum(conv_spec));
 
-  if (locali ==1)
+  if (round(locali) == 0)
   {
     ofstream fout;
     fout.open(folderpath+"/cent_conv_0");
@@ -752,7 +753,8 @@ skip_fluorcalc:
     fout << real(conv_spec);
     fout.close();
   }
-  cerr << "substracting..." << endl;
+
+//  cerr << "substracting..." << endl;
   ivec indexdiff=where(r1big, [] (double datum) {return (datum != -9999);});
   int indexsiz=indexdiff.n_elem;
   d->diff = ((r1big-1)*1.5e-12 - interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big));
@@ -774,22 +776,20 @@ skip_fluorcalc:
 
   if (rank!=0)
   {
-    for (int j=0; j<numtasks; j++)
-    {
-      MPI_Send(&sendMessage,2,MPI_DOUBLE,0,2,MPI_COMM_WORLD);
-    }
+    cerr << "Return sending data from trial locali=" << locali << endl;
+    MPI_Send(&sendMessage,2,MPI_DOUBLE,0,2,MPI_COMM_WORLD);
   }
  
   if (rank==0)
   {
     local_i=locali;
     local_chisq=chisq;
-  }
+  } 
 
   //==========================  
 
- 
-  cerr << chisq << endl;
+  
+//  cerr << chisq << endl;
   delete(d);
 
   return 0;
@@ -804,10 +804,10 @@ int FitData::runTrials() {
   int rank;
   int numtasks;
   int rc;
-  int argc;
-  char **argv;
-
-  MPI_Init(&argc,&argv);
+//  int argc=1;
+//  char *argv[1]={"dummy"}  ;
+cerr << "About to initialize" << endl;
+  MPI_Init(NULL,NULL);
   cerr << "MPI Initialized." << endl;
   if (rc != MPI_SUCCESS) 
   {
@@ -818,6 +818,7 @@ int FitData::runTrials() {
   MPI_Status Stat;
   MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
 
   double layers;
   double disk_in;
@@ -831,50 +832,74 @@ int FitData::runTrials() {
   double rel_lum;
 
   int locali;
-cerr << "numtasks: " << numtasks << endl;
-cerr << "RANKS:" << endl;
-  for (int i=0; i<numtasks; i++) cerr << rank << endl;
-cerr << "endranks" << endl;
+
   if (rank==0) finchivec=zeros<vec>(numGuesses-1);
 
-  for(int i=0; i<this->numGuesses-1;i++) {
-  
+  for(int i=0; i<this->numGuesses-1;) {
     double receivedMessage[2];
 
+    int sent=0;
+    int sentThisLoop=0;
+    int checkIndex;
     if (rank==0)
-    { cerr << "Sending..." << endl;
-      locali=i;
-      for (int j=1; j<numtasks; j++)
+    { 
+      
+      while (sent<numtasks)
       {
-        i++;
-        MPI_Send(&i,1,MPI_INT,j,1, MPI_COMM_WORLD);
+
+        int doLoop=1;
+
+        for (int j=0;doLoop==1;j++)
+        {
+          if (!isSent[j])
+          {
+
+            isSent[j]=1;
+
+            if (sent==0)
+            {
+              locali=j;
+              doLoop=0;
+            }
+            else
+            {
+              i++;
+              MPI_Send(&j,1,MPI_INT,sent,1, MPI_COMM_WORLD);
+              doLoop=0;
+            }
+
+            sent++;
+
+          }
+
+          if (j>numGuesses) cerr << "ERROR in guess communication!" << endl;
+        }
       }
-    }
+
+    } 
    
     if (rank!=0)
     {
-      cerr << "Receiving..." << endl;
       MPI_Recv(&locali,1,MPI_INT,0,1, MPI_COMM_WORLD, &Stat);
-      cerr << "locali received = " << locali << endl;
+      cerr << "locali received = " << locali << ", task=" << rank << endl;
     }
-
+ 
     if (locali==0)
     { 
 
       layers=300;
-      disk_in=13.;
+      disk_in=disk_in_0;
       //double dist=1.496e13*disk_in;
-      disk_out=100.0;
-      v_turb=3e5;
-      T_rot0_fl=2500;             //check this.... is t_rot_fl0?
-      T_rot_alpha_fl=0.25;
+      disk_out=disk_out_0;
+      v_turb=v_turb_0;
+      T_rot0_fl=T_rot0_fl_0;             //check this.... is t_rot_fl0?
+      T_rot_alpha_fl=T_rot_alpha_fl_0;
       //double T_rot0_cl=T_rot0_fl;
       //double T_rot_alpha_cl=T_rot_alpha_fl;
-      rel_lum=20;
+      rel_lum=rel_lum_0;
     }
     else 
     {
-      cerr << "Aux trial number " << locali << " begin now" << endl;
       layers=randData[0][locali-1];
       disk_in=randData[1][locali-1];
       //dist=1.496e13*disk_in;
@@ -886,23 +911,31 @@ cerr << "endranks" << endl;
       //T_rot_alpha_cl=T_rot_alpha_fl;
       rel_lum=randData[6][locali-1];
     }
+cerr << "Running trial, locali=" << locali << endl;
     this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
-    cerr << "*******************************" << endl;
-    cerr << "****    TRIAL " << i << " COMPLETE    ****" << endl;
-    cerr << "*******************************" << endl;
 
     // RECEIVE MPI HERE
-
     if (rank==0) 
     {
       finchivec.at(local_i)=local_chisq;
-      for (int j=0; j<numtasks; j++)
+      cerr << "********************************" << endl;
+      cerr << "****    TRIAL " << locali << " COMPLETE    ****" << endl;
+      cerr << "********************************" << endl;
+      for (int j=1; j<numtasks; j++)
       {
         MPI_Recv(&receivedMessage,2, MPI_DOUBLE,j,2,MPI_COMM_WORLD, &Stat);
+        cerr << "receivedMessage[0]: " << receivedMessage[0] << endl;
+        cerr << "finchibefore: " << finchivec.at(receivedMessage[0])
+        
+        (finchivec.at(receivedMessage[0] != 0)) cerr << "ERROR:  OVERLAPPED TRIALS" << endl;
+        cerr << "finchiafter: " << finchivec.at(receivedMessage[0]) << endl;
         finchivec.at(receivedMessage[0])=receivedMessage[1];
+
+        cerr << "********************************" << endl;
+        cerr << "****    TRIAL " << receivedMessage[0] << " COMPLETE    ****" << endl;
+        cerr << "********************************" << endl;
       }
     }
-
 // receive MPI conv_spec cent_conv here if difference is best
 
   }
@@ -926,10 +959,6 @@ FitData::FitData(string folder)
   //read in data from files
 
   FitData::readInput(folderpath+"/input");
-cerr << inc << endl;
-cerr << numGuesses << endl;
-cerr << stardist << endl;
-cerr << Lc << endl;
   std::ifstream fin;
 
   fin.open("ratedat/EinA.txt");
@@ -1039,7 +1068,7 @@ cerr << Lc << endl;
   }
   vfreq=(freq(round(freq.n_elem/2))-freq)*c/freq(round(freq.n_elem/2));  
 
-  isSent = new double[numGuesses];
+  isSent = new bool[numGuesses];
 
   this->randData[0]=FillArray(900, 100);
   this->randData[1]=FillArray(15, 6);
@@ -1050,7 +1079,7 @@ cerr << Lc << endl;
   this->randData[6]=FillArray(99, 1);
   for (int i=0; i < numGuesses-2; i++) {
     this->randData[5][i]=this->randData[5][i]/100;
-    isSent[i]=false;
+    isSent[i]=0;
   }
   isSent[numGuesses-1]=false;
 
@@ -1112,16 +1141,12 @@ int FitData::extractValue(string sin, string varname, double& var)
 
 int FitData::readInput(string inpFile)
 {
-  string inputStrings[6] = {"inc","Mstar","stardist","Lc","inst_res","doDebug"};
-  double* inputVars[6]= {&inc,&Mstar,&stardist,&Lc,&inst_res,&doDebug};
   ifstream fin;
-cerr << inpFile << endl;
   fin.open(inpFile);
   string sin;
 
   while (getline(fin,sin))
   {
-cerr << sin << endl;
     //exit immediately if the line is commented out
     if (sin[0]=='#') continue;
 
@@ -1148,8 +1173,7 @@ cerr << sin << endl;
     }
     split1=sin.substr(0,sep);
     split2=sin.substr(sep+1,len-sep);
-//cerr << "Checking vars:  " << split1 << " " << split2 << endl;
-    for (int i=0; i<6; i++)
+    for (int i=0; i<inputs; i++)
     {
       if (split1==inputStrings[i]) *inputVars[i]=stod(split2);
     }

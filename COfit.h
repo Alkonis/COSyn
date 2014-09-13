@@ -29,6 +29,7 @@ class FitData{
 
  private:
 
+  //random data generation function
   double* FillArray(int modulus, int offset);
 
 
@@ -36,11 +37,10 @@ class FitData{
   //Used by rank 0 MPI
   int local_i;
   double local_chisq;
-  
+  double doMPI;
+
+  //final vector containing chi for each i in numguesses 
   vec finchivec;
-
-
-  //parameters constant for all runs
 
   static constexpr double f_i = 1995.;
   static constexpr double f_f = 2179.;
@@ -51,6 +51,12 @@ class FitData{
   static constexpr double X12CO_13CO_cl = 65.;
   static constexpr double X12CO_C18O_cl = 560.;
 
+
+  //=================================
+  //====  input file parameters  ====
+  //=================================
+  
+  //star parameters
   static double Mstar;
   static double stardist;
   static double inst_res;
@@ -59,6 +65,53 @@ class FitData{
   static double inc;
   static double doDebug;
 
+  //chi-by-eye parameters
+  static double disk_in_0;
+  static double disk_out_0;
+  static double v_turb_0;
+  static double T_rot0_fl_0;
+  static double T_rot_alpha_fl_0;
+  static double rel_lum_0;
+
+  //setup variables for reading input
+
+  static constexpr unsigned int inputs = 12;
+
+  static constexpr double* inputVars[inputs] = 
+  {
+    &inc,
+    &Mstar,
+    &stardist,
+    &Lc,
+    &inst_res,
+    &doDebug,
+    &disk_in_0,
+    &disk_out_0,
+    &v_turb_0,
+    &T_rot0_fl_0,
+    &T_rot_alpha_fl_0,
+    &rel_lum_0,
+  };
+
+  string inputStrings[inputs] =
+  {
+    "inc",
+    "Mstar",
+    "stardist",
+    "Lc",
+    "inst_res",
+    "doDebug",
+    "disk_in_0",
+    "disk_out_0",
+    "v_turb_0",
+    "T_rot0_fl_0",
+    "T_rot_alpha_fl_0",
+    "rel_lum_0"
+  };  
+
+
+
+  //constant constants
   static constexpr double c=2.997924562e5;
   static constexpr double cexp=29979245620;
   static constexpr double hc=  6.626196e-27*2.997924562e10;
@@ -140,7 +193,7 @@ public:
   static constexpr double vib_einA[10]={34.60,67.68,98.40,126.99,153.59,178.31,201.35,223.10,244.15,265.21};
 
   double** randData = new double*[7];
-  double* isSent;
+  bool* isSent;
 
   string folderpath;
 
@@ -152,34 +205,60 @@ public:
  
   int runTrial(double ilayers, double idisk_in, double idisk_out, double iv_turb, double iT_rot0_fl, double iT_rot_alpha_fl, double irel_lum, int locali); 
   int runTrials();
+
   int readInput(string inpFile);
   int extractValue(string sin, string varname, double& var);
+
+  int dbm(string message);
 
   string dirname;
 };
 
+//==============================================
+//==external declarations of static parameters==
+//=============================================
+
+unsigned int FitData::numGuesses;
+
+//tabular data
 mat FitData::wavenum;
 mat FitData::einA;
 mat FitData::lam_ang;
 mat FitData::HD100546_luminosity;
 
-
+//input star parameters
 double FitData::Mstar;
 double FitData::stardist;
 double FitData::inst_res;
-unsigned int FitData::numGuesses;
-double FitData::Lc;  //pow(5.13,-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16)); // continuum luminosity
+double FitData::Lc; 
 double FitData::inc;
 double FitData::doDebug;
 
+//chi-by-eye parameters
+double FitData::disk_in_0;
+double FitData::disk_out_0;
+double FitData::v_turb_0;
+double FitData::T_rot0_fl_0;
+double FitData::T_rot_alpha_fl_0;
+double FitData::rel_lum_0;
+
+//vibrational constants
 constexpr double FitData::vib_einA[];
 constexpr double FitData::Bv12[];
 constexpr double FitData::Bv13[];
 
+//input file parameters
+constexpr unsigned int FitData::inputs;
+constexpr double* FitData::inputVars[];
+
+//frequency scale
 vec FitData::freq;
+
+//input data to be fit
 vec FitData::r1big;
 vec FitData::f1big;
 
+//global FitData object
 FitData* data;
 #endif
 
