@@ -63,7 +63,9 @@ class FitData{
   static double inst_res;
   static unsigned int numGuesses;
   static double Lc;  //pow(5.13,-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16)); // continuum luminosity
-  static double inc;
+  static double inc;  
+  static double sigmaSquared;
+
   static double doDebug;
 
   //chi-by-eye parameters
@@ -73,10 +75,27 @@ class FitData{
   static double T_rot0_fl_0;
   static double T_rot_alpha_fl_0;
   static double rel_lum_0;
+  static double layers_0;
+
+  //range parameters
+  static double disk_in_min;
+  static double disk_in_max;
+  static double disk_out_min;
+  static double disk_out_max;
+  static double v_turb_min;
+  static double v_turb_max;
+  static double T_rot0_fl_min;
+  static double T_rot0_fl_max;
+  static double T_rot_alpha_fl_min;
+  static double T_rot_alpha_fl_max;
+  static double rel_lum_min;
+  static double rel_lum_max;
+  static double layers_min;
+  static double layers_max;   
 
   //setup variables for reading input
 
-  static constexpr unsigned int inputs = 12;
+  static constexpr unsigned int inputs = 28;
 
   static constexpr double* inputVars[inputs] = 
   {
@@ -92,6 +111,22 @@ class FitData{
     &T_rot0_fl_0,
     &T_rot_alpha_fl_0,
     &rel_lum_0,
+    &layers_0,
+    &disk_in_min,   
+    &disk_in_max,
+    &disk_out_min,
+    &disk_out_max,
+    &v_turb_min,
+    &v_turb_max,
+    &T_rot0_fl_min,
+    &T_rot0_fl_max,
+    &T_rot_alpha_fl_min,
+    &T_rot_alpha_fl_max,
+    &rel_lum_min,
+    &rel_lum_max,
+    &layers_min,
+    &layers_max,
+    &sigmaSquared
   };
 
   string inputStrings[inputs] =
@@ -107,7 +142,23 @@ class FitData{
     "v_turb_0",
     "T_rot0_fl_0",
     "T_rot_alpha_fl_0",
-    "rel_lum_0"
+    "rel_lum_0",
+    "layers_0",
+    "disk_in_min",
+    "disk_in_max",
+    "disk_out_min",
+    "disk_out_max",
+    "v_turb_min",
+    "v_turb_max",
+    "T_rot0_fl_min",
+    "T_rot0_fl_max",
+    "T_rot_alpha_fl_min",
+    "T_rot_alpha_fl_max",
+    "rel_lum_min",
+    "rel_lum_max",
+    "layers_min",
+    "layers_max",
+    "sigmaSquared"
   };  
 
 
@@ -169,7 +220,7 @@ private:
 //variable parameters; these are changed with each iteration of the loop
 /*  double layers;
   double dist;
-  double steps;
+  double stepsn&;
   double v_turb;
   double T_rot0_fl;
   double T_rot_alpha_fl;
@@ -242,6 +293,25 @@ double FitData::v_turb_0;
 double FitData::T_rot0_fl_0;
 double FitData::T_rot_alpha_fl_0;
 double FitData::rel_lum_0;
+double FitData::layers_0;
+
+//range parameters
+double FitData::disk_in_min;
+double FitData::disk_in_max;
+double FitData::disk_out_min;
+double FitData::disk_out_max;
+double FitData::v_turb_min;
+double FitData::v_turb_max;
+double FitData::T_rot0_fl_min;
+double FitData::T_rot0_fl_max;
+double FitData::T_rot_alpha_fl_min;
+double FitData::T_rot_alpha_fl_max;
+double FitData::rel_lum_min;
+double FitData::rel_lum_max;
+double FitData::layers_min;
+double FitData::layers_max;   
+
+double FitData::sigmaSquared;
 
 //vibrational constants
 constexpr double FitData::vib_einA[];

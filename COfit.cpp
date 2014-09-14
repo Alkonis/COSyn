@@ -18,12 +18,13 @@ constexpr double CollData::fco_list[];
 
 //returns an array of size numGuesses filled with random numbers on the interval (offset, modulus+offset)
 //used to generate the matrix of guess data
-double* FitData::FillArray(int modulus, int offset)
+double* FitData::FillArray(int min, int max)
 {
   double* array;
   array  = new double[numGuesses];
-  for(int i=0; i<numGuesses-1;i++) {
-    array[i]=rand() % modulus + offset;
+  cerr << "min, max:  " << min << ", " << max << endl;
+  for(int i=0; i<numGuesses;i++) {
+    array[i]=rand() % (max-min) + min;
   }
   return array;
 }
@@ -708,7 +709,7 @@ skip_fluorcalc:
 
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
   
-  double chisq = arma::sum(abs(d->diff));
+  double chisq = pow(arma::sum(abs(d->diff)),2)/1.4e-27;
   //===========================
   //===  MPI Communication  ===
   //===========================
@@ -737,7 +738,6 @@ skip_fluorcalc:
 
   
   delete(d);
-
   return 0;
 }
 
@@ -775,7 +775,7 @@ int FitData::runTrials() {
 
   int locali;
 
-  if (rank==0) finchivec=zeros<vec>(numGuesses-1);
+  if (rank==0) finchivec=zeros<vec>(numGuesses);
 
   for(int i=0; i<this->numGuesses;) {
 
@@ -794,17 +794,27 @@ int FitData::runTrials() {
 
       while (sent<numtasks)
       {
-
+        cerr << "looping"<< endl;
         //for (int k=0; k<numGuesses; k++) cerr << isSent[k] << endl; 
         //cin.get();
         int doLoop=1;
 
         if (i>=numGuesses) 
         {
-          doLoop=0;
-          cerr << "Terminated!  Maximum number of trials reached!" << endl;
-          for (int k=sent; k<numtasks; k++) {useProcess[k]=0; cerr << "Useprocess[" << k << "] set" << endl;}
-          exitWhile=1;
+          cerr << "Terminated!  Maximum number of trials reached!  Process " << sent << endl;
+          for (int k=sent; k<numtasks; k++) 
+          {
+            useProcess[k]=0;
+            MPI_Send(&useProcess[k],1,MPI_INT,k,useProcess[k], MPI_COMM_WORLD);
+              cerr << "SENDING TERM k="<<k<<endl;
+          }
+          break;
+          //for (int k=sent; k<numtasks; k++) {useProcess[k]=0; cerr << "Useprocess[" << k << "] set" << endl;}
+          //exitWhile=1;
+        }
+        else
+        {
+          useProcess[sent]=1;
         }
        
         //for each core, find the first i in randData that has not been assigned a processor and send that i to that process
@@ -819,11 +829,12 @@ int FitData::runTrials() {
             {
               locali=j;
               doLoop=0;
-//cerr << "Adopted j="<<j<<endl;
+cerr << "Adopted j="<<j<<endl;
             }
             else
             {
-              MPI_Send(&j,1,MPI_INT,sent,1, MPI_COMM_WORLD);
+cerr << "Sending tag " << useProcess[sent] << " to " << sent << endl; 
+              MPI_Send(&j,1,MPI_INT,sent,useProcess[sent], MPI_COMM_WORLD);
               doLoop=0;
 //cerr << "sending j=" <<j << " to " << rank << endl;
             }
@@ -838,23 +849,21 @@ int FitData::runTrials() {
       }
     }
 //PROBLEM:  THIS PART HAS NO WAY TO KNOW IF THE PREVIOUS PART DID NOT SEND ANYTHING!  THIS SHOULD BE EASILY RESOLVABLE AFTER A GOOD NIGHT'S REST 
-    if (rank!=0 && useThis);
-    {
 
-      cerr << "locali fetch, task=" << rank << endl;
-      MPI_Recv(&locali,1,MPI_INT,0,1, MPI_COMM_WORLD, &Stat);
+    if (rank==0) {cerr << "SETTING RANK ONE" << endl;  useThis=1;}
+    if (rank!=0)
+    {
+      MPI_Recv(&locali,1,MPI_INT,0,MPI_ANY_TAG, MPI_COMM_WORLD, &Stat);
+cerr << "RECEIVED TAG RANK" << rank << endl;
+      useThis=Stat.MPI_TAG;
   //    cerr << "locali received = " << locali << ", task=" << rank << endl;
     }
 
-    if (rank==1) for (int k=1; k<numtasks;k++) {MPI_Send(&useProcess[k],1,MPI_INT,k,4,MPI_COMM_WORLD);}
-    if (rank!=1) MPI_Recv(&useThis,1,MPI_INT,0,4,MPI_COMM_WORLD,&Stat);
 
-    if ((rank!=0) && !useThis)  {cerr << "TERMINATION BREAK" << endl;  break;}
- 
     if (locali==0)
     { 
 
-      layers=300;
+      layers=layers_0;
       disk_in=disk_in_0;
       //double dist=1.496e13*disk_in;
       disk_out=disk_out_0;
@@ -878,18 +887,21 @@ int FitData::runTrials() {
       //T_rot_alpha_cl=T_rot_alpha_fl;
       rel_lum=randData[6][locali-1];
     }
-//cerr << "Running trial, locali=" << locali << endl;
-   layers=2;
-    this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
-
+    if (useThis) 
+    {
+      cerr << "starting trial locali=" << locali << ", rank " << rank << endl;
+      this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
+   
+    }
     // RECEIVE MPI HERE
+cerr << "DONE." << endl;
     if (rank==0) 
     {
       finchivec.at(local_i)=local_chisq;
       cerr << "********************************" << endl;
       cerr << "****    TRIAL " << locali << " COMPLETE    ****" << endl;
       cerr << "********************************" << endl;
-      for (int j=1; j<numtasks; j++)
+      for (int j=1; j<sent; j++)
       {
         MPI_Recv(&receivedMessage,2, MPI_DOUBLE,j,2,MPI_COMM_WORLD, &Stat);
 //        cerr << "receivedMessage[0]: " << receivedMessage[0] << endl;
@@ -907,18 +919,18 @@ int FitData::runTrials() {
     }
  
       if (rank==0)
-      {
+      { cerr << "QUIT LOOP i=" << i << endl;
         if (i>=numGuesses)
         {
           quit=1; 
+          cerr << "!!SENDING QUIT="<<quit<<endl;
           for (int j=1; j<numtasks; j++) MPI_Send(&quit,1,MPI_INT,j,3,MPI_COMM_WORLD);
-cerr << "!!Sending quit="<<quit<<endl;
         } else 
-       {
-         quit=0;
-         for (int j=1; j<numtasks; j++) MPI_Send(&quit,1,MPI_INT,j,3,MPI_COMM_WORLD);
+        {
+          quit=0;
 cerr << "Sending quit="<<quit<<endl;
-       }
+          for (int j=1; j<numtasks; j++) MPI_Send(&quit,1,MPI_INT,j,3,MPI_COMM_WORLD);
+        }
       }
       else
       {
@@ -1056,7 +1068,7 @@ FitData::FitData(string folder)
 
   fin.close();
 
-  fin.open("HD100546/r1big");
+  fin.open(folderpath+"/r1big");
   r1big=zeros<vec>(4096);
   for (int z=0; z<4096; z++)
   {
@@ -1065,7 +1077,7 @@ FitData::FitData(string folder)
   fin.close();
 
 
-  fin.open("HD100546/f1big");
+  fin.open(folderpath+"/f1big");
   f1big=zeros<vec>(4096);
   for (int z=0; z<4096; z++)
   {
@@ -1085,19 +1097,22 @@ FitData::FitData(string folder)
 
   isSent = new bool[numGuesses];
 
-  this->randData[0]=FillArray(900, 100);
-  this->randData[1]=FillArray(15, 6);
-  this->randData[2]=FillArray(76, 50);
-  this->randData[3]=FillArray(500000, 100000);      //check to be sure all of these first arguments don't need to be offset by +/- 1
-  this->randData[4]=FillArray(3500,1000);
-  this->randData[5]=FillArray(50,20);
-  this->randData[6]=FillArray(99, 1);
+cerr << "sig^2:  " << sigmaSquared << endl;
+cerr << "rel_lum:  " << rel_lum_min << " " << rel_lum_max << endl;
+  cerr << "Filling arrays..." << endl;
+  this->randData[0]=FillArray(layers_min, layers_max);
+  this->randData[1]=FillArray(disk_in_min, disk_in_max);
+  this->randData[2]=FillArray(disk_out_min,disk_out_max);
+  this->randData[3]=FillArray(v_turb_min, v_turb_max);     
+  this->randData[4]=FillArray(T_rot0_fl_min,T_rot0_fl_max);
+  this->randData[5]=FillArray(T_rot_alpha_fl_min,T_rot_alpha_fl_max);
+  this->randData[6]=FillArray(rel_lum_min, rel_lum_max);
   for (int i=0; i < numGuesses-1; i++) {
-    this->randData[5][i]=this->randData[5][i]/100;
+    this->randData[5][i]=this->randData[5][i]/1000;
     isSent[i]=0;
   }
   isSent[numGuesses-1]=0;
- 
+ cerr << "Done." << endl;
   //for (int k=0; k<numGuesses; k++) cerr << isSent[k] << endl; 
   //cin.get();
  /*=================
@@ -1165,8 +1180,8 @@ int FitData::readInput(string inpFile)
 
   while (getline(fin,sin))
   {
-    //exit immediately if the line is commented out
-    if (sin[0]=='#') continue;
+    //exit immediately if the line is commented out or is an empty string
+    if (sin[0]=='#' || sin.empty()) continue;
 
     int len = sin.length();
     int sep=-1;
@@ -1193,15 +1208,24 @@ int FitData::readInput(string inpFile)
     split2=sin.substr(sep+1,len-sep);
     for (int i=0; i<inputs; i++)
     {
-      if (split1==inputStrings[i]) *inputVars[i]=stod(split2);
+      if (split1==inputStrings[i]) 
+      {
+   //     cerr << "split1: " << split1 << " split2:  " << split2 <<  endl;
+        *inputVars[i]=stod(split2);
+//cerr << "yoyoyo" << endl;
+        if (split1=="T_rot_alpha_fl_min" || split1== "T_rot_alpha_fl_max") *inputVars[i]=*inputVars[i]*1000;
+      }
     }
     if (split1=="numGuesses") this->numGuesses=atoi(split2.c_str());
   }
+
+  for (int i=0; i<inputs; i++) cerr << inputStrings[i] << ": " << inputVars[i] << endl;
 }
 
 int main(int argc, char* argv[]) 
 {
   data = new FitData("HD100546");
-  delete data;
+  //delete data;
+cerr << "Exit." << endl;
   return 1;
 }

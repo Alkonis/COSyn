@@ -1,1 +1,1 @@
-mpiexec -f machinefile -n 6 ./COfit HD100546
+mpiexec -f machinefile -n 1 ./COfit HD100546
