@@ -21,8 +21,8 @@ constexpr double CollData::fco_list[];
 double* FitData::FillArray(int modulus, int offset)
 {
   double* array;
-  array  = new double[numGuesses-2];
-  for(int i=0; i<numGuesses-2;i++) {
+  array  = new double[numGuesses];
+  for(int i=0; i<numGuesses-1;i++) {
     array[i]=rand() % modulus + offset;
   }
   return array;
@@ -30,8 +30,9 @@ double* FitData::FillArray(int modulus, int offset)
 
 int FitData::dbm(string message)
 {
-
-
+  int rank;
+  MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+  if (rank==0 && doDebug==1)  cout << message << endl;
 }
 
 int FitData::runTrial(double layers, double disk_in, double disk_out, double v_turb, double T_rot0_fl, double T_rot_alpha_fl, double rel_lum, int locali) {
@@ -53,57 +54,10 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
   CollData* d = new CollData(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
 
 
-//============================
-//Divide into annulli
-//=============================
-
-/*  d->r=disk_in;  
-
-  double r_index_a = 0;
-  double r_index_b = 0;
-  double r_index_c = 0;
-
-  d->lum = HD100546_luminosity*rel_lum;
-  d->ranulli.push_back(disk_in);
-  if (d->r<0.1)
-  {
-    while ((d->ranulli.back() < 1) && (d->ranulli.back() < disk_out))
-    {
-      r_index_a=r_index_a+1;
-      d->ranulli.push_back(disk_in+0.01*r_index_a);
-    }
-  }
-  double maxra = d->ranulli.back();
-  
-  if ((maxra < 1) && (maxra >= .1))
-  {
-    while ((d->ranulli.back() < 1.0) || (d->ranulli.back() < disk_out))
-    {
-     r_index_b++;
-     d->ranulli.push_back(maxra+0.1*r_index_b);
-    }
-  }
-
-  double maxrb=d->ranulli.back();
-  if ((maxrb <= disk_out) && (maxrb >= 1.0))
-  {
-    while  (d->ranulli.back() < disk_out)
-    {
-      r_index_c++;
-      d->ranulli.push_back(maxrb+1.0*r_index_c);
-    }
-  }
-
-  steps=d->ranulli.size();  //check that this size function is correct
-  for (int i=0; i < steps; i++ )
-  {
-    d->rdisk.at(i)=d->ranulli.at(i)*1.496E13;
-  }*/
-//benchmark here!  Make sure these results are the same from the IDL code and the C++ code!
- 
 //=====================
 //  Set up temperature profile
 // ====================
+
   d->T_rot_fl = T_rot0_fl *pow((1.5E13/d->rdisk),T_rot_alpha_fl);
   
   ivec T_rot_index=where(d->T_rot_fl, [] (double datum) {return datum >= 3500;});
@@ -287,12 +241,15 @@ skip_fluorcalc:
         d->tot_col_fluor = totalDimf(d->Nv*7.55858e12,2).t();      //check all uses of accu/total in teh code!!!!!! dimension specification!
         d->tot_col_fluor_back=d->tot_col_fluor;
         d->rate_eqtn=d->rate_eqtn2;
+        d->rate_eqtn2.reset();
       }
       if (coll_loop==1) {
         d->Nv_nocoll=d->Nv;
         d->tot_col_fluor_nocoll = totalDimf(d->Nv*7.55858e12,2).t();
       }
     }
+    d->Nv.reset();
+    d->rate_eqtn.reset();
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
@@ -518,15 +475,6 @@ skip_fluorcalc:
   mat total_spec=iten_tot;
   vec vel_spec=total_spec.col(0);
 
-//==========V-LINES==========
-/*
-  for (int k=0; k<22; k++)
-  {
-    d->v_line.row(k)=((d->fco_list[k]-freq)*2.9979e5/d->fco_list[k]).t();
-  }
-
-  for (int i=0; i<22; i++) d->v_line_indices(i,0) = whererow(d->v_line.row(i), [] (double datum) {return ((datum > -15) && (datum < 15));});
-*/
 //=========ITEN LINES=======
 
   for (int i=0; i<22; i++)
@@ -754,7 +702,6 @@ skip_fluorcalc:
     fout.close();
   }
 
-//  cerr << "substracting..." << endl;
   ivec indexdiff=where(r1big, [] (double datum) {return (datum != -9999);});
   int indexsiz=indexdiff.n_elem;
   d->diff = ((r1big-1)*1.5e-12 - interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big));
@@ -776,7 +723,7 @@ skip_fluorcalc:
 
   if (rank!=0)
   {
-    cerr << "Return sending data from trial locali=" << locali << endl;
+   // cerr << "Return sending data from trial locali=" << locali << endl;
     MPI_Send(&sendMessage,2,MPI_DOUBLE,0,2,MPI_COMM_WORLD);
   }
  
@@ -789,7 +736,6 @@ skip_fluorcalc:
   //==========================  
 
   
-//  cerr << chisq << endl;
   delete(d);
 
   return 0;
@@ -799,16 +745,12 @@ int FitData::runTrials() {
   //start with best chi-by-eye fit and run one trial
   //then each time, reset parameters to a value from the matrix and rerun.
   //set parameters for best-chi;
-
-
   int rank;
   int numtasks;
   int rc;
 //  int argc=1;
 //  char *argv[1]={"dummy"}  ;
-cerr << "About to initialize" << endl;
   MPI_Init(NULL,NULL);
-  cerr << "MPI Initialized." << endl;
   if (rc != MPI_SUCCESS) 
   {
     cerr << "Error initializing MPI environment." << endl;
@@ -835,54 +777,79 @@ cerr << "About to initialize" << endl;
 
   if (rank==0) finchivec=zeros<vec>(numGuesses-1);
 
-  for(int i=0; i<this->numGuesses-1;) {
+  for(int i=0; i<this->numGuesses;) {
+
     double receivedMessage[2];
 
     int sent=0;
-    int sentThisLoop=0;
-    int checkIndex;
+    int exitWhile=0;
+    int quit=0;
+    int* useProcess = new int[numtasks];
+    int useThis=1;
+    for (int k=0; k<numtasks; k++)  useProcess[k]=1;
     if (rank==0)
     { 
-      
+
+      int* useProcess = new int[numtasks];
+
       while (sent<numtasks)
       {
 
+        //for (int k=0; k<numGuesses; k++) cerr << isSent[k] << endl; 
+        //cin.get();
         int doLoop=1;
 
+        if (i>=numGuesses) 
+        {
+          doLoop=0;
+          cerr << "Terminated!  Maximum number of trials reached!" << endl;
+          for (int k=sent; k<numtasks; k++) {useProcess[k]=0; cerr << "Useprocess[" << k << "] set" << endl;}
+          exitWhile=1;
+        }
+       
+        //for each core, find the first i in randData that has not been assigned a processor and send that i to that process
         for (int j=0;doLoop==1;j++)
         {
           if (!isSent[j])
           {
 
             isSent[j]=1;
-
+            i++;
             if (sent==0)
             {
               locali=j;
               doLoop=0;
+//cerr << "Adopted j="<<j<<endl;
             }
             else
             {
-              i++;
               MPI_Send(&j,1,MPI_INT,sent,1, MPI_COMM_WORLD);
               doLoop=0;
+//cerr << "sending j=" <<j << " to " << rank << endl;
             }
 
             sent++;
-
           }
 
-          if (j>numGuesses) cerr << "ERROR in guess communication!" << endl;
+          if (j>numGuesses) {cerr << "ERROR in guess communication! i = " << i << endl;}
+//  for (int k=0; k<numGuesses; k++) cerr << isSent[k] << endl; cerr << isSent[numGuesses-2]; }
         }
+      if (exitWhile) break;
       }
-
-    } 
-   
-    if (rank!=0)
-    {
-      MPI_Recv(&locali,1,MPI_INT,0,1, MPI_COMM_WORLD, &Stat);
-      cerr << "locali received = " << locali << ", task=" << rank << endl;
     }
+//PROBLEM:  THIS PART HAS NO WAY TO KNOW IF THE PREVIOUS PART DID NOT SEND ANYTHING!  THIS SHOULD BE EASILY RESOLVABLE AFTER A GOOD NIGHT'S REST 
+    if (rank!=0 && useThis);
+    {
+
+      cerr << "locali fetch, task=" << rank << endl;
+      MPI_Recv(&locali,1,MPI_INT,0,1, MPI_COMM_WORLD, &Stat);
+  //    cerr << "locali received = " << locali << ", task=" << rank << endl;
+    }
+
+    if (rank==1) for (int k=1; k<numtasks;k++) {MPI_Send(&useProcess[k],1,MPI_INT,k,4,MPI_COMM_WORLD);}
+    if (rank!=1) MPI_Recv(&useThis,1,MPI_INT,0,4,MPI_COMM_WORLD,&Stat);
+
+    if ((rank!=0) && !useThis)  {cerr << "TERMINATION BREAK" << endl;  break;}
  
     if (locali==0)
     { 
@@ -911,7 +878,8 @@ cerr << "About to initialize" << endl;
       //T_rot_alpha_cl=T_rot_alpha_fl;
       rel_lum=randData[6][locali-1];
     }
-cerr << "Running trial, locali=" << locali << endl;
+//cerr << "Running trial, locali=" << locali << endl;
+   layers=2;
     this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
 
     // RECEIVE MPI HERE
@@ -924,25 +892,72 @@ cerr << "Running trial, locali=" << locali << endl;
       for (int j=1; j<numtasks; j++)
       {
         MPI_Recv(&receivedMessage,2, MPI_DOUBLE,j,2,MPI_COMM_WORLD, &Stat);
-        cerr << "receivedMessage[0]: " << receivedMessage[0] << endl;
-        cerr << "finchibefore: " << finchivec.at(receivedMessage[0])
+//        cerr << "receivedMessage[0]: " << receivedMessage[0] << endl;
+//        cerr << "finchibefore: " << finchivec.at(receivedMessage[0]);
         
-        (finchivec.at(receivedMessage[0] != 0)) cerr << "ERROR:  OVERLAPPED TRIALS" << endl;
-        cerr << "finchiafter: " << finchivec.at(receivedMessage[0]) << endl;
+//        if (finchivec.at(receivedMessage[0] != 0)) cerr << "ERROR:  OVERLAPPED TRIALS" << endl;
         finchivec.at(receivedMessage[0])=receivedMessage[1];
+
+  //      cerr << "finchiafter: " << finchivec.at(receivedMessage[0]) << endl;
 
         cerr << "********************************" << endl;
         cerr << "****    TRIAL " << receivedMessage[0] << " COMPLETE    ****" << endl;
         cerr << "********************************" << endl;
       }
     }
+ 
+      if (rank==0)
+      {
+        if (i>=numGuesses)
+        {
+          quit=1; 
+          for (int j=1; j<numtasks; j++) MPI_Send(&quit,1,MPI_INT,j,3,MPI_COMM_WORLD);
+cerr << "!!Sending quit="<<quit<<endl;
+        } else 
+       {
+         quit=0;
+         for (int j=1; j<numtasks; j++) MPI_Send(&quit,1,MPI_INT,j,3,MPI_COMM_WORLD);
+cerr << "Sending quit="<<quit<<endl;
+       }
+      }
+      else
+      {
+        cerr <<"Receiving, rank "<< rank << endl;
+        MPI_Recv(&quit,1,MPI_INT,0,3,MPI_COMM_WORLD,&Stat);
+        cerr << "Received quit="<<quit <<", rank " << rank << endl;
+      }
+
+    if (quit) break;
 // receive MPI conv_spec cent_conv here if difference is best
-
   }
-  MPI_Finalize();
-  cerr << "Best fit:  " << finchivec.min() << endl;
 
+  if (rank==0)
+  {
+    ofstream fout(folderpath+"/output");
+    fout << "======================================================================" << endl;
+    fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
+    fout << "======================================================================" << endl;
+    fout << endl;
+    fout << "COSyn " << folderpath << endl; 
+    fout << endl;
+    fout << "======================================================================" << endl;;
+    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
+    for (int i=0; i<numGuesses; i++)
+    {
+      fout << i << " "  << finchivec.at(i) << " " << randData[0][i] << " "  << randData[1][i] << " "  << randData[2][i] << " " << randData[3][i] << " " << randData[4][i] << " " << randData[5][i] << " " << randData [6][i] << endl;
+    }
+    fout.close();
+
+    uword mindex;
+    double min;
+    min = finchivec.min(mindex);
+    cerr << "Best fit:  " << min <<" at " << mindex<< endl;
+  }
+cerr << rank << endl;
+  MPI_Finalize();
+cerr << "Finalized." << endl;
   return 0;
+
 }
 
 FitData::FitData(string folder)
@@ -1077,12 +1092,14 @@ FitData::FitData(string folder)
   this->randData[4]=FillArray(3500,1000);
   this->randData[5]=FillArray(50,20);
   this->randData[6]=FillArray(99, 1);
-  for (int i=0; i < numGuesses-2; i++) {
+  for (int i=0; i < numGuesses-1; i++) {
     this->randData[5][i]=this->randData[5][i]/100;
     isSent[i]=0;
   }
-  isSent[numGuesses-1]=false;
-
+  isSent[numGuesses-1]=0;
+ 
+  //for (int k=0; k<numGuesses; k++) cerr << isSent[k] << endl; 
+  //cin.get();
  /*=================
  *
  * Collision Data                                      EVERYTHING AFTER LAYERS ----> INTO COLLISIONS!  CollisionData.cpp will need to be revisited...
@@ -1091,6 +1108,7 @@ FitData::FitData(string folder)
   fAX = (3.038/2.03)*einA/(wavenum % wavenum);   //be sure this is right!
   fXA = 2*fAX;
   this->runTrials();
+cerr << "Yo." << endl;
 }
 
 FitData::~FitData()

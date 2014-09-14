@@ -216,15 +216,15 @@ rate_eqtn(*,20,*,*)=double(1.00)
 ;;;;;;;;;;;;;;;;
 ;read in tabulated data
 
-openr,1,'inc/EinA.txt' 
+openr,1,'ratedat/EinA.txt' 
 readf,1,EinA 
 close,1
 
-openr,1,'inc/lambda.txt' 
+openr,1,'ratedat/lambda.txt' 
 readf,1,lam_ang 
 close,1
 
-openr,1,'inc/wavenum.txt'
+openr,1,'ratedat/wavenum.txt'
 readf,1,wavenum 
 close,1
 
@@ -240,7 +240,7 @@ close,1
 ;
 ;L=double(L)*double(1d18) ; Avoid floating point overflow
 ;L=L*rel_lum
-restore,filename='inc/HD100546_luminosity.dat' ;units are erg/s/Ang
+restore,filename='IDL/HD100546_luminosity.dat' ;units are erg/s/Ang
 L=L*rel_lum
 ;Calculate oscillator strengths from Einstein A's
 
@@ -509,7 +509,7 @@ Bv18=[1.840]
 ;content is v", J", v', J', A(s-1), E" (cm-1), freq(cm-1) for each variable
 
 ;CHANGE PATH TO LOCATION OF MOLECULAR DATA
-restore, filename='inc/CO_molecdat.dat'
+restore, filename='IDL/CO_molecdat.dat'
 ;Use molecular data to calculate relative rotational populations 
 ; as a function of species, vibrational level and radius:
 

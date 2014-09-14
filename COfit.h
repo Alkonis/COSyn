@@ -36,6 +36,7 @@ class FitData{
 
   //Used by rank 0 MPI
   int local_i;
+  int minChi;
   double local_chisq;
   double doMPI;
 
