@@ -1,13 +1,5 @@
 #define _USE_MATH_DEFINES
 
-#ifndef IDLARMA
-#define IDLARMA
-
-#include "lib/idlarma.h"
-using namespace idlarma;
-
-#endif
-
 #ifndef COFIT_H
 #define COFIT_H
 
@@ -19,10 +11,26 @@ using namespace idlarma;
 #ifndef ARMA
 #define ARMA_DONT_USE_WRAPPER
 #define ARMA
+
+//#include "include/OpenBLAS/cblas.h"
+
+
 #include "include/armadillo"
 using namespace arma;
 #endif
+
+
+
+#ifndef IDLARMA
+#define IDLARMA
+
+#include "lib/idlarma.h"
+using namespace idlarma;
+
+#endif
+
 //namespace stdmath = math;
+
 using namespace std;
 
 class FitData{
