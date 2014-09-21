@@ -734,7 +734,217 @@ skip_fluorcalc:
   return 0;
 }
 
-int FitData::runTrials() {
+int FitData::runTrials() 
+{
+
+  int rank;
+  int numtasks;
+  int rc;
+  int I=0;
+  int quit=0;
+
+  MPI_Init(NULL,NULL);
+
+  if (rc != MPI_SUCCESS) 
+  {
+    cerr << "Error initializing MPI environment." << endl;
+    MPI_Abort(MPI_COMM_WORLD, rc);
+  }
+
+  MPI_Status Stat;
+  MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+  int locali;
+
+
+
+  //devote procesor #1 as a scheduler
+  if (rank==0) 
+  {
+    /*//////////////////////////////////////////////////////////////////////
+    //  Two step process:
+    //  
+    //  (1) First, send out trial info to each processor SYNCHRONOUSLY;
+    //      check to see if number of processes is greater than the number
+    //      of trials, and terminate once enough communications are made.
+    //
+    //  (2) Second, begin asynchronous transmission.  Begin looking for
+    //     incoming messages, and respond with another set of data to
+    //      model.  Repeat this until the maximum number of trials
+    //      have been run.
+    //
+    *///////////////////////////////////////////////////////////////////////
+    double recvMsg[2];
+    finchivec=zeros<vec>(numGuesses);
+
+    if (I >= numGuesses) quit=1;
+  
+    if (numGuesses<numtasks) 
+    {
+      numtasks=numGuesses;
+      cerr << "WARNING:  number of proceses > number of guesses.  Downsizing." << endl;
+    }
+
+    for (int i=0; i<numtasks; i++)
+    {
+      MPI_Send(I,1,MPI_INT,i,0,MPI_COMM_WORLD);
+      I++;
+    }
+
+    
+
+    double tag;
+    double srcRank;
+    double sendMsg[2];
+    double recvCount=0;
+    double quit=0;
+
+    /*///////////////////////////////////////////////////////////////////
+    //
+    //                      ASYNCHRONOUS LOOP
+    //
+    //  Important to keep in mind there are two different breakpoints;
+    //  the point at which the asynch loop is finished sending data
+    //  and the point at which it is done receiving.  When it finishes
+    //  sending, it should send a quit=1 flag to all other processes,
+    //  but it should continue receiving until it has received data from
+    //  numGuesses proceses.
+    //
+    *////////////////////////////////////////////////////////////////////
+
+    while (recvCount<numGuesses)
+    {
+      MPI_Recv(&recvMsg,1,MPI_INT,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&stat);
+      srcRank=Stat.MPI_TAG;
+
+      recvCount++;
+
+      finchivec.at(recvMsg[0])=recvMsg[1];
+
+      cerr << "********************************" << endl;
+      cerr << "****    TRIAL " << receivedMessage[0] << " COMPLETE    ****" << endl;
+      cerr << "********************************" << endl;
+
+      I++;
+
+      if (I >=numGuesses) quit=1;
+      sendMsg[0]=I;
+      sendMsg[1]=quit;i
+
+      MPI_Send(&sendMsg,srcRank,MPI_DOUBLE,1,0,MPI_COMM_WORLD);
+      
+    }
+  }
+  
+
+  // END MASTER PROCESS WRAPPER
+
+
+  //  SLAVE PROCESS WRAPPER
+  //  fairly simply, all other processes used as slaves
+
+  else
+  { 
+
+    double layers;
+    double disk_in;
+    //double dist=1.496e13*disk_in;
+    double disk_out;
+    double v_turb;
+    double T_rot0_fl;             //check this.... is t_rot_fl0?
+    double T_rot_alpha_fl;
+    //double T_rot0_cl=T_rot0_fl;
+    //double T_rot_alpha_cl=T_rot_alpha_fl;
+    double rel_lum;
+
+    double quit;
+    double recvMsg[2];
+
+    while(42)
+    {
+      MPI_Recv(&recvMsg,2,MPI_Double,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
+
+      locali=recvMsg[0];
+      quit = recvMsg[1];
+ 
+      if (quit) break;
+
+      /////////////////////////////////////////////////////////////
+      //
+      //                         SELECT DATA
+      //
+      //  If this is the first job being sent out, then use the best
+      //  chi-by-eye data given in the input file.  Otherwise, use
+      //  a randomly-generated data point from the span read in from
+      //  the input file.
+      //
+      //////////////////////////////////////////////////////////////
+      if (locali==0)
+      { 
+	layers=layers_0;
+	disk_in=disk_in_0;
+	//double dist=1.496e13*disk_in;
+	disk_out=disk_out_0;
+	v_turb=v_turb_0;
+	T_rot0_fl=T_rot0_fl_0;             //check this.... is t_rot_fl0?
+	T_rot_alpha_fl=T_rot_alpha_fl_0;
+	//double T_rot0_cl=T_rot0_fl;
+	//double T_rot_alpha_cl=T_rot_alpha_fl;
+	rel_lum=rel_lum_0;
+      }
+      else 
+      {
+	layers=randData[0][locali-1];
+	disk_in=randData[1][locali-1];
+	//dist=1.496e13*disk_in;
+	disk_out=randData[2][locali-1];
+	v_turb=randData[3][locali-1];
+	T_rot0_fl=randData[4][locali-1];
+	T_rot_alpha_fl=randData[5][locali-1];
+	//T_rot0_cl=T_rot0_fl;
+	//T_rot_alpha_cl=T_rot_alpha_fl;
+	rel_lum=randData[6][locali-1];
+      }
+
+      //Run a trial with this data; MPI_Send will be called within this trial to return data to the master proces
+      this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
+
+    }
+
+// receive MPI conv_spec cent_conv here if difference is best
+  }
+
+  if (rank==0)
+  {
+    ofstream fout(folderpath+"/output");
+    fout << "======================================================================" << endl;
+    fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
+    fout << "======================================================================" << endl;
+    fout << endl;
+    fout << "COSyn " << folderpath << endl; 
+    fout << endl;
+    fout << "======================================================================" << endl;;
+    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
+    for (int i=0; i<numGuesses; i++)
+    {
+      fout << i << " "  << finchivec.at(i) << " " << randData[0][i] << " "  << randData[1][i] << " "  << randData[2][i] << " " << randData[3][i] << " " << randData[4][i] << " " << randData[5][i] << " " << randData [6][i] << endl;
+    }
+    fout.close();
+
+    uword mindex;
+    double min;
+    min = finchivec.min(mindex);
+  }
+cerr << rank << endl;
+
+  MPI_Finalize();
+  return 0;
+
+
+}
+
+int FitData::runTrialsSlave() {
   //start with best chi-by-eye fit and run one trial
   //then each time, reset parameters to a value from the matrix and rerun.
   //set parameters for best-chi;
