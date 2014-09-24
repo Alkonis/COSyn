@@ -704,6 +704,7 @@ skip_fluorcalc:
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
   
   double chisq = pow(arma::sum(abs(d->diff)),2)/1.4e-27;
+
   //===========================
   //===  MPI Communication  ===
   //===========================
@@ -718,7 +719,7 @@ skip_fluorcalc:
 
   if (rank!=0)
   {
-    MPI_Send(&sendMessage,2,MPI_DOUBLE,0,2,MPI_COMM_WORLD);
+    MPI_Send(&sendMessage,2,MPI_DOUBLE,0,rank,MPI_COMM_WORLD);
   }
  
   if (rank==0)
@@ -744,7 +745,7 @@ int FitData::runTrials()
   int quit=0;
 
   MPI_Init(NULL,NULL);
-
+cerr << "Init!" << endl;
   if (rc != MPI_SUCCESS) 
   {
     cerr << "Error initializing MPI environment." << endl;
@@ -776,6 +777,9 @@ int FitData::runTrials()
     //
     *///////////////////////////////////////////////////////////////////////
     double recvMsg[2];
+    double quit=0;
+    double sendMsg[2];
+
     finchivec=zeros<vec>(numGuesses);
 
     if (I >= numGuesses) quit=1;
@@ -784,11 +788,14 @@ int FitData::runTrials()
     {
       numtasks=numGuesses;
       cerr << "WARNING:  number of proceses > number of guesses.  Downsizing." << endl;
+      quit=1;
     }
-
-    for (int i=0; i<numtasks; i++)
+    sendMsg[1]=quit;
+    for (int i=1; i<numtasks; i++)
     {
-      MPI_Send(I,1,MPI_INT,i,0,MPI_COMM_WORLD);
+      cerr << "Sending " << i << " " << I <<  endl;
+      sendMsg[0]=I;
+      MPI_Send(&sendMsg,1,MPI_DOUBLE,i,0,MPI_COMM_WORLD);
       I++;
     }
 
@@ -796,9 +803,7 @@ int FitData::runTrials()
 
     double tag;
     double srcRank;
-    double sendMsg[2];
     double recvCount=0;
-    double quit=0;
 
     /*///////////////////////////////////////////////////////////////////
     //
@@ -815,7 +820,8 @@ int FitData::runTrials()
 
     while (recvCount<numGuesses)
     {
-      MPI_Recv(&recvMsg,1,MPI_INT,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&stat);
+      cerr<<"Asynchronous loop!  recvCount " << recvCount << endl;
+      MPI_Recv(&recvMsg,2,MPI_DOUBLE,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
       srcRank=Stat.MPI_TAG;
 
       recvCount++;
@@ -823,17 +829,17 @@ int FitData::runTrials()
       finchivec.at(recvMsg[0])=recvMsg[1];
 
       cerr << "********************************" << endl;
-      cerr << "****    TRIAL " << receivedMessage[0] << " COMPLETE    ****" << endl;
+      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    ****" << endl;
       cerr << "********************************" << endl;
 
-      I++;
 
       if (I >=numGuesses) quit=1;
       sendMsg[0]=I;
-      sendMsg[1]=quit;i
-
-      MPI_Send(&sendMsg,srcRank,MPI_DOUBLE,1,0,MPI_COMM_WORLD);
+      sendMsg[1]=quit;
+      cerr << "Asynchronous send to " << srcRank << endl;
+      MPI_Send(&sendMsg,2,MPI_DOUBLE,srcRank,0,MPI_COMM_WORLD);
       
+      I++;
     }
   }
   
@@ -863,11 +869,12 @@ int FitData::runTrials()
 
     while(42)
     {
-      MPI_Recv(&recvMsg,2,MPI_Double,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
-
+cerr << "Slave waiting... " << rank << endl;
+      MPI_Recv(&recvMsg,2,MPI_DOUBLE,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
+cerr << "Slave received " << rank << endl;
       locali=recvMsg[0];
       quit = recvMsg[1];
- 
+cerr << "LOCALI " << locali << endl; 
       if (quit) break;
 
       /////////////////////////////////////////////////////////////
@@ -914,7 +921,7 @@ int FitData::runTrials()
 
 // receive MPI conv_spec cent_conv here if difference is best
   }
-
+ cerr << "Broken rank = " << rank << endl;
   if (rank==0)
   {
     ofstream fout(folderpath+"/output");
@@ -925,7 +932,7 @@ int FitData::runTrials()
     fout << "COSyn " << folderpath << endl; 
     fout << endl;
     fout << "======================================================================" << endl;;
-    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
+    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;
     for (int i=0; i<numGuesses; i++)
     {
       fout << i << " "  << finchivec.at(i) << " " << randData[0][i] << " "  << randData[1][i] << " "  << randData[2][i] << " " << randData[3][i] << " " << randData[4][i] << " " << randData[5][i] << " " << randData [6][i] << endl;
@@ -953,7 +960,7 @@ int FitData::runTrialsSlave() {
   int rc;
 
   MPI_Init(NULL,NULL);
-
+  cerr << "Init" << endl;
   if (rc != MPI_SUCCESS) 
   {
     cerr << "Error initializing MPI environment." << endl;

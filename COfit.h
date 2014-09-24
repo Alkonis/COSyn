@@ -265,6 +265,7 @@ public:
  
   int runTrial(double ilayers, double idisk_in, double idisk_out, double iv_turb, double iT_rot0_fl, double iT_rot_alpha_fl, double irel_lum, int locali); 
   int runTrials();
+  int runTrialsSlave();
 
   int readInput(string inpFile);
   int extractValue(string sin, string varname, double& var);

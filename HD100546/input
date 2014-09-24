@@ -1,5 +1,5 @@
 #number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and the rest use randomly generated data
-numGuesses=1
+numGuesses=10
 
 #star parameters
 inc=0.6981317007977318
