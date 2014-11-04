@@ -244,7 +244,7 @@ skip_fluorcalc:
       }
     }
     d->Nv.reset();
-    d->rate_eqtn.reset();
+//    d->rate_eqtn.reset();
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
@@ -252,12 +252,12 @@ skip_fluorcalc:
   d->m_uv = (5.59647e-10)*sqrt(d->T_rot_fl/Mstar)%sqrt(d->rdisk);
 
   d->phi = -atan((d->m_uv-d->m_disk)/(1+d->m_uv%d->m_disk));
-  d->phi.at(0)=datum::pi/2;                         //standardize pi!
+  d->phi.at(0)=datum::pi/2;      
   
   auto xi = d->tot_col_fluor.n_cols-1;
   auto yi = d->tot_col_fluor.n_rows-1;
 
-  for (int j=1; j<yi+1; j++)                    //looks like I need to transpose indices on everything involving tot_col_fluor 
+  for (int j=1; j<yi+1; j++)    
   {
     d->tot_col_fluor.row(j)=sin(d->phi.at(j))*d->tot_col_fluor.row(j);
     d->tot_col_fluor_nocoll.row(j)=sin(d->phi.at(j))*d->tot_col_fluor_nocoll.row(j);
@@ -265,7 +265,6 @@ skip_fluorcalc:
 
   fmat tot_col=d->tot_col_fluor(span::all,span(0,9));
   fmat tot_col_coll=tot_col;
-
   double r = dist/1.496e13;
   d->rdisk=d->rdisk/1.496e13;            //convert to AU
 
@@ -526,7 +525,7 @@ skip_fluorcalc:
     }
 
     vec dphase=zeros<vec>(n_seg);
-    
+     
     for (int i=1; i<n_seg-1; i++)
     {
       dphase.at(i)=(phase.at(i+1)-phase.at(i))/2+(phase.at(i)-phase.at(i-1))/2;
@@ -685,7 +684,7 @@ skip_fluorcalc:
 
   cent_conv=cent_conv*as_scalar(arma::sum(abs(d->centroid)))/as_scalar(arma::sum(abs(cent_conv)));
   conv_spec=conv_spec*as_scalar(arma::accu(flux_tot_slit))/as_scalar(arma::sum(conv_spec));
-
+   
   if (round(locali) == 0)
   {
     ofstream fout;
@@ -695,16 +694,25 @@ skip_fluorcalc:
     fout.open(folderpath+"/conv_spec_0");
     fout << real(conv_spec);
     fout.close();
-  }
 
-  ivec indexdiff=where(r1big, [] (double datum) {return (datum != -9999);});
+    cerr << "layers: " << layers << endl;
+    cerr << "rate 1:"<< d->rate_eqtn.at(0,0).slice(0)  << endl;
+    cerr <<"tot_col_coll:" << tot_col_coll << endl;
+    cerr << "tot_col:" << tot_col << endl;
+  }
+  
+  ivec indexdiff=where(r1big, [] (double datum) {return (datum == -9999);});
   int indexsiz=indexdiff.n_elem;
-  d->diff = ((r1big-1)*1.5e-12 - interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big));
+  d->diff = (r1big - interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big));
 
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
-  
-  double chisq = pow(arma::sum(abs(d->diff)),2)/1.4e-27;
-
+  cerr << "seg1: " <<  arma::sum(pow(abs(d->diff.subvec(0,1023)),2)/pow(segment1,2)) << endl;
+  cerr << "seg2: " << arma::sum(pow(abs(d->diff.subvec(1024,2047)),2)/pow(segment2,2)) << endl;
+  cerr << "seg3: " <<   arma::sum(pow(abs(d->diff.subvec(2048,3071)),2)/pow(segment3,2)) << endl;
+  cerr << "seg4: " << arma::sum(pow(abs(d->diff.subvec(3072,4095)),2)/pow(segment4,2) ) << endl;
+  double chisq = ( (arma::sum(pow(abs(d->diff.subvec(0,1023)),2)/pow(segment1,2)) + arma::sum(pow(abs(d->diff.subvec(1024,2047)),2)/pow(segment2,2)) + arma::sum(pow(abs(d->diff.subvec(2048,3071)),2)/pow(segment3,2)) + arma::sum(pow(abs(d->diff.subvec(3072,4095)),2)/pow(segment4,2) ))/4)/(4096-indexsiz);
+  cerr << "Elem:" << endl;
+  cerr << d->diff.n_elem << endl;
   //===========================
   //===  MPI Communication  ===
   //===========================
@@ -783,7 +791,7 @@ cerr << "Init!" << endl;
     finchivec=zeros<vec>(numGuesses);
 
     if (I >= numGuesses) quit=1;
-  
+ cerr << "NUMGUESSES: " << numGuesses << endl; 
     if (numGuesses<numtasks) 
     {
       numtasks=numGuesses;
@@ -793,7 +801,7 @@ cerr << "Init!" << endl;
     sendMsg[1]=quit;
     for (int i=1; i<numtasks; i++)
     {
-      cerr << "Sending " << i << " " << I <<  endl;
+      cerr << "Sending " << i << " " << I << " " << quit <<  endl;
       sendMsg[0]=I;
       MPI_Send(&sendMsg,1,MPI_DOUBLE,i,0,MPI_COMM_WORLD);
       I++;
@@ -933,7 +941,8 @@ cerr << "LOCALI " << locali << endl;
     fout << endl;
     fout << "======================================================================" << endl;;
     fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;
-    for (int i=0; i<numGuesses; i++)
+    fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
+    for (int i=1; i<numGuesses; i++)
     {
       fout << i << " "  << finchivec.at(i) << " " << randData[0][i] << " "  << randData[1][i] << " "  << randData[2][i] << " " << randData[3][i] << " " << randData[4][i] << " " << randData[5][i] << " " << randData [6][i] << endl;
     }
@@ -1135,6 +1144,12 @@ cerr << "yo2" << endl;
 
   if (rank==0)
   {
+
+    ifstream fin(folderpath+"/output");
+    vector<string> inp;
+    string line;
+    while (getline(fin,line)) inp.push_back(line);
+
     ofstream fout(folderpath+"/output");
     fout << "======================================================================" << endl;
     fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
@@ -1142,6 +1157,10 @@ cerr << "yo2" << endl;
     fout << endl;
     fout << "COSyn " << folderpath << endl; 
     fout << endl;
+    fout << "INPUT ECHO " << endl;
+    fout << endl;
+    fout << endl;
+    for (int i=0; i<inp.size(); i++) fout << inp.at(i) << endl;
     fout << "======================================================================" << endl;;
     fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
     for (int i=0; i<numGuesses; i++)

@@ -1,5 +1,5 @@
 #number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and the rest use randomly generated data
-numGuesses=10
+numGuesses=100
 
 #star parameters
 inc=0.6981317007977318
@@ -34,7 +34,10 @@ rel_lum_min=1
 rel_lum_max=100
 
 #data noise
-sigmaSquared=1.4e-27
+segment1=8.10388e-15
+segment2=1.05837e-14
+segment3=1.17277e-14
+segment4=7.94574e-15
 
 #print debug messages
 doDebug=0

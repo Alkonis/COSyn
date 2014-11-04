@@ -72,7 +72,10 @@ class FitData{
   static unsigned int numGuesses;
   static double Lc;  //pow(5.13,-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16)); // continuum luminosity
   static double inc;  
-  static double sigmaSquared;
+  static double segment1;
+  static double segment2;
+  static double segment3;
+  static double segment4;
 
   static double doDebug;
 
@@ -103,7 +106,7 @@ class FitData{
 
   //setup variables for reading input
 
-  static constexpr unsigned int inputs = 28;
+  static constexpr unsigned int inputs = 31;
 
   static constexpr double* inputVars[inputs] = 
   {
@@ -134,7 +137,10 @@ class FitData{
     &rel_lum_max,
     &layers_min,
     &layers_max,
-    &sigmaSquared
+    &segment1,
+    &segment2,
+    &segment3,
+    &segment4
   };
 
   string inputStrings[inputs] =
@@ -166,7 +172,10 @@ class FitData{
     "rel_lum_max",
     "layers_min",
     "layers_max",
-    "sigmaSquared"
+    "segment1",
+    "segment2",
+    "segment3",
+    "segment4"
   };  
 
 
@@ -320,7 +329,11 @@ double FitData::rel_lum_max;
 double FitData::layers_min;
 double FitData::layers_max;   
 
-double FitData::sigmaSquared;
+double FitData::segment1;
+double FitData::segment2;
+double FitData::segment3;
+double FitData::segment4;
+
 
 //vibrational constants
 constexpr double FitData::vib_einA[];
