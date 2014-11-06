@@ -695,10 +695,6 @@ skip_fluorcalc:
     fout << real(conv_spec);
     fout.close();
 
-    cerr << "layers: " << layers << endl;
-    cerr << "rate 1:"<< d->rate_eqtn.at(0,0).slice(0)  << endl;
-    cerr <<"tot_col_coll:" << tot_col_coll << endl;
-    cerr << "tot_col:" << tot_col << endl;
   }
   
   ivec indexdiff=where(r1big, [] (double datum) {return (datum == -9999);});
@@ -706,13 +702,7 @@ skip_fluorcalc:
   d->diff = (r1big - interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big));
 
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
-  cerr << "seg1: " <<  arma::sum(pow(abs(d->diff.subvec(0,1023)),2)/pow(segment1,2)) << endl;
-  cerr << "seg2: " << arma::sum(pow(abs(d->diff.subvec(1024,2047)),2)/pow(segment2,2)) << endl;
-  cerr << "seg3: " <<   arma::sum(pow(abs(d->diff.subvec(2048,3071)),2)/pow(segment3,2)) << endl;
-  cerr << "seg4: " << arma::sum(pow(abs(d->diff.subvec(3072,4095)),2)/pow(segment4,2) ) << endl;
   double chisq = ( (arma::sum(pow(abs(d->diff.subvec(0,1023)),2)/pow(segment1,2)) + arma::sum(pow(abs(d->diff.subvec(1024,2047)),2)/pow(segment2,2)) + arma::sum(pow(abs(d->diff.subvec(2048,3071)),2)/pow(segment3,2)) + arma::sum(pow(abs(d->diff.subvec(3072,4095)),2)/pow(segment4,2) ))/4)/(4096-indexsiz);
-  cerr << "Elem:" << endl;
-  cerr << d->diff.n_elem << endl;
   //===========================
   //===  MPI Communication  ===
   //===========================
@@ -753,7 +743,6 @@ int FitData::runTrials()
   int quit=0;
 
   MPI_Init(NULL,NULL);
-cerr << "Init!" << endl;
   if (rc != MPI_SUCCESS) 
   {
     cerr << "Error initializing MPI environment." << endl;
@@ -791,7 +780,6 @@ cerr << "Init!" << endl;
     finchivec=zeros<vec>(numGuesses);
 
     if (I >= numGuesses) quit=1;
- cerr << "NUMGUESSES: " << numGuesses << endl; 
     if (numGuesses<numtasks) 
     {
       numtasks=numGuesses;
@@ -801,7 +789,6 @@ cerr << "Init!" << endl;
     sendMsg[1]=quit;
     for (int i=1; i<numtasks; i++)
     {
-      cerr << "Sending " << i << " " << I << " " << quit <<  endl;
       sendMsg[0]=I;
       MPI_Send(&sendMsg,1,MPI_DOUBLE,i,0,MPI_COMM_WORLD);
       I++;
@@ -828,7 +815,6 @@ cerr << "Init!" << endl;
 
     while (recvCount<numGuesses)
     {
-      cerr<<"Asynchronous loop!  recvCount " << recvCount << endl;
       MPI_Recv(&recvMsg,2,MPI_DOUBLE,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
       srcRank=Stat.MPI_TAG;
 
@@ -836,15 +822,12 @@ cerr << "Init!" << endl;
 
       finchivec.at(recvMsg[0])=recvMsg[1];
 
-      cerr << "********************************" << endl;
       cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    ****" << endl;
-      cerr << "********************************" << endl;
 
 
       if (I >=numGuesses) quit=1;
       sendMsg[0]=I;
       sendMsg[1]=quit;
-      cerr << "Asynchronous send to " << srcRank << endl;
       MPI_Send(&sendMsg,2,MPI_DOUBLE,srcRank,0,MPI_COMM_WORLD);
       
       I++;
@@ -877,12 +860,9 @@ cerr << "Init!" << endl;
 
     while(42)
     {
-cerr << "Slave waiting... " << rank << endl;
       MPI_Recv(&recvMsg,2,MPI_DOUBLE,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
-cerr << "Slave received " << rank << endl;
       locali=recvMsg[0];
       quit = recvMsg[1];
-cerr << "LOCALI " << locali << endl; 
       if (quit) break;
 
       /////////////////////////////////////////////////////////////
@@ -929,7 +909,6 @@ cerr << "LOCALI " << locali << endl;
 
 // receive MPI conv_spec cent_conv here if difference is best
   }
- cerr << "Broken rank = " << rank << endl;
   if (rank==0)
   {
     ofstream fout(folderpath+"/output");
@@ -952,7 +931,6 @@ cerr << "LOCALI " << locali << endl;
     double min;
     min = finchivec.min(mindex);
   }
-cerr << rank << endl;
 
   MPI_Finalize();
   return 0;
@@ -969,34 +947,8 @@ int FitData::runTrialsSlave() {
   int rc;
 
   MPI_Init(NULL,NULL);
-  cerr << "Init" << endl;
   if (rc != MPI_SUCCESS) 
   {
-    cerr << "Error initializing MPI environment." << endl;
-    MPI_Abort(MPI_COMM_WORLD, rc);
-  }
-
-  MPI_Status Stat;
-  MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-
-  double layers;
-  double disk_in;
-  //double dist=1.496e13*disk_in;
-  double disk_out;
-  double v_turb;
-  double T_rot0_fl;             //check this.... is t_rot_fl0?
-  double T_rot_alpha_fl;
-  //double T_rot0_cl=T_rot0_fl;
-  //double T_rot_alpha_cl=T_rot_alpha_fl;
-  double rel_lum;
-
-  int locali;
-
-  if (rank==0) finchivec=zeros<vec>(numGuesses);
-
-  for(int i=0; i<this->numGuesses;) {
 cerr << "Loop" << endl;
     double receivedMessage[2];
 
@@ -1013,7 +965,6 @@ cerr << "Loop" << endl;
 
       while (sent<numtasks)
       {
-cerr << "yo" << endl;
         int doLoop=1;
 
         if (i>=numGuesses) 
@@ -1023,7 +974,6 @@ cerr << "yo" << endl;
           {
             useProcess[k]=0;
             MPI_Send(&useProcess[k],1,MPI_INT,k,useProcess[k], MPI_COMM_WORLD);
-              cerr << "SENDING TERM k="<<k<<endl;
           }
           break;
         }
@@ -1035,7 +985,6 @@ cerr << "yo" << endl;
         //for each core, find the first i in randData that has not been assigned a processor and send that i to that process
         for (int j=0;doLoop==1;j++)
         {
-cerr << "yo2" << endl;
           if (!isSent[j])
           {
 
@@ -1097,7 +1046,6 @@ cerr << "yo2" << endl;
       //T_rot_alpha_cl=T_rot_alpha_fl;
       rel_lum=randData[6][locali-1];
     }
-   cerr << "Running..." << endl;
     if (useThis) 
     {
       this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
@@ -1106,18 +1054,14 @@ cerr << "yo2" << endl;
     if (rank==0) 
     {
       finchivec.at(local_i)=local_chisq;
-      cerr << "********************************" << endl;
       cerr << "****    TRIAL " << locali << " COMPLETE    ****" << endl;
-      cerr << "********************************" << endl;
       for (int j=1; j<sent; j++)
       {
         MPI_Recv(&receivedMessage,2, MPI_DOUBLE,j,2,MPI_COMM_WORLD, &Stat);
         finchivec.at(receivedMessage[0])=receivedMessage[1];
 
 
-        cerr << "********************************" << endl;
         cerr << "****    TRIAL " << receivedMessage[0] << " COMPLETE    ****" << endl;
-        cerr << "********************************" << endl;
       }
     }
  
@@ -1173,7 +1117,6 @@ cerr << "yo2" << endl;
     double min;
     min = finchivec.min(mindex);
   }
-cerr << rank << endl;
 
   MPI_Finalize();
   return 0;
