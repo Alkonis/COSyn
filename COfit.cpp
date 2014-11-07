@@ -812,7 +812,6 @@ int FitData::runTrials()
     for (int i=1; i<numtasks; i++)
     {
       sendMsg[0]=I;
-      cerr << "sending " << sendMsg[0] << " " << sendMsg[1] << endl;
       MPI_Send(&sendMsg,2,MPI_INT,i,0,MPI_COMM_WORLD);
       I++;
     }
@@ -890,11 +889,9 @@ int FitData::runTrials()
     
     while(42)
     {
-cerr << "Receiving " << endl;
       MPI_Recv(&recvMsg,2,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
       locali=recvMsg[0];
       quit = recvMsg[1]; 
-      cerr << "received " << locali << " " << quit << endl;
       if (quit) break;
 
       /////////////////////////////////////////////////////////////
@@ -938,7 +935,6 @@ cerr << "Receiving " << endl;
       this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
 
     }
-cerr << "broke " << endl;
 // receive MPI conv_spec cent_conv here if difference is best
   }
   if (rank==0)
