@@ -244,7 +244,7 @@ skip_fluorcalc:
       }
     }
     d->Nv.reset();
-//    d->rate_eqtn.reset();
+    d->rate_eqtn.reset();
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
@@ -434,7 +434,7 @@ skip_fluorcalc:
   double dv=1;
 
   mat flux_tot_slit=Flux_tot;
-
+  Flux_tot.reset();
 //account for slit loss
   vec slit_loss=100.17*pow(d->rdisk,-1.260);
   double disk_Beyond_slit = 63;
@@ -939,12 +939,14 @@ int FitData::runTrials()
   }
   if (rank==0)
   {
-
-
     uword mindex;
     double min;
     min = finchivec.min(mindex);
-  }
+    ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)));
+    fout << endl;
+    fout << "Minimum:  i=" << mindex << ", chi^2=" << min << endl;
+    fout.close();
+}
 
   MPI_Finalize();
   return 0;

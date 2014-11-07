@@ -1,8 +1,8 @@
 #number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and the rest use randomly generated data
-numGuesses=4
+numGuesses=5000
 
 #file number--change with each run!
-fileCount=6
+fileCount=0
 
 #star parameters
 inc=0.6981317007977318
