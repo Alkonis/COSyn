@@ -1,5 +1,8 @@
 #number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and the rest use randomly generated data
-numGuesses=6
+numGuesses=3
+
+#file number--change with each run!
+fileCount=3
 
 #star parameters
 inc=0.6981317007977318
@@ -38,6 +41,7 @@ segment1=8.10388e-15
 segment2=1.05837e-14
 segment3=1.17277e-14
 segment4=7.94574e-15
+
 
 #print debug messages
 doDebug=0

@@ -741,6 +741,7 @@ int FitData::runTrials()
   int rc;
   int I=0;
   int quit=0;
+  int locali;
 
   MPI_Init(NULL,NULL);
   if (rc != MPI_SUCCESS) 
@@ -753,7 +754,6 @@ int FitData::runTrials()
   MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
 
-  int locali;
 
 
 
@@ -774,8 +774,7 @@ int FitData::runTrials()
     //
     *///////////////////////////////////////////////////////////////////////
     double recvMsg[2];
-    double quit=0;
-    double sendMsg[2];
+    int sendMsg[2];
 
     finchivec=zeros<vec>(numGuesses);
 
@@ -790,7 +789,8 @@ int FitData::runTrials()
     for (int i=1; i<numtasks; i++)
     {
       sendMsg[0]=I;
-      MPI_Send(&sendMsg,1,MPI_DOUBLE,i,0,MPI_COMM_WORLD);
+      cerr << "sending " << sendMsg[0] << " " << sendMsg[1] << endl;
+      MPI_Send(&sendMsg,2,MPI_INT,i,0,MPI_COMM_WORLD);
       I++;
     }
 
@@ -828,7 +828,7 @@ int FitData::runTrials()
       if (I >=numGuesses) quit=1;
       sendMsg[0]=I;
       sendMsg[1]=quit;
-      MPI_Send(&sendMsg,2,MPI_DOUBLE,srcRank,0,MPI_COMM_WORLD);
+      MPI_Send(&sendMsg,2,MPI_INT,srcRank,0,MPI_COMM_WORLD);
       
       I++;
     }
@@ -855,14 +855,15 @@ int FitData::runTrials()
     //double T_rot_alpha_cl=T_rot_alpha_fl;
     double rel_lum;
 
-    double quit;
-    double recvMsg[2];
-
+    int recvMsg[2];
+    
     while(42)
     {
-      MPI_Recv(&recvMsg,2,MPI_DOUBLE,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
+cerr << "Receiving " << endl;
+      MPI_Recv(&recvMsg,2,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
       locali=recvMsg[0];
-      quit = recvMsg[1];
+      quit = recvMsg[1]; 
+      cerr << "received " << locali << " " << quit << endl;
       if (quit) break;
 
       /////////////////////////////////////////////////////////////
@@ -906,20 +907,31 @@ int FitData::runTrials()
       this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
 
     }
-
+cerr << "broke " << endl;
 // receive MPI conv_spec cent_conv here if difference is best
   }
   if (rank==0)
   {
-    ofstream fout(folderpath+"/output");
+
+    ifstream fin(folderpath+"/input");
+    vector<string> inp;
+    string line;
+    while (getline(fin,line)) inp.push_back(line);
+
+    ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)));
     fout << "======================================================================" << endl;
     fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
     fout << "======================================================================" << endl;
     fout << endl;
-    fout << "COSyn " << folderpath << endl; 
+    fout << "COSyn " << folderpath << ": " << numGuesses << " trials" << endl; 
+    fout << endl;
+    fout << "Input echo: " << endl;
+    fout << endl;
+    for (int i=0; i<inp.size(); i++) fout << "       " <<  inp.at(i) << endl;
+    fout << endl;
     fout << endl;
     fout << "======================================================================" << endl;;
-    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;
+    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
     fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
     for (int i=1; i<numGuesses; i++)
     {
@@ -949,7 +961,30 @@ int FitData::runTrialsSlave() {
   MPI_Init(NULL,NULL);
   if (rc != MPI_SUCCESS) 
   {
-cerr << "Loop" << endl;
+    cerr << "Error initializing MPI environment." << endl;
+    MPI_Abort(MPI_COMM_WORLD, rc);
+  }
+
+  MPI_Status Stat;
+  MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+
+
+  double layers;
+  double disk_in;
+  //double dist=1.496e13*disk_in;
+  double disk_out;
+  double v_turb;
+  double T_rot0_fl;             //check this.... is t_rot_fl0?
+  double T_rot_alpha_fl;
+  //double T_rot0_cl=T_rot0_fl;
+  //double T_rot_alpha_cl=T_rot_alpha_fl;
+  double rel_lum;
+
+  int locali;
+
+  if (rank==0) finchivec=zeros<vec>(numGuesses);
+    for (int i=0; i<this->numGuesses;) {
     double receivedMessage[2];
 
     int sent=0;
@@ -1089,22 +1124,22 @@ cerr << "Loop" << endl;
   if (rank==0)
   {
 
-    ifstream fin(folderpath+"/output");
+    ifstream fin(folderpath+"/input");
     vector<string> inp;
     string line;
     while (getline(fin,line)) inp.push_back(line);
 
-    ofstream fout(folderpath+"/output");
+    ofstream fout(folderpath+"/output"+to_string(fileCount));
     fout << "======================================================================" << endl;
     fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
     fout << "======================================================================" << endl;
     fout << endl;
-    fout << "COSyn " << folderpath << endl; 
+    fout << "COSyn " << folderpath << ": " << numGuesses << " trials" << endl; 
     fout << endl;
-    fout << "INPUT ECHO " << endl;
-    fout << endl;
-    fout << endl;
+    fout << "Input echo: " << endl;
     for (int i=0; i<inp.size(); i++) fout << inp.at(i) << endl;
+    fout << endl;
+    fout << endl;
     fout << "======================================================================" << endl;;
     fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
     for (int i=0; i<numGuesses; i++)

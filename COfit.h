@@ -104,9 +104,10 @@ class FitData{
   static double layers_min;
   static double layers_max;   
 
+  static double fileCount;
   //setup variables for reading input
 
-  static constexpr unsigned int inputs = 31;
+  static constexpr unsigned int inputs = 32;
 
   static constexpr double* inputVars[inputs] = 
   {
@@ -140,7 +141,8 @@ class FitData{
     &segment1,
     &segment2,
     &segment3,
-    &segment4
+    &segment4,
+    &fileCount
   };
 
   string inputStrings[inputs] =
@@ -175,7 +177,8 @@ class FitData{
     "segment1",
     "segment2",
     "segment3",
-    "segment4"
+    "segment4",
+    "fileCount"
   };  
 
 
@@ -334,6 +337,7 @@ double FitData::segment2;
 double FitData::segment3;
 double FitData::segment4;
 
+double FitData::fileCount;
 
 //vibrational constants
 constexpr double FitData::vib_einA[];
