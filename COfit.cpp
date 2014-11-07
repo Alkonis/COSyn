@@ -760,6 +760,29 @@ int FitData::runTrials()
   //devote procesor #1 as a scheduler
   if (rank==0) 
   {
+
+
+ 
+    ifstream fin(folderpath+"/input");
+    vector<string> inp;
+    string line;
+    while (getline(fin,line)) inp.push_back(line);
+
+    ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)));
+    fout << "======================================================================" << endl;
+    fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
+    fout << "======================================================================" << endl;
+    fout << endl;
+    fout << "COSyn " << folderpath << ": " << numGuesses << " trials" << endl; 
+    fout << endl;
+    fout << "Input echo: " << endl;
+    fout << endl;
+    for (int i=0; i<inp.size(); i++) fout << "       " <<  inp.at(i) << endl;
+    fout << endl;
+    fout << endl;
+    fout << "======================================================================" << endl;;
+    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
+
     /*//////////////////////////////////////////////////////////////////////
     //  Two step process:
     //  
@@ -812,7 +835,7 @@ int FitData::runTrials()
     //  numGuesses proceses.
     //
     *////////////////////////////////////////////////////////////////////
-
+    int index;
     while (recvCount<numGuesses)
     {
       MPI_Recv(&recvMsg,2,MPI_DOUBLE,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
@@ -824,7 +847,14 @@ int FitData::runTrials()
 
       cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    ****" << endl;
 
-
+    index = static_cast<int>(recvMsg[0]);
+    if (recvMsg[0]==0) 
+    {
+     fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
+    } 
+    else {
+        fout << index << " "  << finchivec.at(index) << " " << randData[0][index] << " "  << randData[1][index] << " "  << randData[2][index] << " " << randData[3][index] << " " << randData[4][index] << " " << randData[5][index] << " " << randData [6][index] << endl;
+    }
       if (I >=numGuesses) quit=1;
       sendMsg[0]=I;
       sendMsg[1]=quit;
@@ -832,6 +862,7 @@ int FitData::runTrials()
       
       I++;
     }
+    fout.close();
   }
   
 
@@ -913,31 +944,6 @@ cerr << "broke " << endl;
   if (rank==0)
   {
 
-    ifstream fin(folderpath+"/input");
-    vector<string> inp;
-    string line;
-    while (getline(fin,line)) inp.push_back(line);
-
-    ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)));
-    fout << "======================================================================" << endl;
-    fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
-    fout << "======================================================================" << endl;
-    fout << endl;
-    fout << "COSyn " << folderpath << ": " << numGuesses << " trials" << endl; 
-    fout << endl;
-    fout << "Input echo: " << endl;
-    fout << endl;
-    for (int i=0; i<inp.size(); i++) fout << "       " <<  inp.at(i) << endl;
-    fout << endl;
-    fout << endl;
-    fout << "======================================================================" << endl;;
-    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
-    fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
-    for (int i=1; i<numGuesses; i++)
-    {
-      fout << i << " "  << finchivec.at(i) << " " << randData[0][i] << " "  << randData[1][i] << " "  << randData[2][i] << " " << randData[3][i] << " " << randData[4][i] << " " << randData[5][i] << " " << randData [6][i] << endl;
-    }
-    fout.close();
 
     uword mindex;
     double min;
