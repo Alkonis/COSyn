@@ -14,9 +14,9 @@ class CollData {
 
 public:
  int steps;
- double A0;
- double A1;
- double A2;
+ float A0;
+ float A1;
+ float A2;
  double r;
  float sum;
 
@@ -63,11 +63,7 @@ public:
  ivec index1;
 
  fmat tot_col_fluor;
- fmat tot_col_fluor_back;                 
  fmat tot_col_fluor_nocoll;
- mat stick_spec_12CO;
- mat stick_spec_13CO;
- mat stick_spec_C18O;
  mat stick_spec_tot;
  mat grid;
  mat gs;
@@ -78,8 +74,6 @@ public:
  fcube tau_0;
  fcube dwdn;
  fcube Nv;
- fcube Nv_coll;
- fcube Nv_nocoll;
  cube N_12CO_vj;
  cube N_13CO_vj;
  cube N_C18O_vj;
@@ -218,19 +212,14 @@ public:
       rate_eqtn.at(j,0).subcube(span(9),span(9),span::all).fill(-data->vib_einA[8]);
     }
 
-    rate_eqtn2=rate_eqtn;   //Clone colldata for the second pass without collisions
-
-
+    rate_eqtn2=rate_eqtn;
 
     for (int i=0; i<11; i++)
     {
       gs.at(i,0)=i-5; //<<-5 << -4 << -3 << -2<<-1<<0<<1<<2<<3<<4<<5<<endr;
     }
     gs.col(1)=exp(-pow(gs.col(0),2)/pow((12/1.665),2))/6.1967;
-    stick_spec_12CO = zeros<mat>(data->freq_size,steps);
-    stick_spec_13CO = stick_spec_12CO;
-    stick_spec_C18O = stick_spec_12CO;
-    stick_spec_tot  = stick_spec_12CO;
+    stick_spec_tot = zeros<mat>(data->freq_size,steps);
     centroid = zeros<vec>(data->freq_size);
     for (int k=0; k<22; k++)
     {

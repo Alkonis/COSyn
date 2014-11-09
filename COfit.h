@@ -230,7 +230,6 @@ private:
   cube X13CO = zeros<cube>(3,7,120);
   cube XC18O = zeros<cube>(1,7,120);                         
 
-  mat fAX;
   mat fXA; 
 
   

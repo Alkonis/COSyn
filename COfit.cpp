@@ -2,6 +2,7 @@
 #include "CollData.cpp"
 #include <iostream>
 #include <cstdlib>
+#include "time.h"
 
 using namespace std;
 
@@ -31,7 +32,6 @@ int FitData::dbm(string message)
 }
 
 int FitData::runTrial(double layers, double disk_in, double disk_out, double v_turb, double T_rot0_fl, double T_rot_alpha_fl, double rel_lum, int locali) {
-
 //============================================
 // MAIN MODEL-FITTING FUNCTION
 // -This is the part to make parallel
@@ -105,6 +105,7 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
       d->Nv.fill(0);
       d->dwdn.fill(0);
       d->tau_0.fill(0);
+
       for (int zz=0; zz<10; zz++) {d->g.at(zz,0).fill(0);}
 
       double gsum;
@@ -134,6 +135,7 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
        }
 
 	 //===================ULTRAVIOLET PUMPING========================
+
 	 for (int j=0; j<layers; j++)
 	 {
 
@@ -208,15 +210,16 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 	   }
 	   d->rate_eqtn.at(k,0).at(1,10,j)=0;
 	   
-//===================
-//  SOLVE
-//==================  
+           //===================
+	   //  SOLVE
+    	   //==================  
+
 	   vec z = zeros<vec>(21);
 	   z.at(20)=1;
 	     
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 
-	   d->Nv.slice(k).col(j)= conv_to<fvec>::from(sol);  //check this to be sure the array is filling in the right dimension
+	   d->Nv.slice(k).col(j)= conv_to<fvec>::from(sol);  
 
            Nv_index=where(d->Nv.slice(k).col(j), [] (double datum) {return datum < 0;});
 	   if (Nv_index.at(0) != -1) 
@@ -230,21 +233,24 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
        }
 
 skip_fluorcalc:
-
+cerr << "loop1" << endl;
       if (coll_loop==0) {
-        d->Nv_coll=d->Nv;
-        d->tot_col_fluor = totalDimf(d->Nv*7.55858e12,2).t();      //check all uses of accu/total in teh code!!!!!! dimension specification!
-        d->tot_col_fluor_back=d->tot_col_fluor;
+        d->tot_col_fluor = totalDimf(d->Nv*7.55858e12,2).t();
         d->rate_eqtn=d->rate_eqtn2;
         d->rate_eqtn2.reset();
       }
       if (coll_loop==1) {
-        d->Nv_nocoll=d->Nv;
         d->tot_col_fluor_nocoll = totalDimf(d->Nv*7.55858e12,2).t();
       }
     }
+
     d->Nv.reset();
     d->rate_eqtn.reset();
+    d->g.reset();
+    d->tau_0.reset();
+    d->dwdn.reset();
+    d->dFdt_0.reset();
+
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
@@ -359,7 +365,7 @@ skip_fluorcalc:
 
 	  d->A0=d->N_12CO_vj.at(j,k,i)*hc*d->A1*d->EinA.at(k);                         //should the first two indices be reversed here?
 	  d->A2=btotcomp*d->A1;
-	  d->stick_spec_12CO.col(i)+=(d->A0/(rpi*d->A2)) * exp (-pow(((d->A1-freq)/d->A2),2));
+	  d->stick_spec_tot.col(i)+=(d->A0/(rpi*d->A2)) * exp (-pow(((d->A1-freq)/d->A2),2));
 	}
       }
     }
@@ -382,7 +388,7 @@ skip_fluorcalc:
           {
 	    d->A0=d->N_13CO_vj.at(j,k,i)*hc*d->A1*d->EinA.at(k);                         //should the first two indices be reversed here?
 	    d->A2=btotcomp*d->A1;
-	    d->stick_spec_13CO.col(i)+=(d->A0/(rpi*d->A2)) * exp(-pow(((d->A1-freq)/d->A2),2));
+	    d->stick_spec_tot.col(i)+=(d->A0/(rpi*d->A2)) * exp(-pow(((d->A1-freq)/d->A2),2));
 
           }
       }    
@@ -403,26 +409,21 @@ skip_fluorcalc:
           {
 	    d->A0=d->N_C18O_vj.at(0,k,i)*hc*d->A1*d->EinA.at(k);                         //should the first two indices be reversed here?
 	    d->A2=btotcomp*d->A1;
-	    d->stick_spec_C18O.col(i)+=(d->A0/(rpi*d->A2)) * exp(-pow(((d->A1-freq)/d->A2),2));
+	    d->stick_spec_tot.col(i)+=(d->A0/(rpi*d->A2)) * exp(-pow(((d->A1-freq)/d->A2),2));
           }
       }
-
-
-
-    d->stick_spec_tot.col(i)=d->stick_spec_12CO.col(i)+d->stick_spec_13CO.col(i)+d->stick_spec_C18O.col(i);  //Note:  I have the notation backwards... since IDL is backwards, (*,i) is col(i).  Fix all of these!
   }
-  
+ 
+ //Calculates total luminosity, then total flux through slit
   d->annuli.at(0)=1e28;
-  mat iten_tot=d->stick_spec_tot;
-  iten_tot.col(0)=iten_tot.col(0)*2.5;
-  mat Lum_tot = iten_tot;
+  d->stick_spec_tot.col(0)=d->stick_spec_tot.col(0)*2.5;
+  mat flux_tot_slit = d->stick_spec_tot;
   for (int i=0; i<d->steps; i++)
   {
-    Lum_tot.col(i)=iten_tot.col(i)*d->annuli.at(i);
+    flux_tot_slit.col(i)=flux_tot_slit.col(i)*d->annuli.at(i);
   }
 
-  mat Flux_tot = Lum_tot/(4*datum::pi*pow(data->stardist,2));
-
+  flux_tot_slit=flux_tot_slit/(4*datum::pi*pow(data->stardist,2));
 
 //===================================
 //  SCRIPT 4 of 4
@@ -433,8 +434,6 @@ skip_fluorcalc:
 
   double dv=1;
 
-  mat flux_tot_slit=Flux_tot;
-  Flux_tot.reset();
 //account for slit loss
   vec slit_loss=100.17*pow(d->rdisk,-1.260);
   double disk_Beyond_slit = 63;
@@ -466,19 +465,18 @@ skip_fluorcalc:
 
   vec vmax=round(sqrt(887.2*Mstar/d->rdisk));
 
-  mat total_spec=iten_tot;
-  vec vel_spec=total_spec.col(0);
+  vec vel_spec=d->stick_spec_tot.col(0);
 
 //=========ITEN LINES=======
 
   for (int i=0; i<22; i++)
   {
-    int itencols=iten_tot.n_cols;
+    int itencols=d->stick_spec_tot.n_cols;
     int v_line_num=d->v_line_indices(i,0).n_elem;
     mat temp = zeros<mat>(d->v_line_indices(i,0).n_elem,itencols);
     for (int j=0; j<v_line_num; j++)
     {
-      temp.row(j)=iten_tot.row(d->v_line_indices(i,0).at(j));
+      temp.row(j)=d->stick_spec_tot.row(d->v_line_indices(i,0).at(j));
     }
     d->iten_lines(i,0)=arma::sum(temp,0).t()*5.65e-3;
   }
@@ -541,7 +539,7 @@ skip_fluorcalc:
       {
 	area.at(i)=dphase.at(i)*(d->rdisk.at(j)+dr.at(j)/2)*dr.at(j);
 
-        vel_spec=vel_spec+interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
+        vel_spec=vel_spec+interpol(d->stick_spec_tot.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
         d->grid.at(grid_ptr,0)=d->rdisk.at(j);
         d->grid.at(grid_ptr,1)=vseg.at(i);
         d->grid.at(grid_ptr,2)=phase.at(i);
@@ -555,7 +553,7 @@ skip_fluorcalc:
       for (int i=0; i<n_seg; i++)
       {
         area.at(i)=dphase.at(i)*(d->rdisk.at(j)+dr.at(j)/2)*dr.at(j);
-        vel_spec=vel_spec+interpol(total_spec.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
+        vel_spec=vel_spec+interpol(d->stick_spec_tot.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
         d->grid.at(grid_ptr,0)=d->rdisk.at(j);
         d->grid.at(grid_ptr,1)=vseg.at(i);
         d->grid.at(grid_ptr,2)=phase.at(i);
@@ -565,7 +563,7 @@ skip_fluorcalc:
       } 
     }
 
-    total_spec.col(j)=vel_spec;
+    d->stick_spec_tot.col(j)=vel_spec;
 
   }
   ivec index_grid=where(d->grid.col(0), [&] (double datum) {return ((datum <= d->rdisk.at(0)) && (datum > 0));});
@@ -669,9 +667,9 @@ skip_fluorcalc:
   }
   for (int j=0; j<n_rings; j++)
   {
-    total_spec.col(j)=total_spec.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(total_spec.col(j));
+    d->stick_spec_tot.col(j)=d->stick_spec_tot.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(d->stick_spec_tot.col(j));
   }
-  vec final_spec=arma::sum(total_spec,1);
+  vec final_spec=arma::sum(d->stick_spec_tot,1);
 
   vec inst_prof=final_spec;
   inst_prof.fill(0);
@@ -728,14 +726,13 @@ skip_fluorcalc:
 
   //==========================  
 
-  
   delete(d);
   return 0;
 }
 
 int FitData::runTrials() 
 {
-
+  
   int rank;
   int numtasks;
   int rc;
@@ -802,7 +799,7 @@ int FitData::runTrials()
     finchivec=zeros<vec>(numGuesses);
 
     if (I >= numGuesses) quit=1;
-    if (numGuesses<numtasks) 
+    if (numGuesses+1<numtasks) 
     {
       numtasks=numGuesses;
       cerr << "WARNING:  number of proceses > number of guesses.  Downsizing." << endl;
@@ -932,8 +929,8 @@ int FitData::runTrials()
       }
 
       //Run a trial with this data; MPI_Send will be called within this trial to return data to the master proces
-      this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
-
+//      this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
+        this->runTrial(layers_0,disk_in_0,disk_out_0,v_turb_0,T_rot0_fl_0,T_rot_alpha_fl_0,rel_lum_0,locali);
     }
 // receive MPI conv_spec cent_conv here if difference is best
   }
@@ -942,11 +939,11 @@ int FitData::runTrials()
     uword mindex;
     double min;
     min = finchivec.min(mindex);
-    ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)));
+    ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)), fstream::app|fstream::out);
     fout << endl;
     fout << "Minimum:  i=" << mindex << ", chi^2=" << min << endl;
     fout.close();
-}
+  }
 
   MPI_Finalize();
   return 0;
@@ -1305,8 +1302,7 @@ FitData::FitData(string folder)
  * Collision Data                                      EVERYTHING AFTER LAYERS ----> INTO COLLISIONS!  CollisionData.cpp will need to be revisited...
  *
  *==================*/
-  fAX = (3.038/2.03)*einA/(wavenum % wavenum);   //be sure this is right!
-  fXA = 2*fAX;
+  fXA = 2*(3.038/2.03)*einA/(wavenum % wavenum);   //be sure this is right!
   this->runTrials();
 }
 
