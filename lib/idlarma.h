@@ -7,6 +7,7 @@
 #ifndef ARMA
 #define ARMA_DONT_USE_WRAPPER
 #define ARMA
+#define ARMA_NO_DEBUG
 #include "../include/armadillo"
 using namespace arma;
 #endif

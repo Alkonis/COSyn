@@ -2,7 +2,7 @@
 #Prece comments with '#'!
 
 #number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and the rest use randomly generated data
-numGuesses=10
+numGuesses=100
 
 #file number--change with each run!
 fileCount=3

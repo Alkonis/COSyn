@@ -135,7 +135,7 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
        }
 
 	 //===================ULTRAVIOLET PUMPING========================
-
+         //                  (BIG INTERIOR LOOP!)
 	 for (int j=0; j<layers; j++)
 	 {
 
@@ -219,7 +219,7 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
 	     
 	   solve(sol,d->rate_eqtn.at(k,0).slice(j).t(),z);
 
-	   d->Nv.slice(k).col(j)= conv_to<fvec>::from(sol);  
+	   d->Nv.slice(k).col(j) = conv_to<fvec>::from(sol);  
 
            Nv_index=where(d->Nv.slice(k).col(j), [] (double datum) {return datum < 0;});
 	   if (Nv_index.at(0) != -1) 
