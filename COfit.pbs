@@ -1,0 +1,18 @@
+#!/bin/bash
+#PBS -N COfit
+#PBS -l select=255:ncpus=8:mpiprocs=8:mem=6gb:interconnect=mx,walltime=60:00:00
+#PBS -M jmfarme@g.clemson.edu
+#PBS -j oe
+
+source /etc/profile.d/modules.sh
+module purge
+module add gcc/4.8.1
+module add mpich2/1.4
+
+cd $PBS_O_WORKDIR
+
+export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/jmfarme/COSyn4/lib/
+
+export LIBRARY_PATH=$LIBRARY_PATH:/home/jmfarme/COSyn4/lib/
+
+mpirun -n 2040 ./COfit HD100546 > output

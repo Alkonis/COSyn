@@ -1,3 +1,6 @@
+#==========COSYN INPUT FILE===========
+#Prece comments with '#'!
+
 #number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and the rest use randomly generated data
 numGuesses=10
 
@@ -12,12 +15,9 @@ Lc=8.3837025e28
 inst_res=6
 
 #best chi-by-eye parameters
-#layers_0=300
-#disk_in_0=13
-#disk_out_0=100
-layers_0=1000
-disk_in_0=6
-disk_out_0=125
+layers_0=300
+disk_in_0=13
+disk_out_0=100
 v_turb_0=3e5
 T_rot0_fl_0=2500
 T_rot_alpha_fl_0=0.25

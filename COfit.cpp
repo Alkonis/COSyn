@@ -233,7 +233,6 @@ if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
        }
 
 skip_fluorcalc:
-cerr << "loop1" << endl;
       if (coll_loop==0) {
         d->tot_col_fluor = totalDimf(d->Nv*7.55858e12,2).t();
         d->rate_eqtn=d->rate_eqtn2;
@@ -929,8 +928,8 @@ int FitData::runTrials()
       }
 
       //Run a trial with this data; MPI_Send will be called within this trial to return data to the master proces
-//      this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
-        this->runTrial(layers_0,disk_in_0,disk_out_0,v_turb_0,T_rot0_fl_0,T_rot_alpha_fl_0,rel_lum_0,locali);
+      this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
+        //this->runTrial(layers_0,disk_in_0,disk_out_0,v_turb_0,T_rot0_fl_0,T_rot_alpha_fl_0,rel_lum_0,locali);
     }
 // receive MPI conv_spec cent_conv here if difference is best
   }
