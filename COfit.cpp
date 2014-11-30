@@ -703,7 +703,7 @@ skip_fluorcalc:
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   double sendMessage[2];
 
-  sendMessage[0]=locali;
+  sendMessage[0]=static_cast<double>(locali);
   sendMessage[1]=chisq;
 
   if (rank!=0)
@@ -835,7 +835,7 @@ int FitData::runTrials()
 
       finchivec.at(recvMsg[0])=recvMsg[1];
 
-      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    **** chisq " <<endl;
+      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    **** " <<endl;
 
     index = static_cast<int>(recvMsg[0]);
     if (recvMsg[0]==0) 
