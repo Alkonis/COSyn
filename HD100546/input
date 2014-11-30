@@ -1,11 +1,13 @@
 #==========COSYN INPUT FILE===========
-#Prece comments with '#'!
+#      Precede comments with '#'!
+#=====================================
 
-#number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and the rest use randomly generated data
-numGuesses=100
+#number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and
+#the rest use random data from within the range parameters below
+numGuesses=5
 
 #file number--change with each run!
-fileCount=3
+fileCount=26
 
 #star parameters
 inc=0.6981317007977318
@@ -18,7 +20,7 @@ inst_res=6
 layers_0=300
 disk_in_0=13
 disk_out_0=100
-v_turb_0=3e5
+v_turb_0=300000
 T_rot0_fl_0=2500
 T_rot_alpha_fl_0=0.25
 rel_lum_0=20
@@ -26,16 +28,22 @@ rel_lum_0=20
 #range parameters
 layers_min=100
 layers_max=1000
+
 disk_in_min=6
 disk_in_max=21
+
 disk_out_min=50
 disk_out_max=125
+
 v_turb_min=1e5
 v_turb_max=6e5
+
 T_rot0_fl_min=1000
 T_rot0_fl_max=4500
+
 T_rot_alpha_fl_min=0.2
 T_rot_alpha_fl_max=.7
+
 rel_lum_min=1
 rel_lum_max=100
 

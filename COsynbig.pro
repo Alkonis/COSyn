@@ -441,6 +441,8 @@ m_uv=(5.59647E-10)*SQRT(T_rot_fl/Mstar)*SQRT(Rdisk)       ;slope of uv rays H(r)
 phi=-atan((m_uv-m_disk)/(1+m_uv*m_disk))
 phi(0)=!pi/2.d ;assume line hits inner annulus directly. 
 
+print,phi
+
 xi=N_elements(tot_col_fluor(*,0))-1 ;vib level index
 yi=N_ELEMENTS(tot_col_fluor(0,*))-1 ;annuli index
 

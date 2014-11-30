@@ -45,10 +45,10 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
   double dist = 1.496e13*disk_in;
   double T_rot0_cl=T_rot0_fl;
   double T_rot_alpha_cl=T_rot_alpha_fl;
-
+cerr << "Trotalpha: " << T_rot_alpha_fl << endl;
   CollData* d = new CollData(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
 
-
+//cerr << layers << " " << disk_in << " " << disk_out << " " << v_turb << " " << T_rot0_fl << " " << T_rot_alpha_fl << " " << rel_lum << endl;
 //=====================
 //  Set up temperature profile
 // ====================
@@ -273,8 +273,10 @@ skip_fluorcalc:
   double r = dist/1.496e13;
   d->rdisk=d->rdisk/1.496e13;            //convert to AU
 
-
-
+ cerr << "tot_col accu: " << arma::accu(tot_col) << endl;
+ cerr << "tot_col_fluor accu: " << arma::accu(d->tot_col_fluor) << endl;
+ cerr << "T_rot_fl accu: " << arma::accu(d->T_rot_fl) << endl;
+ cerr << "X12CO_13CO_FL " << X12CO_13CO_fl << endl;
 
 //===================================================================================================
 //  MOLECULAR DATA
@@ -332,7 +334,9 @@ skip_fluorcalc:
 
 }
 
-
+  cerr << "accu1: " << arma::accu(d->N_12CO_vj);
+  cerr << "accu2: " << arma::accu(d->N_13CO_vj);
+  cerr << "accu3: " << arma::accu(d->N_C18O_vj);
   d->annuli = zeros<vec>(d->rdisk.n_elem);
   for (int i=0; i<d->steps-1; i++)
   {
@@ -423,7 +427,6 @@ skip_fluorcalc:
   }
 
   flux_tot_slit=flux_tot_slit/(4*datum::pi*pow(data->stardist,2));
-
 //===================================
 //  SCRIPT 4 of 4
 //====================================
@@ -697,9 +700,10 @@ skip_fluorcalc:
   ivec indexdiff=where(r1big, [] (double datum) {return (datum == -9999);});
   int indexsiz=indexdiff.n_elem;
   d->diff = (r1big - interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big));
-
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
   double chisq = ( (arma::sum(pow(abs(d->diff.subvec(0,1023)),2)/pow(segment1,2)) + arma::sum(pow(abs(d->diff.subvec(1024,2047)),2)/pow(segment2,2)) + arma::sum(pow(abs(d->diff.subvec(2048,3071)),2)/pow(segment3,2)) + arma::sum(pow(abs(d->diff.subvec(3072,4095)),2)/pow(segment4,2) ))/4)/(4096-indexsiz);
+
+cerr << chisq << " "  << layers << " " << disk_in << " " << disk_out << " " << v_turb << " " << T_rot0_fl << " " << T_rot_alpha_fl << " " << rel_lum << endl;
   //===========================
   //===  MPI Communication  ===
   //===========================
@@ -830,6 +834,7 @@ int FitData::runTrials()
     //  numGuesses proceses.
     //
     *////////////////////////////////////////////////////////////////////
+
     int index;
     while (recvCount<numGuesses)
     {
@@ -840,9 +845,10 @@ int FitData::runTrials()
 
       finchivec.at(recvMsg[0])=recvMsg[1];
 
-      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    ****" << endl;
+      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    **** chisq " << recvMsg[1] << " " << endl;
 
     index = static_cast<int>(recvMsg[0]);
+cerr << index << endl;
     if (recvMsg[0]==0) 
     {
      fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
@@ -857,6 +863,8 @@ int FitData::runTrials()
       
       I++;
     }
+    fout << endl;
+    fout << finchivec << endl;
     fout.close();
   }
   
@@ -915,19 +923,21 @@ int FitData::runTrials()
       }
       else 
       {
-	layers=randData[0][locali-1];
-	disk_in=randData[1][locali-1];
+	layers=randData[0][locali];
+	disk_in=randData[1][locali];
 	//dist=1.496e13*disk_in;
-	disk_out=randData[2][locali-1];
-	v_turb=randData[3][locali-1];
-	T_rot0_fl=randData[4][locali-1];
-	T_rot_alpha_fl=randData[5][locali-1];
+	disk_out=randData[2][locali];
+	v_turb=randData[3][locali];
+	T_rot0_fl=randData[4][locali];
+	T_rot_alpha_fl=randData[5][locali];
 	//T_rot0_cl=T_rot0_fl;
 	//T_rot_alpha_cl=T_rot_alpha_fl;
-	rel_lum=randData[6][locali-1];
+	rel_lum=randData[6][locali];
       }
 
       //Run a trial with this data; MPI_Send will be called within this trial to return data to the master proces
+
+      cout << "runTrial " << layers << " " << disk_in << " " << disk_out << " " << v_turb << " " << T_rot0_fl << " " << T_rot_alpha_fl << " " << rel_lum << " " << locali << endl;
       this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
         //this->runTrial(layers_0,disk_in_0,disk_out_0,v_turb_0,T_rot0_fl_0,T_rot_alpha_fl_0,rel_lum_0,locali);
     }
@@ -941,6 +951,8 @@ int FitData::runTrials()
     ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)), fstream::app|fstream::out);
     fout << endl;
     fout << "Minimum:  i=" << mindex << ", chi^2=" << min << endl;
+    fout << endl;
+    for (int q=0; q<numGuesses; q++) fout << randData[3][q] << endl;
     fout.close();
   }
 
@@ -1290,7 +1302,7 @@ FitData::FitData(string folder)
   this->randData[4]=FillArray(T_rot0_fl_min,T_rot0_fl_max);
   this->randData[5]=FillArray(T_rot_alpha_fl_min,T_rot_alpha_fl_max);
   this->randData[6]=FillArray(rel_lum_min, rel_lum_max);
-  for (int i=0; i < numGuesses-1; i++) {
+  for (int i=0; i < numGuesses; i++) {
     this->randData[5][i]=this->randData[5][i]/1000;
     isSent[i]=0;
   }
