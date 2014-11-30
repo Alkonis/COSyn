@@ -45,10 +45,8 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
   double dist = 1.496e13*disk_in;
   double T_rot0_cl=T_rot0_fl;
   double T_rot_alpha_cl=T_rot_alpha_fl;
-cerr << "Trotalpha: " << T_rot_alpha_fl << endl;
   CollData* d = new CollData(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
 
-//cerr << layers << " " << disk_in << " " << disk_out << " " << v_turb << " " << T_rot0_fl << " " << T_rot_alpha_fl << " " << rel_lum << endl;
 //=====================
 //  Set up temperature profile
 // ====================
@@ -273,10 +271,6 @@ skip_fluorcalc:
   double r = dist/1.496e13;
   d->rdisk=d->rdisk/1.496e13;            //convert to AU
 
- cerr << "tot_col accu: " << arma::accu(tot_col) << endl;
- cerr << "tot_col_fluor accu: " << arma::accu(d->tot_col_fluor) << endl;
- cerr << "T_rot_fl accu: " << arma::accu(d->T_rot_fl) << endl;
- cerr << "X12CO_13CO_FL " << X12CO_13CO_fl << endl;
 
 //===================================================================================================
 //  MOLECULAR DATA
@@ -334,9 +328,6 @@ skip_fluorcalc:
 
 }
 
-  cerr << "accu1: " << arma::accu(d->N_12CO_vj);
-  cerr << "accu2: " << arma::accu(d->N_13CO_vj);
-  cerr << "accu3: " << arma::accu(d->N_C18O_vj);
   d->annuli = zeros<vec>(d->rdisk.n_elem);
   for (int i=0; i<d->steps-1; i++)
   {
@@ -703,7 +694,6 @@ skip_fluorcalc:
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
   double chisq = ( (arma::sum(pow(abs(d->diff.subvec(0,1023)),2)/pow(segment1,2)) + arma::sum(pow(abs(d->diff.subvec(1024,2047)),2)/pow(segment2,2)) + arma::sum(pow(abs(d->diff.subvec(2048,3071)),2)/pow(segment3,2)) + arma::sum(pow(abs(d->diff.subvec(3072,4095)),2)/pow(segment4,2) ))/4)/(4096-indexsiz);
 
-cerr << chisq << " "  << layers << " " << disk_in << " " << disk_out << " " << v_turb << " " << T_rot0_fl << " " << T_rot_alpha_fl << " " << rel_lum << endl;
   //===========================
   //===  MPI Communication  ===
   //===========================
@@ -845,10 +835,9 @@ int FitData::runTrials()
 
       finchivec.at(recvMsg[0])=recvMsg[1];
 
-      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    **** chisq " << recvMsg[1] << " " << endl;
+      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    **** chisq " <<endl;
 
     index = static_cast<int>(recvMsg[0]);
-cerr << index << endl;
     if (recvMsg[0]==0) 
     {
      fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
@@ -863,8 +852,6 @@ cerr << index << endl;
       
       I++;
     }
-    fout << endl;
-    fout << finchivec << endl;
     fout.close();
   }
   
@@ -951,8 +938,6 @@ cerr << index << endl;
     ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)), fstream::app|fstream::out);
     fout << endl;
     fout << "Minimum:  i=" << mindex << ", chi^2=" << min << endl;
-    fout << endl;
-    for (int q=0; q<numGuesses; q++) fout << randData[3][q] << endl;
     fout.close();
   }
 
