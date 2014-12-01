@@ -723,15 +723,14 @@ skip_fluorcalc:
   return 0;
 }
 
+
+//MAIN SCHEDULING FUNCTION
 int FitData::runTrials() 
 {
   
   int rank;
   int numtasks;
   int rc;
-  int I=0;
-  int quit=0;
-  int locali;
 
   MPI_Init(NULL,NULL);
   if (rc != MPI_SUCCESS) 
@@ -751,7 +750,7 @@ int FitData::runTrials()
   if (rank==0) 
   {
 
-
+    int I=0;
  
     ifstream fin(folderpath+"/input");
     vector<string> inp;
@@ -786,7 +785,7 @@ int FitData::runTrials()
     //      have been run.
     //
     *///////////////////////////////////////////////////////////////////////
-    double recvMsg[2];
+    
     int sendMsg[2];
 
     finchivec=zeros<vec>(numGuesses);
@@ -808,10 +807,6 @@ int FitData::runTrials()
 
     
 
-    double tag;
-    double srcRank;
-    double recvCount=0;
-
     /*///////////////////////////////////////////////////////////////////
     //
     //                      ASYNCHRONOUS LOOP
@@ -826,30 +821,36 @@ int FitData::runTrials()
     *////////////////////////////////////////////////////////////////////
 
     int index;
+    int srcRank;
+    int recvCount=0;
+    int quit=0;
+
+    double recvMsg[2];
+
     while (recvCount<numGuesses)
     {
       MPI_Recv(&recvMsg,2,MPI_DOUBLE,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
-      srcRank=Stat.MPI_TAG;
 
+      srcRank=Stat.MPI_TAG;
+      index = static_cast<int>(recvMsg[0]);
+      finchivec.at(index)=recvMsg[1];
+      
+
+      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    ****" <<endl;
       recvCount++;
 
-      finchivec.at(recvMsg[0])=recvMsg[1];
-
-      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    **** " <<endl;
-
-    index = static_cast<int>(recvMsg[0]);
-    if (recvMsg[0]==0) 
-    {
-     fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
-    } 
-    else {
+      if (index==0) 
+      {
+       fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
+      } 
+      else {
         fout << index << " "  << finchivec.at(index) << " " << randData[0][index] << " "  << randData[1][index] << " "  << randData[2][index] << " " << randData[3][index] << " " << randData[4][index] << " " << randData[5][index] << " " << randData [6][index] << endl;
-    }
+      }
+
       if (I >=numGuesses) quit=1;
       sendMsg[0]=I;
       sendMsg[1]=quit;
       MPI_Send(&sendMsg,2,MPI_INT,srcRank,0,MPI_COMM_WORLD);
-      
       I++;
     }
     fout.close();
@@ -864,6 +865,9 @@ int FitData::runTrials()
 
   else
   { 
+    
+    int locali;
+    int quit;
 
     double layers;
     double disk_in;
@@ -912,13 +916,10 @@ int FitData::runTrials()
       {
 	layers=randData[0][locali];
 	disk_in=randData[1][locali];
-	//dist=1.496e13*disk_in;
 	disk_out=randData[2][locali];
 	v_turb=randData[3][locali];
 	T_rot0_fl=randData[4][locali];
 	T_rot_alpha_fl=randData[5][locali];
-	//T_rot0_cl=T_rot0_fl;
-	//T_rot_alpha_cl=T_rot_alpha_fl;
 	rel_lum=randData[6][locali];
       }
 
@@ -928,8 +929,14 @@ int FitData::runTrials()
       this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
         //this->runTrial(layers_0,disk_in_0,disk_out_0,v_turb_0,T_rot0_fl_0,T_rot_alpha_fl_0,rel_lum_0,locali);
     }
-// receive MPI conv_spec cent_conv here if difference is best
   }
+
+  //END BIG LOOP
+
+
+
+
+  //Finally, on termination, search for best-fit and mark this at the end of the file.
   if (rank==0)
   {
     uword mindex;
