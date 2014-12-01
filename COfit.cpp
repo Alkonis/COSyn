@@ -751,7 +751,8 @@ int FitData::runTrials()
   {
 
     int I=0;
- 
+    int quit=0;
+
     ifstream fin(folderpath+"/input");
     vector<string> inp;
     string line;
@@ -823,7 +824,6 @@ int FitData::runTrials()
     int index;
     int srcRank;
     int recvCount=0;
-    int quit=0;
 
     double recvMsg[2];
 
