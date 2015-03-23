@@ -263,7 +263,7 @@ public:
 
   static constexpr double vib_einA[10]={34.60,67.68,98.40,126.99,153.59,178.31,201.35,223.10,244.15,265.21};
 
-  double** randData = new double*[7];
+  //double** randData = new double*[7];
   bool* isSent;
 
   string folderpath;

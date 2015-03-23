@@ -45,7 +45,7 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
   double dist = 1.496e13*disk_in;
   double T_rot0_cl=T_rot0_fl;
   double T_rot_alpha_cl=T_rot_alpha_fl;
-  cerr << "sample: " << layers << " " << rel_lum << endl;
+  //cerr << "sample: " << layers << " " <<  disk_in << " " << disk_out << " " << v_turb << " " << T_rot0_fl << " " << T_rot_alpha_fl << " " << rel_lum << endl;
   CollData* d = new CollData(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
 
 //=====================
@@ -67,13 +67,15 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
   d->T_rot_cl=T_rot0_cl * pow((1.496E13/d->rdisk), T_rot_alpha_cl);
   d->H_den=H_den0 * pow((1.496E13/d->rdisk),H_den_alpha);
   T_rot_index = where(d->T_rot_cl, [] (double datum) {return datum >= 3500;});
-  if (T_rot_index.at(0) != -1) {
+  if (T_rot_index.at(0) != -1) 
+  {
     for (auto elem : T_rot_index)
     {
       d->T_rot_cl[elem]=3500;
     }
   }
-    vec b_tot = sqrt(2*1.38e-16*6.02e23*d->T_rot_fl/28 + pow(v_turb,2));
+
+   vec b_tot = sqrt(2*1.38e-16*6.02e23*d->T_rot_fl/28 + pow(v_turb,2));
    fvec b_tot2 = sqrt(2*1.38e-16*6.02e23*conv_to<fvec>::from(d->T_rot_fl)/28 + pow(v_turb,2));
 
     //==============CALCULATE DFDT BY INTEGRAATION USING TRAPEZOID RULE================
@@ -298,9 +300,11 @@ skip_fluorcalc:
 + tot_col_coll.at(i,j+1)*(2*d->Jup+1) % exp(-hck*Bv12[j] * d->Jup % (d->Jup+1)/d->T_rot_cl[i])/(d->T_rot_cl[i]/(hck*Bv12[j]));
 
     }
+
   //====================
   //  13CO
   //====================
+
   for (int j=0; j<3; j++)
   {
     d->Jup = X13CO(span(j),span(3),span::all);
@@ -338,11 +342,15 @@ skip_fluorcalc:
 
   for (int i=0; i<d->steps; i++)  //Loop over annuli
   {
+    
     double btotcomp=b_tot.at(i)/cexp;
+
     //==============================
     //  X12CO
     //=============================
+
     int upbound=tot_col.row(0).n_elem-1;
+
     for (int j=0; j<upbound; j++)  //vibrational levels
     {
       d->Jup = X12CO(span(j),span(3),span::all);
@@ -358,9 +366,11 @@ skip_fluorcalc:
 	  d->A0=d->N_12CO_vj.at(j,k,i)*hc*d->A1*d->EinA.at(k);                         //should the first two indices be reversed here?
 	  d->A2=btotcomp*d->A1;
 	  d->stick_spec_tot.col(i)+=(d->A0/(rpi*d->A2)) * exp (-pow(((d->A1-freq)/d->A2),2));
+
 	}
       }
     }
+
     //==============================
     //  X13CO
     //==============================
@@ -557,6 +567,7 @@ skip_fluorcalc:
     d->stick_spec_tot.col(j)=vel_spec;
 
   }
+
   ivec index_grid=where(d->grid.col(0), [&] (double datum) {return ((datum <= d->rdisk.at(0)) && (datum > 0));});
 
   vec  grid_tmp=zeros<vec>(index_grid.n_elem);
@@ -592,7 +603,7 @@ skip_fluorcalc:
 //======================================
 //   CENTROID LOOP
 //=====================================
-/*  for (int j=0; j<maxloop; j++)
+  for (int j=0; j<maxloop; j++)
   {
    // d->indexn(j,0).fill(0);
     d->index1=where(d->grid.col(1), [&] (double datum) {return ((datum <= (max(d->grid.col(1)))-j) && ( datum > ( max(d->grid.col(1))-(j+1)) ) );});
@@ -656,11 +667,13 @@ skip_fluorcalc:
 
     }
   }
-*/
+
+
   for (int j=0; j<n_rings; j++)
   {
     d->stick_spec_tot.col(j)=d->stick_spec_tot.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(d->stick_spec_tot.col(j));
   }
+
   vec final_spec=arma::sum(d->stick_spec_tot,1);
 
   vec inst_prof=final_spec;
@@ -701,7 +714,7 @@ skip_fluorcalc:
   MPI_Comm_size(MPI_COMM_WORLD,&numtasks);
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   double sendMessage[2];
-
+  cerr <<"c " <<  chisq << endl;
   sendMessage[0]=static_cast<double>(locali);
   sendMessage[1]=chisq;
 
@@ -749,6 +762,22 @@ int FitData::runTrials()
   if (rank==0) 
   {
 
+    double** randData = new double*[7];
+
+    
+    randData[0]=FillArray(layers_min, layers_max);
+    randData[1]=FillArray(disk_in_min, disk_in_max);
+    randData[2]=FillArray(disk_out_min,disk_out_max);
+    randData[3]=FillArray(v_turb_min, v_turb_max);     
+    randData[4]=FillArray(T_rot0_fl_min,T_rot0_fl_max);
+    randData[5]=FillArray(T_rot_alpha_fl_min,T_rot_alpha_fl_max);
+    randData[6]=FillArray(rel_lum_min, rel_lum_max);
+    
+    for (int i=0; i<numGuesses; i++) 
+    {
+      randData[5][i]=randData[5][i]/1000;
+    }
+
     int I=0;
     int quit=0;
 
@@ -791,6 +820,7 @@ int FitData::runTrials()
     finchivec=zeros<vec>(numGuesses);
 
     if (I >= numGuesses) quit=1;
+
     if (numGuesses+1<numtasks) 
     {
       numtasks=numGuesses;
@@ -802,10 +832,17 @@ int FitData::runTrials()
     //not really a functionality that's useful, but theoretically, it should exist
 
     sendMsg[1]=quit;
-cerr << "NUMTASKS: " << numtasks << endl;
+
+    //========================================
+    //          SYNCHRONOUS SEND
+    //========================================
+
     for (int i=1; i<numtasks; i++)
     {
+
       sendMsg[0]=I;
+
+      //Select data!
       if (I==0)
       {
         sendMsg[2]=layers_0;
@@ -827,11 +864,16 @@ cerr << "NUMTASKS: " << numtasks << endl;
         sendMsg[7]=randData[5][I];
         sendMsg[8]=randData[6][I];
       }
- cerr << "S" << endl;
+
+      cerr << "S" << endl;
+
       MPI_Send(&sendMsg,9,MPI_DOUBLE,i,0,MPI_COMM_WORLD);
+
       I++;
-      }
-    /*///////////////////////////////////////////////////////////////////
+
+    }
+
+    /////////////////////////////////////////////////////////////////////
     //
     //                      ASYNCHRONOUS LOOP
     //
@@ -842,7 +884,7 @@ cerr << "NUMTASKS: " << numtasks << endl;
     //  but it should continue receiving until it has received data from
     //  numGuesses proceses.
     //
-    *////////////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////////////
 
     int index;
     int srcRank;
@@ -855,7 +897,8 @@ cerr << "NUMTASKS: " << numtasks << endl;
       //SEND:  int[2]--[I,quit]
 
       MPI_Recv(&recvMsg,2,MPI_DOUBLE,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
-cerr << "R" << endl;
+      cerr << "R" << endl;
+
       srcRank=Stat.MPI_TAG;
       index = static_cast<int>(recvMsg[0]);
       finchivec.at(index)=recvMsg[1];
@@ -878,19 +921,29 @@ cerr << "R" << endl;
 
       sendMsg[0]=static_cast<double>(I);
       sendMsg[1]=static_cast<double>(quit);
-      sendMsg[2]=randData[0][index];
-      sendMsg[3]=randData[1][index];
-      sendMsg[4]=randData[2][index];
-      sendMsg[5]=randData[3][index];
-      sendMsg[6]=randData[4][index];
-      sendMsg[7]=randData[5][index];
-      sendMsg[8]=randData[6][index];
+      if (!quit) 
+      {
+        sendMsg[2]=randData[0][I];
+        sendMsg[3]=randData[1][I];
+        sendMsg[4]=randData[2][I];
+        sendMsg[5]=randData[3][I];
+        sendMsg[6]=randData[4][I];
+        sendMsg[7]=randData[5][I];
+        sendMsg[8]=randData[6][I];
+      }
+      else
+      {
+        for (int i=2; i<9; i++) sendMsg[i]=0;
+      }
+
       for (int z=0; z<9;z++) cerr << sendMsg[z] << " ";
  cerr << endl;
       MPI_Send(&sendMsg,9,MPI_DOUBLE,srcRank,0,MPI_COMM_WORLD);
       I++;
     }
     fout.close();
+    for (int i=0; i<7; i++) delete[] randData[i];
+    delete[] randData;
   }
  
 
@@ -997,215 +1050,6 @@ cerr << "ENDED" << endl;
   MPI_Finalize();
   return 0;
 
-
-}
-
-int FitData::runTrialsSlave() {
-  //start with best chi-by-eye fit and run one trial
-  //then each time, reset parameters to a value from the matrix and rerun.
-  //set parameters for best-chi;
-  int rank;
-  int numtasks;
-  int rc;
-
-  MPI_Init(NULL,NULL);
-  if (rc != MPI_SUCCESS) 
-  {
-    cerr << "Error initializing MPI environment." << endl;
-    MPI_Abort(MPI_COMM_WORLD, rc);
-  }
-
-  MPI_Status Stat;
-  MPI_Comm_size(MPI_COMM_WORLD, &numtasks);
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-
-
-  double layers;
-  double disk_in;
-  //double dist=1.496e13*disk_in;
-  double disk_out;
-  double v_turb;
-  double T_rot0_fl;             //check this.... is t_rot_fl0?
-  double T_rot_alpha_fl;
-  //double T_rot0_cl=T_rot0_fl;
-  //double T_rot_alpha_cl=T_rot_alpha_fl;
-  double rel_lum;
-
-  int locali;
-
-  if (rank==0) finchivec=zeros<vec>(numGuesses);
-    for (int i=0; i<this->numGuesses;) {
-    double receivedMessage[2];
-
-    int sent=0;
-    int exitWhile=0;
-    int quit=0;
-    int* useProcess = new int[numtasks];
-    int useThis=1;
-    for (int k=0; k<numtasks; k++)  useProcess[k]=1;
-    if (rank==0)
-    { 
-
-      int* useProcess = new int[numtasks];
-
-      while (sent<numtasks)
-      {
-        int doLoop=1;
-
-        if (i>=numGuesses) 
-        {
-          cerr << "Terminated!  Maximum number of trials reached!  Process " << sent << endl;
-          for (int k=sent; k<numtasks; k++) 
-          {
-            useProcess[k]=0;
-            MPI_Send(&useProcess[k],1,MPI_INT,k,useProcess[k], MPI_COMM_WORLD);
-          }
-          break;
-        }
-        else
-        {
-          useProcess[sent]=1;
-        }
-       
-        //for each core, find the first i in randData that has not been assigned a processor and send that i to that process
-        for (int j=0;doLoop==1;j++)
-        {
-          if (!isSent[j])
-          {
-
-            isSent[j]=1;
-            i++;
-            if (sent==0)
-            {
-              locali=j;
-              doLoop=0;
-            }
-            else
-            {
-              MPI_Send(&j,1,MPI_INT,sent,useProcess[sent], MPI_COMM_WORLD);
-              doLoop=0;
-            }
-
-            sent++;
-          }
-
-          if (j>numGuesses) {cerr << "ERROR in guess communication! i = " << i << endl;}
-        }
-      if (exitWhile) break;
-      }
-    }
-
-    if (rank==0)  useThis=1;     
-
-    if (rank!=0)
-    {
-      MPI_Recv(&locali,1,MPI_INT,0,MPI_ANY_TAG, MPI_COMM_WORLD, &Stat);
-      useThis=Stat.MPI_TAG;
-    }
-
-
-    if (locali==0)
-    { 
-
-      layers=layers_0;
-      disk_in=disk_in_0;
-      //double dist=1.496e13*disk_in;
-      disk_out=disk_out_0;
-      v_turb=v_turb_0;
-      T_rot0_fl=T_rot0_fl_0;             //check this.... is t_rot_fl0?
-      T_rot_alpha_fl=T_rot_alpha_fl_0;
-      //double T_rot0_cl=T_rot0_fl;
-      //double T_rot_alpha_cl=T_rot_alpha_fl;
-      rel_lum=rel_lum_0;
-    }
-    else 
-    {
-      layers=randData[0][locali-1];
-      disk_in=randData[1][locali-1];
-      //dist=1.496e13*disk_in;
-      disk_out=randData[2][locali-1];
-      v_turb=randData[3][locali-1];
-      T_rot0_fl=randData[4][locali-1];
-      T_rot_alpha_fl=randData[5][locali-1];
-      //T_rot0_cl=T_rot0_fl;
-      //T_rot_alpha_cl=T_rot_alpha_fl;
-      rel_lum=randData[6][locali-1];
-    }
-    if (useThis) 
-    {
-      this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
-    }
-    // RECEIVE MPI HERE
-    if (rank==0) 
-    {
-      finchivec.at(local_i)=local_chisq;
-      cerr << "****    TRIAL " << locali+1 << " COMPLETE    ****" << endl;
-      for (int j=1; j<sent; j++)
-      {
-        MPI_Recv(&receivedMessage,2, MPI_DOUBLE,j,2,MPI_COMM_WORLD, &Stat);
-        finchivec.at(receivedMessage[0])=receivedMessage[1];
-
-
-        cerr << "****    TRIAL " << receivedMessage[0] + 1 << " COMPLETE    ****" << endl;
-      }
-    }
- 
-      if (rank==0)
-      { 
-        if (i>=numGuesses)
-        {
-          quit=1; 
-          for (int j=1; j<numtasks; j++) MPI_Send(&quit,1,MPI_INT,j,3,MPI_COMM_WORLD);
-        } else 
-        {
-          quit=0;
-          for (int j=1; j<numtasks; j++) MPI_Send(&quit,1,MPI_INT,j,3,MPI_COMM_WORLD);
-        }
-      }
-      else
-      {
-        MPI_Recv(&quit,1,MPI_INT,0,3,MPI_COMM_WORLD,&Stat);
-      }
-
-    if (quit) break;
-// receive MPI conv_spec cent_conv here if difference is best
-  }
-
-  if (rank==0)
-  {
-
-    ifstream fin(folderpath+"/input");
-    vector<string> inp;
-    string line;
-    while (getline(fin,line)) inp.push_back(line);
-
-    ofstream fout(folderpath+"/output"+to_string(fileCount));
-    fout << "======================================================================" << endl;
-    fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
-    fout << "======================================================================" << endl;
-    fout << endl;
-    fout << "COSyn " << folderpath << ": " << numGuesses << " trials" << endl; 
-    fout << endl;
-    fout << "Input echo: " << endl;
-    for (int i=0; i<inp.size(); i++) fout << inp.at(i) << endl;
-    fout << endl;
-    fout << endl;
-    fout << "======================================================================" << endl;;
-    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
-    for (int i=0; i<numGuesses; i++)
-    {
-      fout << i << " "  << finchivec.at(i) << " " << randData[0][i] << " "  << randData[1][i] << " "  << randData[2][i] << " " << randData[3][i] << " " << randData[4][i] << " " << randData[5][i] << " " << randData [6][i] << endl;
-    }
-
-    fout.close();
-
-    uword mindex;
-    double min;
-    min = finchivec.min(mindex);
-  }
-
-  MPI_Finalize();
-  return 0;
 
 }
 
@@ -1334,18 +1178,18 @@ FitData::FitData(string folder)
 
   isSent = new bool[numGuesses];
 
-  this->randData[0]=FillArray(layers_min, layers_max);
-  this->randData[1]=FillArray(disk_in_min, disk_in_max);
-  this->randData[2]=FillArray(disk_out_min,disk_out_max);
-  this->randData[3]=FillArray(v_turb_min, v_turb_max);     
-  this->randData[4]=FillArray(T_rot0_fl_min,T_rot0_fl_max);
-  this->randData[5]=FillArray(T_rot_alpha_fl_min,T_rot_alpha_fl_max);
-  this->randData[6]=FillArray(rel_lum_min, rel_lum_max);
+  //this->randData[0]=FillArray(layers_min, layers_max);
+  //this->randData[1]=FillArray(disk_in_min, disk_in_max);
+  //this->randData[2]=FillArray(disk_out_min,disk_out_max);
+  //this->randData[3]=FillArray(v_turb_min, v_turb_max);     
+  //this->randData[4]=FillArray(T_rot0_fl_min,T_rot0_fl_max);
+  //this->randData[5]=FillArray(T_rot_alpha_fl_min,T_rot_alpha_fl_max);
+  //this->randData[6]=FillArray(rel_lum_min, rel_lum_max);
   for (int i=0; i < numGuesses; i++) {
-    this->randData[5][i]=this->randData[5][i]/1000;
+  //  this->randData[5][i]=this->randData[5][i]/1000;
     isSent[i]=0;
   }
-  isSent[numGuesses-1]=0;
+  //isSent[numGuesses-1]=0;
 
  /*=================
  *
@@ -1358,11 +1202,6 @@ FitData::FitData(string folder)
 
 FitData::~FitData()
 {
-  for(int i=0; i<7;i++)
-  {
-    delete[] this->randData[i];
-  }
-  delete[] this->randData;
   delete[] this->isSent;
 }
 

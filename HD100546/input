@@ -7,7 +7,7 @@
 numGuesses=8
 
 #file number--change with each run!
-fileCount=191
+fileCount=193
 
 
 #star parameters
@@ -18,12 +18,12 @@ Lc=8.3837025e28
 inst_res=6
 
 #best chi-by-eye parameters
-layers_0=999
-disk_in_0=9
-disk_out_0=88
-v_turb_0=397715
-T_rot0_fl_0=3900
-T_rot_alpha_fl_0=0.38
+layers_0=417
+disk_in_0=16
+disk_out_0=104
+v_turb_0=332983
+T_rot0_fl_0=2728
+T_rot_alpha_fl_0=0.617
 rel_lum_0=16
 
 #range parameters
