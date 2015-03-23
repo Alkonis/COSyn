@@ -45,6 +45,7 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
   double dist = 1.496e13*disk_in;
   double T_rot0_cl=T_rot0_fl;
   double T_rot_alpha_cl=T_rot_alpha_fl;
+  cerr << "sample: " << layers << " " << rel_lum << endl;
   CollData* d = new CollData(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
 
 //=====================
@@ -785,7 +786,7 @@ int FitData::runTrials()
     //
     *///////////////////////////////////////////////////////////////////////
     
-    int sendMsg[2];
+    double sendMsg[9];
 
     finchivec=zeros<vec>(numGuesses);
 
@@ -801,13 +802,35 @@ int FitData::runTrials()
     //not really a functionality that's useful, but theoretically, it should exist
 
     sendMsg[1]=quit;
+cerr << "NUMTASKS: " << numtasks << endl;
     for (int i=1; i<numtasks; i++)
     {
       sendMsg[0]=I;
-      MPI_Send(&sendMsg,2,MPI_INT,i,0,MPI_COMM_WORLD);
-      I++;
-    }
+      if (I==0)
+      {
+        sendMsg[2]=layers_0;
+        sendMsg[3]=disk_in_0;
+        sendMsg[4]=disk_out_0;
+        sendMsg[5]=v_turb_0;
+        sendMsg[6]=T_rot0_fl_0;
+        sendMsg[7]=T_rot_alpha_fl_0;
+        sendMsg[8]=rel_lum_0;
+      }
 
+      else 
+      {
+        sendMsg[2]=randData[0][I];
+        sendMsg[3]=randData[1][I];
+        sendMsg[4]=randData[2][I];
+        sendMsg[5]=randData[3][I];
+        sendMsg[6]=randData[4][I];
+        sendMsg[7]=randData[5][I];
+        sendMsg[8]=randData[6][I];
+      }
+ cerr << "S" << endl;
+      MPI_Send(&sendMsg,9,MPI_DOUBLE,i,0,MPI_COMM_WORLD);
+      I++;
+      }
     /*///////////////////////////////////////////////////////////////////
     //
     //                      ASYNCHRONOUS LOOP
@@ -832,7 +855,7 @@ int FitData::runTrials()
       //SEND:  int[2]--[I,quit]
 
       MPI_Recv(&recvMsg,2,MPI_DOUBLE,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
-
+cerr << "R" << endl;
       srcRank=Stat.MPI_TAG;
       index = static_cast<int>(recvMsg[0]);
       finchivec.at(index)=recvMsg[1];
@@ -853,14 +876,23 @@ int FitData::runTrials()
       //Send signal to terminate if maximum guesses reached
       if (I >=numGuesses) quit=1;
 
-      sendMsg[0]=I;
-      sendMsg[1]=quit;
-      MPI_Send(&sendMsg,2,MPI_INT,srcRank,0,MPI_COMM_WORLD);
+      sendMsg[0]=static_cast<double>(I);
+      sendMsg[1]=static_cast<double>(quit);
+      sendMsg[2]=randData[0][index];
+      sendMsg[3]=randData[1][index];
+      sendMsg[4]=randData[2][index];
+      sendMsg[5]=randData[3][index];
+      sendMsg[6]=randData[4][index];
+      sendMsg[7]=randData[5][index];
+      sendMsg[8]=randData[6][index];
+      for (int z=0; z<9;z++) cerr << sendMsg[z] << " ";
+ cerr << endl;
+      MPI_Send(&sendMsg,9,MPI_DOUBLE,srcRank,0,MPI_COMM_WORLD);
       I++;
     }
     fout.close();
   }
-  
+ 
 
   // END MASTER PROCESS WRAPPER
 
@@ -885,13 +917,13 @@ int FitData::runTrials()
     //double T_rot_alpha_cl=T_rot_alpha_fl;
     double rel_lum;
 
-    int recvMsg[2];
+    double recvMsg[9];
     
     while(42)
     {
-      MPI_Recv(&recvMsg,2,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
-      locali=recvMsg[0];
-      quit = recvMsg[1];
+      MPI_Recv(&recvMsg,9,MPI_DOUBLE,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
+      locali=static_cast<int>(recvMsg[0]);
+      quit = static_cast<int>(recvMsg[1]);
       if (quit) break;
 
       /////////////////////////////////////////////////////////////
@@ -905,7 +937,15 @@ int FitData::runTrials()
       //
       //////////////////////////////////////////////////////////////
 
-      if (locali==0)
+      layers=recvMsg[2];
+      disk_in=recvMsg[3];
+      disk_out=recvMsg[4];
+      v_turb=recvMsg[5];
+      T_rot0_fl=recvMsg[6];
+      T_rot_alpha_fl=recvMsg[7];
+      rel_lum=recvMsg[8];
+
+     /* if (locali==0)
       { 
 	layers=layers_0;
 	disk_in=disk_in_0;
@@ -920,14 +960,14 @@ int FitData::runTrials()
       }
       else 
       {
-	layers=randData[0][locali];
-	disk_in=randData[1][locali];
-	disk_out=randData[2][locali];
-	v_turb=randData[3][locali];
-	T_rot0_fl=randData[4][locali];
-	T_rot_alpha_fl=randData[5][locali];
-	rel_lum=randData[6][locali];
-      }
+	layers=recvMsg[2];
+	disk_in=recvMsg[3];
+	disk_out=recvMsg[4];
+	v_turb=recvMsg[5];
+	T_rot0_fl=recvMsg[6];
+	T_rot_alpha_fl=recvMsg[7];
+	rel_lum=recvMsg[8];
+      }*/
 
       //Run a trial with this data; MPI_Send will be called within this trial to return data to the master proces
 
@@ -940,7 +980,7 @@ int FitData::runTrials()
   //END BIG LOOP
 
 
-
+cerr << "ENDED" << endl;
 
   //Finally, on termination, search for best-fit and mark this at the end of the file.
   if (rank==0)
@@ -1099,14 +1139,14 @@ int FitData::runTrialsSlave() {
     if (rank==0) 
     {
       finchivec.at(local_i)=local_chisq;
-      cerr << "****    TRIAL " << locali << " COMPLETE    ****" << endl;
+      cerr << "****    TRIAL " << locali+1 << " COMPLETE    ****" << endl;
       for (int j=1; j<sent; j++)
       {
         MPI_Recv(&receivedMessage,2, MPI_DOUBLE,j,2,MPI_COMM_WORLD, &Stat);
         finchivec.at(receivedMessage[0])=receivedMessage[1];
 
 
-        cerr << "****    TRIAL " << receivedMessage[0] << " COMPLETE    ****" << endl;
+        cerr << "****    TRIAL " << receivedMessage[0] + 1 << " COMPLETE    ****" << endl;
       }
     }
  
@@ -1156,6 +1196,7 @@ int FitData::runTrialsSlave() {
     {
       fout << i << " "  << finchivec.at(i) << " " << randData[0][i] << " "  << randData[1][i] << " "  << randData[2][i] << " " << randData[3][i] << " " << randData[4][i] << " " << randData[5][i] << " " << randData [6][i] << endl;
     }
+
     fout.close();
 
     uword mindex;
