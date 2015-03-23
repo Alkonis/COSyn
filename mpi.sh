@@ -1,1 +1,1 @@
-mpiexec -f machinefile -n 4 /home/farmer/src/COSyn/COfit HD100546
+mpiexec -f machinefile -n 6 /home/farmer/src/COSyn/COfit HD100546

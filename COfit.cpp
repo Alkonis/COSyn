@@ -45,7 +45,7 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
   double dist = 1.496e13*disk_in;
   double T_rot0_cl=T_rot0_fl;
   double T_rot_alpha_cl=T_rot_alpha_fl;
-  //cerr << "sample: " << layers << " " <<  disk_in << " " << disk_out << " " << v_turb << " " << T_rot0_fl << " " << T_rot_alpha_fl << " " << rel_lum << endl;
+  
   CollData* d = new CollData(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum);
 
 //=====================
@@ -78,7 +78,7 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
    vec b_tot = sqrt(2*1.38e-16*6.02e23*d->T_rot_fl/28 + pow(v_turb,2));
    fvec b_tot2 = sqrt(2*1.38e-16*6.02e23*conv_to<fvec>::from(d->T_rot_fl)/28 + pow(v_turb,2));
 
-    //==============CALCULATE DFDT BY INTEGRAATION USING TRAPEZOID RULE================
+    //==============CALCULATE DFDT BY INTEGRATION USING TRAPEZOID RULE================
     for (int i=0; i<2000; i++) 
     {
       d->sum = 0.5 * ( (1 - exp(-d->tau(i)*exp(-pow(d->a,2)))) + (1 - exp(-d->tau(i)*exp(-pow(d->b,2)))) );
@@ -251,6 +251,7 @@ skip_fluorcalc:
 //=========================================================================
 // Angle of Incidence Correction (tweak for each star--use input file!)
 //========================================================================
+
   d->m_disk=1.5*(5.59647e-10)*sqrt(d->T_rot_fl / Mstar)%pow(d->rdisk,0.5);
   d->m_uv = (5.59647e-10)*sqrt(d->T_rot_fl/Mstar)%sqrt(d->rdisk);
 
@@ -541,11 +542,11 @@ skip_fluorcalc:
 	area.at(i)=dphase.at(i)*(d->rdisk.at(j)+dr.at(j)/2)*dr.at(j);
 
         vel_spec=vel_spec+interpol(d->stick_spec_tot.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
-        d->grid.at(grid_ptr,0)=d->rdisk.at(j);
+/*        d->grid.at(grid_ptr,0)=d->rdisk.at(j);
         d->grid.at(grid_ptr,1)=vseg.at(i);
         d->grid.at(grid_ptr,2)=phase.at(i);
         d->grid.at(grid_ptr,3)=area.at(i)*2.25e26;
-        for (int ii=4; ii<26; ii++) { d->grid.at(grid_ptr,ii)=d->iten_lines(ii-4,0)(j);}
+*/        for (int ii=4; ii<26; ii++) { d->grid.at(grid_ptr,ii)=d->iten_lines(ii-4,0)(j);}
         grid_ptr++;
       } 
     }
@@ -555,11 +556,11 @@ skip_fluorcalc:
       {
         area.at(i)=dphase.at(i)*(d->rdisk.at(j)+dr.at(j)/2)*dr.at(j);
         vel_spec=vel_spec+interpol(d->stick_spec_tot.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
-        d->grid.at(grid_ptr,0)=d->rdisk.at(j);
+/*        d->grid.at(grid_ptr,0)=d->rdisk.at(j);
         d->grid.at(grid_ptr,1)=vseg.at(i);
         d->grid.at(grid_ptr,2)=phase.at(i);
         d->grid.at(grid_ptr,3)=area.at(i)*2.25e26;
-        for (int ii=4; ii<26; ii++) d->grid.at(grid_ptr,ii)=d->iten_lines(ii-4,0)(j);
+*/        for (int ii=4; ii<26; ii++) d->grid.at(grid_ptr,ii)=d->iten_lines(ii-4,0)(j);
         grid_ptr++;
       } 
     }
@@ -567,7 +568,7 @@ skip_fluorcalc:
     d->stick_spec_tot.col(j)=vel_spec;
 
   }
-
+/*
   ivec index_grid=where(d->grid.col(0), [&] (double datum) {return ((datum <= d->rdisk.at(0)) && (datum > 0));});
 
   vec  grid_tmp=zeros<vec>(index_grid.n_elem);
@@ -668,7 +669,7 @@ skip_fluorcalc:
     }
   }
 
-
+*/
   for (int j=0; j<n_rings; j++)
   {
     d->stick_spec_tot.col(j)=d->stick_spec_tot.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(d->stick_spec_tot.col(j));
@@ -714,7 +715,7 @@ skip_fluorcalc:
   MPI_Comm_size(MPI_COMM_WORLD,&numtasks);
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
   double sendMessage[2];
-  cerr <<"c " <<  chisq << endl;
+  
   sendMessage[0]=static_cast<double>(locali);
   sendMessage[1]=chisq;
 
@@ -786,6 +787,16 @@ int FitData::runTrials()
     string line;
     while (getline(fin,line)) inp.push_back(line);
 
+
+    //=========================================
+    //
+    //               LOGGING
+    //
+    //  Set up output file; from here, we will
+    //  write to this file out output matrices.
+    //
+    //========================================
+
     ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)));
     fout << "======================================================================" << endl;
     fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
@@ -802,16 +813,29 @@ int FitData::runTrials()
     fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
 
     /*//////////////////////////////////////////////////////////////////////
-    //  Two step process:
-    //  
-    //  (1) First, send out trial info to each processor SYNCHRONOUSLY;
-    //      check to see if number of processes is greater than the number
-    //      of trials, and terminate once enough communications are made.
     //
-    //  (2) Second, begin asynchronous transmission.  Begin looking for
-    //     incoming messages, and respond with another set of data to
-    //      model.  Repeat this until the maximum number of trials
-    //      have been run.
+    //                            MASTER SCHEDULER
+    //
+    //    The first processor functions as a scheduler, sending out data
+    //    for the 'slave' processors to model, and receiving the results of
+    //    each fit.
+    //
+    //======================================================================
+    //
+    //    TWO STEP PROCESS:
+    //  
+    //    (1) SYNCHRONOUS SEND:
+    //
+    //       First, send out trial info to each processor SYNCHRONOUSLY;
+    //       check to see if number of processes is greater than the number
+    //       of trials, and terminate once enough communications are made.
+    //
+    //    (2) ASYNCHRONOUS LOOP:
+    //
+    //       Second, begin asynchronous transmission.  Begin looking for
+    //       incoming messages, and respond with another set of data to
+    //       model.  Repeat this until the maximum number of trials
+    //       have been run.
     //
     *///////////////////////////////////////////////////////////////////////
     
@@ -833,9 +857,13 @@ int FitData::runTrials()
 
     sendMsg[1]=quit;
 
-    //========================================
+    //=============================================================
+    //
     //          SYNCHRONOUS SEND
-    //========================================
+    //
+    //    Send out the first modeling task to each slave processor.
+    //
+    //=============================================================
 
     for (int i=1; i<numtasks; i++)
     {
@@ -865,7 +893,6 @@ int FitData::runTrials()
         sendMsg[8]=randData[6][I];
       }
 
-      cerr << "S" << endl;
 
       MPI_Send(&sendMsg,9,MPI_DOUBLE,i,0,MPI_COMM_WORLD);
 
@@ -893,18 +920,15 @@ int FitData::runTrials()
 
     while (recvCount<numGuesses)
     {
-      //RECEIVE:  double[2]--[static_cast<int>(index),chisq]
-      //SEND:  int[2]--[I,quit]
 
       MPI_Recv(&recvMsg,2,MPI_DOUBLE,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
-      cerr << "R" << endl;
 
       srcRank=Stat.MPI_TAG;
       index = static_cast<int>(recvMsg[0]);
       finchivec.at(index)=recvMsg[1];
       
 
-      cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    ****" <<endl;
+      cerr << "****    TRIAL " << recvMsg[0]+1 << " COMPLETE    ****" <<endl;
       recvCount++;
       
       //Printing/logging
@@ -936,8 +960,6 @@ int FitData::runTrials()
         for (int i=2; i<9; i++) sendMsg[i]=0;
       }
 
-      for (int z=0; z<9;z++) cerr << sendMsg[z] << " ";
- cerr << endl;
       MPI_Send(&sendMsg,9,MPI_DOUBLE,srcRank,0,MPI_COMM_WORLD);
       I++;
     }
@@ -1024,7 +1046,6 @@ int FitData::runTrials()
 
       //Run a trial with this data; MPI_Send will be called within this trial to return data to the master proces
 
-      cout << "runTrial " << layers << " " << disk_in << " " << disk_out << " " << v_turb << " " << T_rot0_fl << " " << T_rot_alpha_fl << " " << rel_lum << " " << locali << endl;
       this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
         //this->runTrial(layers_0,disk_in_0,disk_out_0,v_turb_0,T_rot0_fl_0,T_rot_alpha_fl_0,rel_lum_0,locali);
     }
@@ -1033,7 +1054,6 @@ int FitData::runTrials()
   //END BIG LOOP
 
 
-cerr << "ENDED" << endl;
 
   //Finally, on termination, search for best-fit and mark this at the end of the file.
   if (rank==0)
