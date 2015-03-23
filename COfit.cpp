@@ -75,9 +75,6 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
     vec b_tot = sqrt(2*1.38e-16*6.02e23*d->T_rot_fl/28 + pow(v_turb,2));
    fvec b_tot2 = sqrt(2*1.38e-16*6.02e23*conv_to<fvec>::from(d->T_rot_fl)/28 + pow(v_turb,2));
 
-if (rel_lum <= 1e-3) {cerr << "REL LUM TRIGGERED " << endl; cin.get();}
-
-
     //==============CALCULATE DFDT BY INTEGRAATION USING TRAPEZOID RULE================
     for (int i=0; i<2000; i++) 
     {
@@ -594,7 +591,7 @@ skip_fluorcalc:
 //======================================
 //   CENTROID LOOP
 //=====================================
-  for (int j=0; j<maxloop; j++)
+/*  for (int j=0; j<maxloop; j++)
   {
    // d->indexn(j,0).fill(0);
     d->index1=where(d->grid.col(1), [&] (double datum) {return ((datum <= (max(d->grid.col(1)))-j) && ( datum > ( max(d->grid.col(1))-(j+1)) ) );});
@@ -658,6 +655,7 @@ skip_fluorcalc:
 
     }
   }
+*/
   for (int j=0; j<n_rings; j++)
   {
     d->stick_spec_tot.col(j)=d->stick_spec_tot.col(j)*arma::sum(flux_tot_slit.col(j))/arma::sum(d->stick_spec_tot.col(j));
@@ -671,17 +669,17 @@ skip_fluorcalc:
   inst_prof=inst_prof/arma::sum(inst_prof);
 
   cx_vec conv_spec=ifft(fft(final_spec)%fft(inst_prof))/2;
-  cx_vec cent_conv=ifft(fft(d->centroid)%fft(inst_prof));
+//  cx_vec cent_conv=ifft(fft(d->centroid)%fft(inst_prof));
 
-  cent_conv=cent_conv*as_scalar(arma::sum(abs(d->centroid)))/as_scalar(arma::sum(abs(cent_conv)));
+//  cent_conv=cent_conv*as_scalar(arma::sum(abs(d->centroid)))/as_scalar(arma::sum(abs(cent_conv)));
   conv_spec=conv_spec*as_scalar(arma::accu(flux_tot_slit))/as_scalar(arma::sum(conv_spec));
    
   if (round(locali) == 0)
   {
     ofstream fout;
-    fout.open(folderpath+"/cent_conv_0");
-    fout << real(cent_conv);
-    fout.close();
+//    fout.open(folderpath+"/cent_conv_0");
+//    fout << real(cent_conv);
+//    fout.close();
     fout.open(folderpath+"/conv_spec_0");
     fout << real(conv_spec);
     fout.close();
@@ -798,6 +796,10 @@ int FitData::runTrials()
       cerr << "WARNING:  number of proceses > number of guesses.  Downsizing." << endl;
       quit=1;
     }
+
+    //downsizing might not be working currently--haven't had a reason to test it
+    //not really a functionality that's useful, but theoretically, it should exist
+
     sendMsg[1]=quit;
     for (int i=1; i<numtasks; i++)
     {
@@ -805,8 +807,6 @@ int FitData::runTrials()
       MPI_Send(&sendMsg,2,MPI_INT,i,0,MPI_COMM_WORLD);
       I++;
     }
-
-    
 
     /*///////////////////////////////////////////////////////////////////
     //
@@ -824,11 +824,13 @@ int FitData::runTrials()
     int index;
     int srcRank;
     int recvCount=0;
-
     double recvMsg[2];
 
     while (recvCount<numGuesses)
     {
+      //RECEIVE:  double[2]--[static_cast<int>(index),chisq]
+      //SEND:  int[2]--[I,quit]
+
       MPI_Recv(&recvMsg,2,MPI_DOUBLE,MPI_ANY_SOURCE,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
 
       srcRank=Stat.MPI_TAG;
@@ -838,7 +840,8 @@ int FitData::runTrials()
 
       cerr << "****    TRIAL " << recvMsg[0] << " COMPLETE    ****" <<endl;
       recvCount++;
-
+      
+      //Printing/logging
       if (index==0) 
       {
        fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
@@ -847,7 +850,9 @@ int FitData::runTrials()
         fout << index << " "  << finchivec.at(index) << " " << randData[0][index] << " "  << randData[1][index] << " "  << randData[2][index] << " " << randData[3][index] << " " << randData[4][index] << " " << randData[5][index] << " " << randData [6][index] << endl;
       }
 
+      //Send signal to terminate if maximum guesses reached
       if (I >=numGuesses) quit=1;
+
       sendMsg[0]=I;
       sendMsg[1]=quit;
       MPI_Send(&sendMsg,2,MPI_INT,srcRank,0,MPI_COMM_WORLD);
@@ -886,7 +891,7 @@ int FitData::runTrials()
     {
       MPI_Recv(&recvMsg,2,MPI_INT,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
       locali=recvMsg[0];
-      quit = recvMsg[1]; 
+      quit = recvMsg[1];
       if (quit) break;
 
       /////////////////////////////////////////////////////////////
@@ -899,6 +904,7 @@ int FitData::runTrials()
       //  the input file.
       //
       //////////////////////////////////////////////////////////////
+
       if (locali==0)
       { 
 	layers=layers_0;

@@ -4,10 +4,10 @@
 
 #number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and
 #the rest use random data from within the range parameters below
-numGuesses=5
+numGuesses=8
 
 #file number--change with each run!
-fileCount=27
+fileCount=91
 
 #star parameters
 inc=0.6981317007977318
@@ -17,13 +17,13 @@ Lc=8.3837025e28
 inst_res=6
 
 #best chi-by-eye parameters
-layers_0=495
-disk_in_0=18
-disk_out_0=108
-v_turb_0=421914
-T_rot0_fl_0=4076
-T_rot_alpha_fl_0=0.417
-rel_lum_0=23
+layers_0=999
+disk_in_0=9
+disk_out_0=88
+v_turb_0=397715
+T_rot0_fl_0=3900
+T_rot_alpha_fl_0=0.38
+rel_lum_0=16
 
 #range parameters
 layers_min=100
