@@ -1,0 +1,81 @@
+======================================================================
+======================= COSYN GENERATED OUTPUT =======================
+======================================================================
+
+COSyn HD100546: 8 trials
+
+Input echo: 
+
+       #==========COSYN INPUT FILE===========
+       #      Precede comments with '#'!
+       #=====================================
+       
+       #number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and
+       #the rest use random data from within the range parameters below
+       numGuesses=8
+       
+       #file number--change with each run!
+       fileCount=1
+       
+       
+       #star parameters
+       inc=0.6981317007977318
+       stardist=3.1781680e20
+       Mstar=2.4
+       Lc=8.3837025e28
+       inst_res=6
+       
+       #best chi-by-eye parameters
+       layers_0=392
+       disk_in_0=14
+       disk_out_0=55
+       v_turb_0=273781
+       T_rot0_fl_0=3617
+       T_rot_alpha_fl_0=0.3570
+       rel_lum_0=23
+       
+       #range parameters
+       layers_min=100
+       layers_max=1000
+       
+       disk_in_min=6
+       disk_in_max=21
+       
+       disk_out_min=50
+       disk_out_max=125
+       
+       v_turb_min=1e5
+       v_turb_max=6e5
+       
+       T_rot0_fl_min=1000
+       T_rot0_fl_max=4500
+       
+       T_rot_alpha_fl_min=0.2
+       T_rot_alpha_fl_max=.7
+       
+       rel_lum_min=1
+       rel_lum_max=100
+       
+       #data noise
+       segment1=8.10388e-15
+       segment2=1.05837e-14
+       segment3=1.17277e-14
+       segment4=7.94574e-15
+       
+       
+       #print debug messages
+       doDebug=0
+
+
+======================================================================
+i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum
+0 3.99141 392 14 55 273781 3617 0.357 23
+4 67.6179 393 11 61 274067 1393 0.484 47
+2 934.588 577 8 72 322862 4069 0.621 75
+3 31.8652 215 13 111 265123 1667 0.619 29
+1 49.9387 386 7 101 121530 1558 0.573 40
+6 17.2168 686 14 92 113929 3011 0.398 63
+7 3118.41 292 7 104 579802 2542 0.524 73
+5 258.039 935 10 118 303135 2456 0.237 36
+
+Minimum:  i=0, chi^2=3.99141
