@@ -24,6 +24,14 @@ double* FitData::FillArray(int min, int max)
   return array;
 }
 
+double* FitData::BlankArray(double val)
+{
+  double* array;
+  array = new double[numGuesses];
+  for (int i=0; i<numGuesses; i++) array[i]=val;
+  return array;
+}
+
 int FitData::dbm(string message)
 {
   int rank;
@@ -703,7 +711,18 @@ skip_fluorcalc:
   
   ivec indexdiff=where(r1big, [] (double datum) {return (datum == -9999);});
   int indexsiz=indexdiff.n_elem;
-  d->diff = (r1big - interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big));
+  vec spec = interpol(real(conv_spec),freq-freq*5/2.9979e5,f1big);
+
+  d->diff = (r1big - spec);
+
+  if (round(locali) == 0)
+  {
+    ofstream fout;
+    fout.open(folderpath+"/spec");
+    fout << spec;
+    fout.close();
+  }
+
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
   double chisq = ( (arma::sum(pow(abs(d->diff.subvec(0,1023)),2)/pow(segment1,2)) + arma::sum(pow(abs(d->diff.subvec(1024,2047)),2)/pow(segment2,2)) + arma::sum(pow(abs(d->diff.subvec(2048,3071)),2)/pow(segment3,2)) + arma::sum(pow(abs(d->diff.subvec(3072,4095)),2)/pow(segment4,2) ))/4)/(4096-indexsiz);
 
@@ -741,6 +760,9 @@ skip_fluorcalc:
 int FitData::runTrials() 
 {
   
+   
+  string abspath;
+
   int rank;
   int numtasks;
   int rc;
@@ -766,19 +788,21 @@ int FitData::runTrials()
     double** randData = new double*[7];
 
     
-    randData[0]=FillArray(layers_min, layers_max);
-    randData[1]=FillArray(disk_in_min, disk_in_max);
-    randData[2]=FillArray(disk_out_min,disk_out_max);
-    randData[3]=FillArray(v_turb_min, v_turb_max);     
-    randData[4]=FillArray(T_rot0_fl_min,T_rot0_fl_max);
-    randData[5]=FillArray(T_rot_alpha_fl_min,T_rot_alpha_fl_max);
-    randData[6]=FillArray(rel_lum_min, rel_lum_max);
+    if (model_layers)         randData[0]=FillArray(layers_min, layers_max);                else randData[0]=BlankArray(layers_0);
+    if (model_disk_in)        randData[1]=FillArray(disk_in_min, disk_in_max);              else randData[1]=BlankArray(disk_in_0);
+    if (model_disk_out)       randData[2]=FillArray(disk_out_min,disk_out_max);             else randData[2]=BlankArray(disk_out_0);
+    if (model_v_turb)         randData[3]=FillArray(v_turb_min, v_turb_max);                else randData[3]=BlankArray(v_turb_0);     
+    if (model_T_rot0_fl)      randData[4]=FillArray(T_rot0_fl_min,T_rot0_fl_max);           else randData[4]=BlankArray(T_rot0_fl_0);
+    if (model_T_rot_alpha_fl) randData[5]=FillArray(T_rot_alpha_fl_min,T_rot_alpha_fl_max); else randData[5]=BlankArray(T_rot_alpha_fl_0);
+    if (model_rel_lum)        randData[6]=FillArray(rel_lum_min, rel_lum_max);              else randData[6]=BlankArray(rel_lum_0);
     
-    for (int i=0; i<numGuesses; i++) 
-    {
-      randData[5][i]=randData[5][i]/1000;
+    if (model_T_rot_alpha_fl)
+    { 
+      for (int i=0; i<numGuesses; i++) 
+      {
+        randData[5][i]=randData[5][i]/1000;
+      }
     }
-
     int I=0;
     int quit=0;
 
@@ -796,8 +820,30 @@ int FitData::runTrials()
     //  write to this file out output matrices.
     //
     //========================================
+ 
+    int pathindex=static_cast<int>(fileCount);
 
-    ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)));
+    while(1)
+    {
+      abspath=folderpath+"/output"+to_string(pathindex);
+
+      ifstream ifile(abspath);
+
+      if (ifile)
+      {
+        cerr << abspath << " already exists!  Incrementing index..." << endl;
+        pathindex++;
+      }
+      else
+      {
+        cerr << "Writing output to " << abspath << endl;
+        break;
+      }
+
+    }
+
+    ofstream fout(abspath);
+
     fout << "======================================================================" << endl;
     fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
     fout << "======================================================================" << endl;
@@ -1061,7 +1107,7 @@ int FitData::runTrials()
     uword mindex;
     double min;
     min = finchivec.min(mindex);
-    ofstream fout(folderpath+"/output"+to_string(static_cast<int>(fileCount)), fstream::app|fstream::out);
+    ofstream fout(abspath, fstream::app|fstream::out);
     fout << endl;
     fout << "Minimum:  i=" << mindex << ", chi^2=" << min << endl;
     fout.close();

@@ -39,7 +39,7 @@ class FitData{
 
   //random data generation function
   double* FillArray(int modulus, int offset);
-
+  double* BlankArray(double val);
 
 
   //Used by rank 0 MPI
@@ -105,9 +105,20 @@ class FitData{
   static double layers_max;   
 
   static double fileCount;
+
+  static double orders;
+  static double orderpix;
+  
+  static double model_layers;
+  static double model_disk_in;
+  static double model_disk_out;
+  static double model_v_turb;
+  static double model_T_rot0_fl;
+  static double model_T_rot_alpha_fl;
+  static double model_rel_lum;
   //setup variables for reading input
 
-  static constexpr unsigned int inputs = 32;
+  static constexpr unsigned int inputs = 41;
 
   static constexpr double* inputVars[inputs] = 
   {
@@ -142,7 +153,16 @@ class FitData{
     &segment2,
     &segment3,
     &segment4,
-    &fileCount
+    &fileCount,
+    &orders,
+    &orderpix,
+    &model_layers,
+    &model_disk_in,
+    &model_disk_out,
+    &model_v_turb,
+    &model_T_rot0_fl,
+    &model_T_rot_alpha_fl,
+    &model_rel_lum 
   };
 
   string inputStrings[inputs] =
@@ -178,7 +198,16 @@ class FitData{
     "segment2",
     "segment3",
     "segment4",
-    "fileCount"
+    "fileCount",
+    "orders",
+    "orderpix",
+    "model_layers",
+    "model_disk_in",
+    "model_disk_out",
+    "model_v_turb",
+    "model_T_rot0_fl",
+    "model_T_rot_alpha_fl",
+    "model_rel_lum"
   };  
 
 
@@ -337,6 +366,19 @@ double FitData::segment3;
 double FitData::segment4;
 
 double FitData::fileCount;
+
+static double fileCount;
+
+double FitData::orders;
+double FitData::orderpix;
+
+double FitData::model_layers         = 1;
+double FitData::model_disk_in        = 1;
+double FitData::model_disk_out       = 1;
+double FitData::model_v_turb         = 1;
+double FitData::model_T_rot0_fl      = 1;
+double FitData::model_T_rot_alpha_fl = 1;
+double FitData::model_rel_lum        = 1;
 
 //vibrational constants
 constexpr double FitData::vib_einA[];
