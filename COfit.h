@@ -51,16 +51,6 @@ class FitData{
   //final vector containing chi for each i in numguesses 
   vec finchivec;
 
-  static constexpr double f_i = 1995.;
-  static constexpr double f_f = 2179.;
-  static constexpr double H_den0 =2.5e10;
-  static constexpr double H_den_alpha=.10;
-  static constexpr double X12CO_13CO_fl = 65./30;
-  static constexpr double X12CO_C18O_fl = 550./16.25;
-  static constexpr double X12CO_13CO_cl = 65.;
-  static constexpr double X12CO_C18O_cl = 560.;
-
-
   //=================================
   //====  input file parameters  ====
   //=================================
@@ -69,13 +59,15 @@ class FitData{
   static double Mstar;
   static double stardist;
   static double inst_res;
+  static double f_i;
+  static double f_f;
   static unsigned int numGuesses;
   static double Lc;  //pow(5.13,-23*2.9979247e10*4*3.1415926535897*pow((103*3.08),2)*(.05/1.16)); // continuum luminosity
-  static double inc;  
-  static double segment1;
-  static double segment2;
-  static double segment3;
-  static double segment4;
+
+  static double order1;
+  static double order2;
+  static double order3;
+  static double order4;
 
   static double doDebug;
 
@@ -87,6 +79,13 @@ class FitData{
   static double T_rot_alpha_fl_0;
   static double rel_lum_0;
   static double layers_0;
+  static double inclination_0;
+  static double H_den0_0;
+  static double H_den_alpha_0;
+  static double X12CO_13CO_fl_0;
+  static double X12CO_C18O_fl_0;
+  static double X12CO_13CO_cl_0;
+  static double X12CO_C18O_cl_0;        
 
   //range parameters
   static double disk_in_min;
@@ -102,7 +101,23 @@ class FitData{
   static double rel_lum_min;
   static double rel_lum_max;
   static double layers_min;
-  static double layers_max;   
+  static double layers_max;
+   
+  static double inclination_min;
+  static double inclination_max;
+  static double H_den0_min;
+  static double H_den0_max;
+  static double H_den_alpha_min;
+  static double H_den_alpha_max;
+
+  static double X12CO_13CO_fl_min;
+  static double X12CO_13CO_fl_max;
+  static double X12CO_C18O_fl_min;
+  static double X12CO_C18O_fl_max;
+  static double X12CO_13CO_cl_min;
+  static double X12CO_13CO_cl_max;
+  static double X12CO_C18O_cl_min;
+  static double X12CO_C18O_cl_max;
 
   static double fileCount;
 
@@ -116,13 +131,23 @@ class FitData{
   static double model_T_rot0_fl;
   static double model_T_rot_alpha_fl;
   static double model_rel_lum;
+  static double model_inclination;
+  static double model_H_den0;
+  static double model_H_den_alpha;
+  static double model_X12CO_13CO_fl;
+  static double model_X12CO_C18O_fl;
+  static double model_X12CO_13CO_cl;
+  static double model_X12CO_C18O_cl;
+
+  static double doModel[14];
+
   //setup variables for reading input
 
-  static constexpr unsigned int inputs = 41;
+  static constexpr unsigned int inputs = 71;
 
   static constexpr double* inputVars[inputs] = 
   {
-    &inc,
+    &inclination_0,
     &Mstar,
     &stardist,
     &Lc,
@@ -135,6 +160,14 @@ class FitData{
     &T_rot_alpha_fl_0,
     &rel_lum_0,
     &layers_0,
+    &inclination_0,
+    &H_den0_0,
+    &H_den_alpha_0,
+    &X12CO_13CO_fl_0,
+    &X12CO_C18O_fl_0,
+    &X12CO_13CO_cl_0,
+    &X12CO_C18O_cl_0,
+
     &disk_in_min,   
     &disk_in_max,
     &disk_out_min,
@@ -149,25 +182,51 @@ class FitData{
     &rel_lum_max,
     &layers_min,
     &layers_max,
-    &segment1,
-    &segment2,
-    &segment3,
-    &segment4,
+
+    &inclination_min,
+    &inclination_max,
+    &H_den0_min,
+    &H_den0_max,
+    &H_den_alpha_min,
+    &H_den_alpha_max,
+			 
+    &X12CO_13CO_fl_min,
+    &X12CO_13CO_fl_max,
+    &X12CO_C18O_fl_min,
+    &X12CO_C18O_fl_max,
+    &X12CO_13CO_cl_min,
+    &X12CO_13CO_cl_max,
+    &X12CO_C18O_cl_min,
+    &X12CO_C18O_cl_max,
+
+    &order1,
+    &order2,
+    &order3,
+    &order4,
     &fileCount,
     &orders,
     &orderpix,
+    &f_f,
+    &f_i,
     &model_layers,
     &model_disk_in,
     &model_disk_out,
     &model_v_turb,
     &model_T_rot0_fl,
     &model_T_rot_alpha_fl,
-    &model_rel_lum 
+    &model_rel_lum,
+    &model_inclination,
+    &model_H_den0,
+    &model_H_den_alpha,
+    &model_X12CO_13CO_fl,
+    &model_X12CO_C18O_fl,
+    &model_X12CO_13CO_cl,
+    &model_X12CO_C18O_cl
   };
 
   string inputStrings[inputs] =
   {
-    "inc",
+    "inclination",
     "Mstar",
     "stardist",
     "Lc",
@@ -180,6 +239,16 @@ class FitData{
     "T_rot_alpha_fl_0",
     "rel_lum_0",
     "layers_0",
+    
+    "inclination_0",
+    "H_den0_0",
+    "H_den_alpha_0",
+
+    "X12CO_13CO_fl_0",
+    "X12CO_C18O_fl_0",
+    "X12CO_13CO_cl_0",
+    "X12CO_C18O_cl_0",
+
     "disk_in_min",
     "disk_in_max",
     "disk_out_min",
@@ -194,20 +263,48 @@ class FitData{
     "rel_lum_max",
     "layers_min",
     "layers_max",
-    "segment1",
-    "segment2",
-    "segment3",
-    "segment4",
+
+    "inclination_min",
+    "inclination_max",
+    "H_den0_min",
+    "H_den0_max",
+    "H_den_alpha_min",
+    "H_den_alpha_max",
+ 
+    "X12CO_13CO_fl_min",
+    "X12CO_13CO_fl_max",
+    "X12CO_C18O_fl_min",
+    "X12CO_C18O_fl_max",
+    "X12CO_13CO_cl_min",
+    "X12CO_13CO_cl_max",
+    "X12CO_C18O_cl_min",
+    "X12CO_C18O_cl_max",
+
+    "order1",
+    "order2",
+    "order3",
+    "order4",
     "fileCount",
     "orders",
     "orderpix",
+    "f_f",
+    "f_i",
+
     "model_layers",
     "model_disk_in",
     "model_disk_out",
     "model_v_turb",
     "model_T_rot0_fl",
     "model_T_rot_alpha_fl",
-    "model_rel_lum"
+    "model_rel_lum",
+    "model_inclination",
+    "model_H_den0",
+    "model_H_den_alpha",
+    "model_X12CO_13CO_fl",
+    "model_X12CO_C18O_fl",
+    "model_X12CO_13CO_cl",
+    "model_X12CO_C18O_cl"
+
   };  
 
 
@@ -288,7 +385,7 @@ public:
   static vec r1big;
   static vec f1big;
 
-  static constexpr double freq_size=floor(log10(f_f/f_i)/log10(1+v/(3*c)));
+  static double freq_size;  
 
   static constexpr double vib_einA[10]={34.60,67.68,98.40,126.99,153.59,178.31,201.35,223.10,244.15,265.21};
 
@@ -303,7 +400,9 @@ public:
   double* FillArrays(int modulus, int offset);
   int runCollisions(bool doCols);
  
-  int runTrial(double ilayers, double idisk_in, double idisk_out, double iv_turb, double iT_rot0_fl, double iT_rot_alpha_fl, double irel_lum, int locali); 
+
+int runTrial(double layers, double disk_in, double disk_out, double v_turb, double T_rot0_fl, double T_rot_alpha_fl, double rel_lum, double inclination, double H_den0, double H_den_alpha, double X12CO_13CO_fl, double X12CO_C18O_fl, double X12CO_13CO_cl, double X12CO_C18O_cl,  int locali);
+
   int runTrials();
   int runTrialsSlave();
 
@@ -332,7 +431,6 @@ double FitData::Mstar;
 double FitData::stardist;
 double FitData::inst_res;
 double FitData::Lc; 
-double FitData::inc;
 double FitData::doDebug;
 
 //chi-by-eye parameters
@@ -343,6 +441,14 @@ double FitData::T_rot0_fl_0;
 double FitData::T_rot_alpha_fl_0;
 double FitData::rel_lum_0;
 double FitData::layers_0;
+
+double FitData::inclination_0;
+double FitData::H_den0_0;
+double FitData::H_den_alpha_0;
+double FitData::X12CO_13CO_fl_0;
+double FitData::X12CO_C18O_fl_0;
+double FitData::X12CO_13CO_cl_0;
+double FitData::X12CO_C18O_cl_0;      
 
 //range parameters
 double FitData::disk_in_min;
@@ -360,15 +466,35 @@ double FitData::rel_lum_max;
 double FitData::layers_min;
 double FitData::layers_max;   
 
-double FitData::segment1;
-double FitData::segment2;
-double FitData::segment3;
-double FitData::segment4;
+double FitData::inclination_min;
+double FitData::inclination_max;
+double FitData::H_den0_min;
+double FitData::H_den0_max;
+double FitData::H_den_alpha_min;
+double FitData::H_den_alpha_max;
+                        
+double FitData::X12CO_13CO_fl_min;
+double FitData::X12CO_13CO_fl_max;
+double FitData::X12CO_C18O_fl_min;
+double FitData::X12CO_C18O_fl_max;
+double FitData::X12CO_13CO_cl_min;
+double FitData::X12CO_13CO_cl_max;
+double FitData::X12CO_C18O_cl_min;
+double FitData::X12CO_C18O_cl_max;
+
+
+double FitData::order1;
+double FitData::order2;
+double FitData::order3;
+double FitData::order4;
 
 double FitData::fileCount;
 
 static double fileCount;
 
+double FitData::f_f;
+double FitData::f_i;
+double FitData::freq_size;
 double FitData::orders;
 double FitData::orderpix;
 
@@ -379,6 +505,17 @@ double FitData::model_v_turb         = 1;
 double FitData::model_T_rot0_fl      = 1;
 double FitData::model_T_rot_alpha_fl = 1;
 double FitData::model_rel_lum        = 1;
+
+double FitData::model_inclination=0;
+double FitData::model_H_den0=0;
+double FitData::model_H_den_alpha=0;
+double FitData::model_X12CO_13CO_fl=0;
+double FitData::model_X12CO_C18O_fl=0;
+double FitData::model_X12CO_13CO_cl=0;
+double FitData::model_X12CO_C18O_cl=0;
+
+double FitData::doModel[14];
+
 
 //vibrational constants
 constexpr double FitData::vib_einA[];

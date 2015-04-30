@@ -4,23 +4,27 @@
 
 #number of guesses to make; one of these uses parameters from the best chi-by-eye config below, and
 #the rest use random data from within the range parameters below
-numGuesses=100
+numGuesses=10
 
 #file number--change with each run!
 fileCount=6
 
 
 #star parameters
-inc=0.6981317007977318
 stardist=3.1781680e20
 Mstar=2.4
 Lc=8.3837025e28
+
+
+#spectrometer parameters
 inst_res=6
 orders=4
 orderpix=1024
+f_i=1995
+f_f=2179
 
 #best chi-by-eye parameters
-layers_0=656
+layers_0=636
 disk_in_0=14
 disk_out_0=108
 v_turb_0=282167
@@ -28,27 +32,44 @@ T_rot0_fl_0=4120
 T_rot_alpha_fl_0=0.456
 rel_lum_0=19
 
+inclination_0=0.6981317007977318 
+H_den0_0=2.5e10
+H_den_alpha_0=0.10
+X12CO_13CO_fl_0=2.16666667      
+X12CO_C18O_fl_0=33.8461538 
+X12CO_13CO_cl_0=65.       
+X12CO_C18O_cl_0=560.       
+
 #model flags
 #Entering 1 in these causes COSyn to vary these parameters over the ranges given below.
 #Enter 0, and it will use the _0 value for all trials and ignore the ranges.
-model_layers=0
-model_disk_in=0
-model_disk_out=0
+model_layers=1
+model_disk_in=1
+model_disk_out=1
 model_v_turb=1
 model_T_rot0_fl=1
 model_T_rot_alpha_fl=1
-model_rel_lum=0
+model_rel_lum=1
+
+model_inclination=1
+model_H_den0=1
+model_H_den_alpha=1
+model_X12CO_13CO_fl=1
+model_X12CO_C18O_fl=1
+model_X12CO_13CO_cl=1
+model_X12CO_C18O_cl=1
+
 
 
 #range parameters
 layers_min=100
 layers_max=1000
 
-disk_in_min=14
-disk_in_max=14
+disk_in_min=6
+disk_in_max=21
 
-disk_out_min=108
-disk_out_max=108
+disk_out_min=50
+disk_out_max=125
 
 v_turb_min=200000
 v_turb_max=500000
@@ -59,14 +80,40 @@ T_rot0_fl_max=3500
 T_rot_alpha_fl_min=0.2
 T_rot_alpha_fl_max=0.50
 
-rel_lum_min=19
-rel_lum_max=19
+rel_lum_min=1
+rel_lum_max=100
+
+
+
+inclination_min=0.5
+inclination_max=0.8
+
+H_den0_min=2.5e9
+H_den0_max=2.5e11
+
+H_den_alpha_min=0.08
+H_den_alpha_max=0.12
+
+                 
+X12CO_13CO_fl_min=1
+X12CO_13CO_fl_max=3
+
+X12CO_C18O_fl_min=30
+X12CO_C18O_fl_max=40
+
+X12CO_13CO_cl_min=50
+X12CO_13CO_cl_max=80
+
+X12CO_C18O_cl_min=500
+X12CO_C18O_cl_max=640
+
+
 
 #data noise
-segment1=8.10388e-15
-segment2=1.05837e-14
-segment3=1.17277e-14
-segment4=7.94574e-15
+order1=8.10388e-15
+order2=1.05837e-14
+order3=1.17277e-14
+order4=7.94574e-15
 
 
 #print debug messages

@@ -18,8 +18,9 @@ double* FitData::FillArray(int min, int max)
 {
   double* array;
   array  = new double[numGuesses];
+cerr << "Creating:  " << min << " " << max << " " << max-min << endl;
   for(int i=0; i<numGuesses;i++) {
-    array[i]=rand() % (max-min) + min;
+    array[i]= rand() % (max-min) + min;
   }
   return array;
 }
@@ -39,17 +40,36 @@ int FitData::dbm(string message)
   if (rank==0 && doDebug==1)  cout << message << endl;
 }
 
-int FitData::runTrial(double layers, double disk_in, double disk_out, double v_turb, double T_rot0_fl, double T_rot_alpha_fl, double rel_lum, int locali) {
-//============================================
-// MAIN MODEL-FITTING FUNCTION
-// -This is the part to make parallel
-//============================================
+int FitData::runTrial(double layers, double disk_in, double disk_out, double v_turb, double T_rot0_fl, double T_rot_alpha_fl, double rel_lum, double inclination, double H_den0, double H_den_alpha, double X12CO_13CO_fl, double X12CO_C18O_fl, double X12CO_13CO_cl, double X12CO_C18O_cl,  int locali) 
+{
 
-//========================================
-// Set up CollData!
-// The CollData object contains all of the variables specific to this trial!
-// CollData::CollData sets up static rate equation varibles, v_line indices, and another static varibles
-//=========================================
+if (locali==0)
+{
+cerr << layers << endl;
+cerr << disk_in << endl;
+cerr << disk_out << endl;
+cerr << v_turb << endl;
+cerr << T_rot0_fl << endl;
+cerr << rel_lum << endl;
+cerr << inclination << endl;
+cerr << H_den0 << endl;
+cerr << H_den_alpha << endl;
+cerr << X12CO_13CO_fl << endl;
+cerr << X12CO_C18O_fl << endl;
+cerr << X12CO_13CO_cl << endl;
+cerr << X12CO_C18O_cl << endl;
+}
+  //============================================
+  // MAIN MODEL-FITTING FUNCTION
+  // -This is the part to make parallel
+  //============================================
+
+  //========================================
+  // Set up CollData!
+  // The CollData object contains all of the variables specific to this trial!
+  // CollData::CollData sets up static rate equation varibles, v_line indices, and another static varibles
+  //=========================================
+
   double dist = 1.496e13*disk_in;
   double T_rot0_cl=T_rot0_fl;
   double T_rot_alpha_cl=T_rot_alpha_fl;
@@ -87,6 +107,7 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
    fvec b_tot2 = sqrt(2*1.38e-16*6.02e23*conv_to<fvec>::from(d->T_rot_fl)/28 + pow(v_turb,2));
 
     //==============CALCULATE DFDT BY INTEGRATION USING TRAPEZOID RULE================
+
     for (int i=0; i<2000; i++) 
     {
       d->sum = 0.5 * ( (1 - exp(-d->tau(i)*exp(-pow(d->a,2)))) + (1 - exp(-d->tau(i)*exp(-pow(d->b,2)))) );
@@ -101,9 +122,10 @@ int FitData::runTrial(double layers, double disk_in, double disk_out, double v_t
       vec dFdt=deriv2(d->tau,d->F_tau);
       d->Nv = zeros<fcube>(21,layers,d->steps);
 
-//==========================================================
-//   BIG COLLISION LOOP
-//=========================================================
+    //==========================================================
+    //   BIG COLLISION LOOP
+    //=========================================================
+
     for (int coll_loop=0; coll_loop<2; coll_loop++) 
     {
       vec sol;
@@ -435,16 +457,18 @@ skip_fluorcalc:
   }
 
   flux_tot_slit=flux_tot_slit/(4*datum::pi*pow(data->stardist,2));
-//===================================
-//  SCRIPT 4 of 4
-//====================================
+
+  //===================================
+  //  SCRIPT 4 of 4
+  //====================================
 
   double r_in=d->rdisk.at(0);
   double r_out=d->rdisk.at(d->rdisk.n_elem-1);
 
   double dv=1;
 
-//account for slit loss
+  //account for slit loss
+
   vec slit_loss=100.17*pow(d->rdisk,-1.260);
   double disk_Beyond_slit = 63;
 
@@ -549,7 +573,7 @@ skip_fluorcalc:
       {
 	area.at(i)=dphase.at(i)*(d->rdisk.at(j)+dr.at(j)/2)*dr.at(j);
 
-        vel_spec=vel_spec+interpol(d->stick_spec_tot.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
+        vel_spec=vel_spec+interpol(d->stick_spec_tot.col(j)*area.at(i),freq+vseg.at(i)*sin(inclination)*freq/c,freq);
 /*        d->grid.at(grid_ptr,0)=d->rdisk.at(j);
         d->grid.at(grid_ptr,1)=vseg.at(i);
         d->grid.at(grid_ptr,2)=phase.at(i);
@@ -557,13 +581,13 @@ skip_fluorcalc:
 */        for (int ii=4; ii<26; ii++) { d->grid.at(grid_ptr,ii)=d->iten_lines(ii-4,0)(j);}
         grid_ptr++;
       } 
-    }
+    } 
     else
     {
       for (int i=0; i<n_seg; i++)
       {
         area.at(i)=dphase.at(i)*(d->rdisk.at(j)+dr.at(j)/2)*dr.at(j);
-        vel_spec=vel_spec+interpol(d->stick_spec_tot.col(j)*area.at(i),freq+vseg.at(i)*sin(inc)*freq/c,freq);
+        vel_spec=vel_spec+interpol(d->stick_spec_tot.col(j)*area.at(i),freq+vseg.at(i)*sin(inclination)*freq/c,freq);
 /*        d->grid.at(grid_ptr,0)=d->rdisk.at(j);
         d->grid.at(grid_ptr,1)=vseg.at(i);
         d->grid.at(grid_ptr,2)=phase.at(i);
@@ -643,7 +667,7 @@ skip_fluorcalc:
       vec rp=zeros<vec>(index1n);
       for (int i=0; i<index1n; i++)
       {
-	rp.at(i)=d->grid(d->index1.at(i),0)*sqrt(pow(cos(phi2.at(i)),2)+pow(sin(phi2.at(i)),2)*pow(cos(inc),2));
+	rp.at(i)=d->grid(d->index1.at(i),0)*sqrt(pow(cos(phi2.at(i)),2)+pow(sin(phi2.at(i)),2)*pow(cos(inclination),2));
       }
 
       vec theta=zeros<vec>(index1n);
@@ -651,11 +675,11 @@ skip_fluorcalc:
       {
 	if (phi2.at(i) < datum::pi) 
 	{
-	  theta.at(i)=acos( cos(phi2.at(i)) / sqrt(pow(cos(phi2.at(i)),2) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2)));
+	  theta.at(i)=acos( cos(phi2.at(i)) / sqrt(pow(cos(phi2.at(i)),2) + pow(sin(phi2.at(i)),2)*pow(cos(inclination),2)));
 	}
 	else  
 	{
-	  theta.at(i)=2*datum::pi - acos( cos(phi2.at(i)) / sqrt(pow(cos(phi2.at(i)),2) + pow(sin(phi2.at(i)),2)*pow(cos(inc),2)));
+	  theta.at(i)=2*datum::pi - acos( cos(phi2.at(i)) / sqrt(pow(cos(phi2.at(i)),2) + pow(sin(phi2.at(i)),2)*pow(cos(inclination),2)));
 	}
       
 }
@@ -724,7 +748,7 @@ skip_fluorcalc:
   }
 
   for (int i=0; i<indexsiz; i++) d->diff.at(indexdiff.at(i)) = 0;
-  double chisq = ( (arma::sum(pow(abs(d->diff.subvec(0,1023)),2)/pow(segment1,2)) + arma::sum(pow(abs(d->diff.subvec(1024,2047)),2)/pow(segment2,2)) + arma::sum(pow(abs(d->diff.subvec(2048,3071)),2)/pow(segment3,2)) + arma::sum(pow(abs(d->diff.subvec(3072,4095)),2)/pow(segment4,2) ))/4)/(4096-indexsiz);
+  double chisq = ( (arma::sum(pow(abs(d->diff.subvec(0,1023)),2)/pow(order1,2)) + arma::sum(pow(abs(d->diff.subvec(1024,2047)),2)/pow(order2,2)) + arma::sum(pow(abs(d->diff.subvec(2048,3071)),2)/pow(order3,2)) + arma::sum(pow(abs(d->diff.subvec(3072,4095)),2)/pow(order4,2) ))/4)/(4096-indexsiz);
 
   //===========================
   //===  MPI Communication  ===
@@ -738,16 +762,8 @@ skip_fluorcalc:
   sendMessage[0]=static_cast<double>(locali);
   sendMessage[1]=chisq;
 
-  if (rank!=0)
-  {
-    MPI_Send(&sendMessage,2,MPI_DOUBLE,0,rank,MPI_COMM_WORLD);
-  }
+  MPI_Send(&sendMessage,2,MPI_DOUBLE,0,rank,MPI_COMM_WORLD);
  
-  if (rank==0)
-  {
-    local_i=locali;
-    local_chisq=chisq;
-  } 
 
   //==========================  
 
@@ -759,7 +775,7 @@ skip_fluorcalc:
 //MAIN SCHEDULING FUNCTION
 int FitData::runTrials() 
 {
-  
+  cerr << "Runtrials" << endl; 
    
   string abspath;
 
@@ -784,25 +800,72 @@ int FitData::runTrials()
   //devote procesor #1 as a scheduler
   if (rank==0) 
   {
-
-    double** randData = new double*[7];
+    double** randData = new double*[14];
 
     
-    if (model_layers)         randData[0]=FillArray(layers_min, layers_max);                else randData[0]=BlankArray(layers_0);
-    if (model_disk_in)        randData[1]=FillArray(disk_in_min, disk_in_max);              else randData[1]=BlankArray(disk_in_0);
-    if (model_disk_out)       randData[2]=FillArray(disk_out_min,disk_out_max);             else randData[2]=BlankArray(disk_out_0);
-    if (model_v_turb)         randData[3]=FillArray(v_turb_min, v_turb_max);                else randData[3]=BlankArray(v_turb_0);     
-    if (model_T_rot0_fl)      randData[4]=FillArray(T_rot0_fl_min,T_rot0_fl_max);           else randData[4]=BlankArray(T_rot0_fl_0);
-    if (model_T_rot_alpha_fl) randData[5]=FillArray(T_rot_alpha_fl_min,T_rot_alpha_fl_max); else randData[5]=BlankArray(T_rot_alpha_fl_0);
-    if (model_rel_lum)        randData[6]=FillArray(rel_lum_min, rel_lum_max);              else randData[6]=BlankArray(rel_lum_0);
+    if (doModel[0])         randData[0]=FillArray(layers_min, layers_max);                
+    else randData[0]=BlankArray(layers_0);
+    if (doModel[1])        randData[1]=FillArray(disk_in_min, disk_in_max);              
+    else randData[1]=BlankArray(disk_in_0);
+cerr <<"in"<<endl;
+cerr << disk_out_min << endl;
+cerr << disk_out_max << endl;
+cerr << disk_out_0 << endl;
+    if (doModel[2])       randData[2]=FillArray(disk_out_min,disk_out_max);             
+    else randData[2]=BlankArray(disk_out_0);
+cerr<<"out"<<endl;
+    if (doModel[3])         randData[3]=FillArray(v_turb_min, v_turb_max);                
+    else randData[3]=BlankArray(v_turb_0);     
+cerr<<"v_turb"<<endl;
+    if (doModel[4])      randData[4]=FillArray(T_rot0_fl_min,T_rot0_fl_max);           
+    else randData[4]=BlankArray(T_rot0_fl_0);
+cerr << "temp"<<endl;
+    if (doModel[5]) randData[5]=FillArray(T_rot_alpha_fl_min,T_rot_alpha_fl_max); 
+    else randData[5]=BlankArray(T_rot_alpha_fl_0);
+cerr<<"alpha"<<endl;
+    if (doModel[6])        randData[6]=FillArray(rel_lum_min, rel_lum_max);              
+    else randData[6]=BlankArray(rel_lum_0);
+
+    if (doModel[7])    randData[7]=FillArray(inclination_min,inclination_max);       
+    else randData[7]=BlankArray(inclination_0);
+cerr << "inc" << endl;
+cerr << H_den0_min << " " <<H_den0_max << endl;
+    if (doModel[8])    randData[8]=FillArray(H_den0_min,H_den0_max);       
+    else randData[8]=BlankArray(H_den0_0);
+cerr << "hden"<<endl;
+    if (doModel[9])    randData[9]=FillArray(H_den_alpha_min,H_den_alpha_max);       
+    else randData[9]=BlankArray(H_den_alpha_0);
+cerr << "hdenalpha"<<endl;
+    if (doModel[10])    randData[10]=FillArray(X12CO_13CO_fl_min,X12CO_13CO_fl_max);       
+    else randData[10]=BlankArray(X12CO_13CO_fl_0);
+cerr<<"x12"<<endl;
+    if (doModel[11])    randData[11]=FillArray(X12CO_C18O_fl_min,X12CO_C18O_fl_max);       
+    else randData[11]=BlankArray(X12CO_C18O_fl_0);
+
+    if (doModel[12])    randData[12]=FillArray(X12CO_13CO_cl_min,X12CO_13CO_cl_max);       
+    else randData[12]=BlankArray(X12CO_13CO_cl_0);
     
+    if (doModel[13])  randData[13]=FillArray(X12CO_C18O_cl_min,X12CO_C18O_cl_max);
+    else randData[13]=BlankArray(X12CO_C18O_cl_0);
+
+
+
     if (model_T_rot_alpha_fl)
     { 
       for (int i=0; i<numGuesses; i++) 
       {
         randData[5][i]=randData[5][i]/1000;
+        randData[9][i]=randData[9][i]/1000;
+        randData[7][i]=randData[7][i]/1000;
+        randData[10][i]=randData[10][i]/100;
+        randData[11][i]=randData[11][i]/100;
+        randData[12][i]=randData[12][i]/100;
+        randData[13][i]=randData[13][i]/100;
+        randData[8][i]=randData[8][i]*1e5;
       }
+
     }
+
     int I=0;
     int quit=0;
 
@@ -844,9 +907,9 @@ int FitData::runTrials()
 
     ofstream fout(abspath);
 
-    fout << "======================================================================" << endl;
-    fout << "======================= COSYN GENERATED OUTPUT =======================" << endl;
-    fout << "======================================================================" << endl;
+    fout << "==============================================================================" << endl;
+    fout << "==========================  COSYN GENERATED OUTPUT  ==========================" << endl;
+    fout << "==============================================================================" << endl;
     fout << endl;
     fout << "COSyn " << folderpath << ": " << numGuesses << " trials" << endl; 
     fout << endl;
@@ -855,9 +918,26 @@ int FitData::runTrials()
     for (int i=0; i<inp.size(); i++) fout << "       " <<  inp.at(i) << endl;
     fout << endl;
     fout << endl;
-    fout << "======================================================================" << endl;;
-    fout << "i chisq layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
+    fout << "==============================================================================" << endl;;
+    fout << "i chisq";//layers disk_in disk_out v_turb T_rot0_fl T_rot_alpha_fl rel_lum" << endl;;
 
+    if (doModel[0]) fout << " layers";
+    if (doModel[1]) fout << " disk_in";
+    if (doModel[2]) fout << " disk_out";
+    if (doModel[3]) fout << " v_turb";
+    if (doModel[4]) fout << " T_rot0_fl";
+    if (doModel[5]) fout << " T_rot_alpha_fl";
+    if (doModel[6]) fout << " rel_lum";
+    
+    if (doModel[7]) fout << " inclination";
+    if (doModel[8]) fout << " H_den0";
+    if (doModel[9]) fout << " H_den_alpha";
+    if (doModel[10]) fout << " X12CO_13CO_fl";
+    if (doModel[11]) fout << " X12CO_C18O_fl";
+    if (doModel[12]) fout << " X12CO_13CO_cl";
+    if (doModel[13]) fout << " X12CO_C18O_cl";
+
+    fout << endl;
     /*//////////////////////////////////////////////////////////////////////
     //
     //                            MASTER SCHEDULER
@@ -885,7 +965,7 @@ int FitData::runTrials()
     //
     *///////////////////////////////////////////////////////////////////////
     
-    double sendMsg[9];
+    double sendMsg[16];
 
     finchivec=zeros<vec>(numGuesses);
 
@@ -910,7 +990,6 @@ int FitData::runTrials()
     //    Send out the first modeling task to each slave processor.
     //
     //=============================================================
-
     for (int i=1; i<numtasks; i++)
     {
 
@@ -926,26 +1005,29 @@ int FitData::runTrials()
         sendMsg[6]=T_rot0_fl_0;
         sendMsg[7]=T_rot_alpha_fl_0;
         sendMsg[8]=rel_lum_0;
+        sendMsg[9]=inclination_0;
+        sendMsg[10]=H_den0_0;
+        sendMsg[11]=H_den_alpha_0;
+        sendMsg[12]=X12CO_13CO_fl_0;
+        sendMsg[13]=X12CO_C18O_fl_0;
+        sendMsg[14]=X12CO_13CO_cl_0;
+        sendMsg[15]=X12CO_C18O_cl_0;
+      
+ cerr << "sendmsg 12,14:  " << sendMsg[12] << " " <<sendMsg[14] << endl;
+
       }
 
       else 
       {
-        sendMsg[2]=randData[0][I];
-        sendMsg[3]=randData[1][I];
-        sendMsg[4]=randData[2][I];
-        sendMsg[5]=randData[3][I];
-        sendMsg[6]=randData[4][I];
-        sendMsg[7]=randData[5][I];
-        sendMsg[8]=randData[6][I];
+        for (int i=0; i<14; i++) sendMsg[i+2]=randData[i][I];
       }
 
-
-      MPI_Send(&sendMsg,9,MPI_DOUBLE,i,0,MPI_COMM_WORLD);
+      MPI_Send(&sendMsg,16,MPI_DOUBLE,i,0,MPI_COMM_WORLD);
 
       I++;
 
     }
-
+  
     /////////////////////////////////////////////////////////////////////
     //
     //                      ASYNCHRONOUS LOOP
@@ -963,7 +1045,6 @@ int FitData::runTrials()
     int srcRank;
     int recvCount=0;
     double recvMsg[2];
-
     while (recvCount<numGuesses)
     {
 
@@ -980,10 +1061,32 @@ int FitData::runTrials()
       //Printing/logging
       if (index==0) 
       {
-       fout << 0 << " " << finchivec.at(0) << " " << layers_0 << " " << disk_in_0 << " " << disk_out_0 << " " << v_turb_0 << " " << T_rot0_fl_0 << " " << T_rot_alpha_fl_0 << " " << rel_lum_0 << endl;
+
+       fout << 0 << " " << finchivec.at(0);
+
+       if (doModel[0])  fout << " " << layers_0;
+       if (doModel[1])  fout << " " << disk_in_0;
+       if (doModel[2])  fout << " " << disk_out_0;
+       if (doModel[3])  fout << " " << v_turb_0;
+       if (doModel[4])  fout << " " << T_rot0_fl_0;
+       if (doModel[5])  fout << " " << T_rot_alpha_fl_0;
+       if (doModel[6])  fout << " " << rel_lum_0;
+
+       if (doModel[7])  fout << " " << inclination_0;
+       if (doModel[8])  fout << " " << H_den0_0;
+       if (doModel[9])  fout << " " << H_den_alpha_0;
+       if (doModel[10]) fout << " " << X12CO_13CO_fl_0;
+       if (doModel[11]) fout << " " << X12CO_C18O_fl_0;
+       if (doModel[12]) fout << " " << X12CO_13CO_cl_0;
+       if (doModel[13]) fout << " " << X12CO_C18O_cl_0;
+       fout << endl;
+
       } 
-      else {
-        fout << index << " "  << finchivec.at(index) << " " << randData[0][index] << " "  << randData[1][index] << " "  << randData[2][index] << " " << randData[3][index] << " " << randData[4][index] << " " << randData[5][index] << " " << randData [6][index] << endl;
+      else 
+      {
+        fout << index << " "  << finchivec.at(index);
+        for (int i=0; i<14; i++) {if (doModel[i]) fout << " " << randData[i][index];};
+        fout << endl;
       }
 
       //Send signal to terminate if maximum guesses reached
@@ -991,26 +1094,21 @@ int FitData::runTrials()
 
       sendMsg[0]=static_cast<double>(I);
       sendMsg[1]=static_cast<double>(quit);
+
       if (!quit) 
       {
-        sendMsg[2]=randData[0][I];
-        sendMsg[3]=randData[1][I];
-        sendMsg[4]=randData[2][I];
-        sendMsg[5]=randData[3][I];
-        sendMsg[6]=randData[4][I];
-        sendMsg[7]=randData[5][I];
-        sendMsg[8]=randData[6][I];
+        for (int i=0; i<14; i++) sendMsg[i+2]=randData[i][I];
       }
       else
       {
-        for (int i=2; i<9; i++) sendMsg[i]=0;
+        for (int i=2; i<16; i++) sendMsg[i]=0;
       }
 
-      MPI_Send(&sendMsg,9,MPI_DOUBLE,srcRank,0,MPI_COMM_WORLD);
+      MPI_Send(&sendMsg,16,MPI_DOUBLE,srcRank,0,MPI_COMM_WORLD);
       I++;
     }
     fout.close();
-    for (int i=0; i<7; i++) delete[] randData[i];
+    for (int i=0; i<14; i++) delete[] randData[i];
     delete[] randData;
   }
  
@@ -1038,11 +1136,21 @@ int FitData::runTrials()
     //double T_rot_alpha_cl=T_rot_alpha_fl;
     double rel_lum;
 
-    double recvMsg[9];
+  
+    double inclination; 
+    double H_den0;
+    double H_den_alpha;
+    double X12CO_13CO_fl;      
+    double X12CO_C18O_fl; 
+    double X12CO_13CO_cl;       
+    double X12CO_C18O_cl;
+
+
+    double recvMsg[16];
     
     while(42)
     {
-      MPI_Recv(&recvMsg,9,MPI_DOUBLE,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
+      MPI_Recv(&recvMsg,16,MPI_DOUBLE,0,MPI_ANY_TAG,MPI_COMM_WORLD,&Stat);
       locali=static_cast<int>(recvMsg[0]);
       quit = static_cast<int>(recvMsg[1]);
       if (quit) break;
@@ -1065,7 +1173,13 @@ int FitData::runTrials()
       T_rot0_fl=recvMsg[6];
       T_rot_alpha_fl=recvMsg[7];
       rel_lum=recvMsg[8];
-
+      inclination=recvMsg[9]; 
+      H_den0=recvMsg[10];
+      H_den_alpha=recvMsg[11];
+      X12CO_13CO_fl=recvMsg[12];
+      X12CO_C18O_fl=recvMsg[13];
+      X12CO_13CO_cl=recvMsg[14];
+      X12CO_C18O_cl=recvMsg[15];
      /* if (locali==0)
       { 
 	layers=layers_0;
@@ -1092,7 +1206,7 @@ int FitData::runTrials()
 
       //Run a trial with this data; MPI_Send will be called within this trial to return data to the master proces
 
-      this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,locali);
+      this->runTrial(layers,disk_in,disk_out,v_turb,T_rot0_fl,T_rot_alpha_fl,rel_lum,inclination,H_den0,H_den_alpha,X12CO_13CO_fl,X12CO_C18O_fl,X12CO_13CO_cl,X12CO_C18O_cl,locali);
         //this->runTrial(layers_0,disk_in_0,disk_out_0,v_turb_0,T_rot0_fl_0,T_rot_alpha_fl_0,rel_lum_0,locali);
     }
   }
@@ -1112,11 +1226,8 @@ int FitData::runTrials()
     fout << "Minimum:  i=" << mindex << ", chi^2=" << min << endl;
     fout.close();
   }
-
   MPI_Finalize();
   return 0;
-
-
 }
 
 FitData::FitData(string folder)
@@ -1133,6 +1244,9 @@ FitData::FitData(string folder)
   //read in data from files
 
   FitData::readInput(folderpath+"/input");
+ cerr << "ratios" << endl;
+  cerr << X12CO_13CO_fl_0 << endl;
+  cerr << X12CO_13CO_cl_0 << endl;
   std::ifstream fin;
 
   fin.open("ratedat/EinA.txt");
@@ -1231,6 +1345,9 @@ FitData::FitData(string folder)
     fin >> f1big.at(z);
   }
   fin.close();
+  
+  freq_size=floor(log10(f_f/f_i)/log10(1+v/(3*c)));
+
 
   freq = zeros<vec>(freq_size);
   freq.at(0)=f_i;
@@ -1240,6 +1357,7 @@ FitData::FitData(string folder)
   {
     freq.at(i)=f_i*(pow(1+v/(3*c),i));
   }
+
   vfreq=(freq(round(freq.n_elem/2))-freq)*c/freq(round(freq.n_elem/2));  
 
   isSent = new bool[numGuesses];
@@ -1263,12 +1381,14 @@ FitData::FitData(string folder)
  *
  *==================*/
   fXA = 2*(3.038/2.03)*einA/(wavenum % wavenum);   //be sure this is right!
+
   this->runTrials();
+
 }
 
 FitData::~FitData()
 {
-  delete[] this->isSent;
+  //delete[] this->isSent;
 }
 
 int createInput() 
@@ -1345,12 +1465,35 @@ int FitData::readInput(string inpFile)
       {
         *inputVars[i]=stod(split2);
         if (split1=="T_rot_alpha_fl_min" || split1== "T_rot_alpha_fl_max") *inputVars[i]=*inputVars[i]*1000;
+        if (split1=="H_den_alpha_min"    || split1== "H_den_alpha_max")    *inputVars[i]=*inputVars[i]*1000;
+        if (split1=="inclination_min"    || split1== "inclination_max")    *inputVars[i]=*inputVars[i]*1000;
+        if (split1=="X12CO_13CO_fl_min"  || split1== "X12CO_13CO_fl_max")  *inputVars[i]=*inputVars[i]*100;
+        if (split1=="X12CO_C18O_fl_min"  || split1== "X12CO_C18O_fl_max")  *inputVars[i]=*inputVars[i]*100;
+        if (split1=="X12CO_13CO_cl_min"  || split1== "X12CO_13CO_cl_max")  *inputVars[i]=*inputVars[i]*100;
+        if (split1=="X12CO_C18O_cl_min"  || split1== "X12CO_C18O_cl_max")  *inputVars[i]=*inputVars[i]*100;
+        if (split1=="H_den0_min"         || split1== "H_den0_max"     )    *inputVars[i]=*inputVars[i]/1e5;
       }
     }
     if (split1=="numGuesses") this->numGuesses=atoi(split2.c_str());
   }
 
+  if (model_layers)         doModel[0] = 1;
+  if (model_disk_in)        doModel[1] = 1;
+  if (model_disk_out)       doModel[2] = 1;
+  if (model_v_turb)         doModel[3] = 1; 
+  if (model_T_rot0_fl)      doModel[4] = 1; 
+  if (model_T_rot_alpha_fl) doModel[5] = 1; 
+  if (model_rel_lum)        doModel[6] = 1; 
+  if (model_inclination)    doModel[7] = 1; 
+  if (model_H_den0)         doModel[8] = 1; 
+  if (model_H_den_alpha)    doModel[9] = 1; 
+  if (model_X12CO_13CO_fl)  doModel[10] = 1; 
+  if (model_X12CO_C18O_fl)  doModel[11] = 1; 
+  if (model_X12CO_13CO_cl)  doModel[12] = 1; 
+  if (model_X12CO_C18O_cl)  doModel[13] = 1; 
+ cerr << "Input read" << endl;
 }
+
 
 int main(int argc, char* argv[]) 
 {
